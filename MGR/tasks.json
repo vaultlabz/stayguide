@@ -372,6 +372,54 @@
         "achieve": "managers can post notices (e.g. pool cleaning) guests actually see",
         "according": "gap found during Phase 2"
       }
+    },
+    {
+      "id": 32,
+      "creationDate": "2026-10-03 17:53",
+      "title": "Content management: restaurants, how-to videos, local info, announcements (+ PMS import adapter design)",
+      "description": "Logged at /stop 2026-10-03",
+      "complexity": 8,
+      "completionDate": null,
+      "status": "pending",
+      "priority": "high",
+      "trelloCardId": null,
+      "context": {
+        "doing": "Building dashboard CRUD for tablet content tables that nothing can write today",
+        "achieve": "tablets show real local guides, videos and notices in MySQL mode",
+        "according": "2026-10-03 audit + plan follow-up (content-management plan)"
+      }
+    },
+    {
+      "id": 33,
+      "creationDate": "2026-10-03 17:53",
+      "title": "Clearer pairing errors (expired vs used vs invalid code)",
+      "description": "Logged at /stop 2026-10-03",
+      "complexity": 2,
+      "completionDate": null,
+      "status": "pending",
+      "priority": "low",
+      "trelloCardId": null,
+      "context": {
+        "doing": "Returning distinct pairing error codes and tablet messages",
+        "achieve": "installers know to generate a new code instead of retrying",
+        "according": "design review 2026-10-03"
+      }
+    },
+    {
+      "id": 34,
+      "creationDate": "2026-10-03 17:53",
+      "title": "Remove or regenerate stale yarn.lock",
+      "description": "Logged at /stop 2026-10-03",
+      "complexity": 1,
+      "completionDate": null,
+      "status": "pending",
+      "priority": "low",
+      "trelloCardId": null,
+      "context": {
+        "doing": "Deleting yarn.lock (npm is the package manager)",
+        "achieve": "no installs from outdated vulnerable versions",
+        "according": "dependency update 2026-10-03"
+      }
     }
   ]
 }

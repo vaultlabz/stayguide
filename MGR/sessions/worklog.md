@@ -203,3 +203,15 @@
 - **title:** Show announcements on the tablet
 - **was:** pending → **now:** done
 - **note:** announcements rendered with type styling
+
+## 2026-10-03 17:53 | claude-code | task.created
+- **id:** 32
+- **title:** Content management: restaurants, how-to videos, local info, announcements (+ PMS import adapter design)
+
+## 2026-10-03 17:53 | claude-code | task.created
+- **id:** 33
+- **title:** Clearer pairing errors (expired vs used vs invalid code)
+
+## 2026-10-03 17:53 | claude-code | task.created
+- **id:** 34
+- **title:** Remove or regenerate stale yarn.lock

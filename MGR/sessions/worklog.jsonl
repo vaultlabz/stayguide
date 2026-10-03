@@ -34,3 +34,6 @@
 {"ts":"2026-10-03 12:36","tool":"claude-code","event":"task.created","id":27,"title":"Show announcements on the tablet"}
 {"ts":"2026-10-03 12:50","tool":"claude-code","event":"task.completed","id":26,"title":"Upgrade vulnerable dependencies (jws via jsonwebtoken, express, multer, mysql2, sharp)"}
 {"ts":"2026-10-03 12:50","tool":"claude-code","event":"task.completed","id":27,"title":"Show announcements on the tablet"}
+{"ts":"2026-10-03 17:53","tool":"claude-code","event":"task.created","id":32,"title":"Content management: restaurants, how-to videos, local info, announcements (+ PMS import adapter design)"}
+{"ts":"2026-10-03 17:53","tool":"claude-code","event":"task.created","id":33,"title":"Clearer pairing errors (expired vs used vs invalid code)"}
+{"ts":"2026-10-03 17:53","tool":"claude-code","event":"task.created","id":34,"title":"Remove or regenerate stale yarn.lock"}
