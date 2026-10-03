@@ -21,3 +21,8 @@
 - Follow-ups: deps updated (prod audit 0; sharp 0.35 → Node ≥20.9), 4 undefined-bind bugs fixed, announcements on tablet; docs/INTEGRATION_GUIDE.md v0.2
 - Verified: curl checks + headless Chromium suites (15/21/24 pass); MySQL paths code-reviewed only; 3 migrations in database/migrations/ must be run before deploy
 - Open: #25 external API (stays/conversions/webhooks); clearer pairing-code error message; yarn.lock stale; repo not yet in git (committing + pushing to github.com/vaultlabz now)
+
+2026-10-03 13:35
+## Checkpoint (claude-code)
+- Git: initial commit 4ace9ce pushed to private repo https://github.com/vaultlabz/stayguide (branches main + design)
+- Sharing: jonbeatz (jonbeatz@gmail.com) already has admin via vaultlabz org membership; no invite needed
