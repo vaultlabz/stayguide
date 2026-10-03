@@ -20,7 +20,7 @@ html { font-size: 112.5%; }
     --t-glass-hover: rgba(255, 255, 255, 0.12);
     --t-field: rgba(255, 255, 255, 0.08);
     --t-sheet: rgba(20, 20, 20, 0.88);
-    --t-overlay: rgba(0, 0, 0, 0.6);
+    --t-dim: rgba(0, 0, 0, 0.35);
     --t-btn-bg: #ffffff;
     --t-btn-fg: #000000;
     --t-btn-line: transparent;
@@ -38,15 +38,16 @@ html { font-size: 112.5%; }
     --t-glass-hover: rgba(0, 0, 0, 0.07);
     --t-field: rgba(0, 0, 0, 0.045);
     --t-sheet: rgba(255, 255, 255, 0.9);
-    --t-overlay: rgba(0, 0, 0, 0.35);
+    --t-dim: rgba(255, 255, 255, 0.35);
     --t-btn-bg: #000000;
     --t-btn-fg: #ffffff;
     --t-alert: #b42318;
     --t-warn: #b45309;
 }
-/* Gradient presets (exact Figma tokens): always the dark treatment; primary buttons carry the linear gradient */
-:root[data-bg="baltic-rose"] { --t-fg-2: rgba(255, 255, 255, 0.8); --t-btn-bg: linear-gradient(to bottom, #3E2D3F, #8D645C); --t-btn-fg: #ffffff; --t-btn-line: rgba(255, 255, 255, 0.15); --t-scrim: rgba(0, 0, 0, 0.22); }
-:root[data-bg="rich-bistre"] { --t-fg-2: rgba(255, 255, 255, 0.78); --t-btn-bg: linear-gradient(to bottom, #3F2C20, #060201); --t-btn-fg: #ffffff; --t-btn-line: rgba(255, 255, 255, 0.15); --t-scrim: transparent; }
+/* Gradient presets: per-slug values (file, fallback, Linear, scrim) are set by applyTabletLook() from /js/tablet-backgrounds.js.
+ * Each preset forces its own mode via data-theme (light gradients: dark text on light glass; dark gradients: the reverse). */
+:root[data-bg="gradient"][data-theme="dark"] { --t-fg-2: rgba(255, 255, 255, 0.8); }
+:root[data-bg="gradient"][data-theme="light"] { --t-fg-2: rgba(0, 0, 0, 0.76); }
 /* Custom image: scrim keeps text readable on any photo */
 :root[data-bg="image"] { --t-fg-2: rgba(255, 255, 255, 0.8); --t-scrim: rgba(0, 0, 0, 0.68); }
 :root[data-bg="image"][data-theme="light"] { --t-fg-2: rgba(0, 0, 0, 0.7); --t-scrim: rgba(255, 255, 255, 0.78); }
@@ -59,10 +60,8 @@ body { background: transparent; min-height: 100vh; font-family: var(--t-font); f
 ::selection { background: var(--t-glass); }
 
 /* Background layer */
-.bg-layer { position: fixed; inset: 0; z-index: -1; background: var(--t-bg); }
-:root[data-bg="baltic-rose"] .bg-layer { background: #3E2D3F url(/img/gradients/baltic-rose.webp) center / cover no-repeat; }
-:root[data-bg="rich-bistre"] .bg-layer { background: #060201 url(/img/gradients/rich-bistre.webp) center / cover no-repeat; }
-:root[data-bg="image"] .bg-layer { background: var(--t-bg) var(--tablet-bg) center / cover no-repeat; }
+.bg-layer { position: fixed; inset: 0; z-index: -1; background: var(--t-bg-fallback, var(--t-bg)) var(--tablet-bg, none) center / cover no-repeat; }
+.bg-fade { position: fixed; inset: 0; z-index: -1; pointer-events: none; background-size: cover; background-position: center; opacity: 1; transition: opacity 0.9s cubic-bezier(0.22, 1, 0.36, 1); }
 .bg-layer::after { content: ""; position: absolute; inset: 0; background: var(--t-scrim); }
 
 /* Layout */
@@ -103,8 +102,8 @@ body { background: transparent; min-height: 100vh; font-family: var(--t-font); f
 .tile.report-button:hover { background: var(--t-glass-hover); opacity: 1; }
 
 /* Sheets: large glass dialogs, one per tile */
-.sheet { position: fixed; inset: 0; z-index: 800; display: none; align-items: center; justify-content: center; padding: 3vh 3vw; background: var(--t-overlay); -webkit-backdrop-filter: blur(14px); backdrop-filter: blur(14px); }
-.sheet-inner { width: min(1040px, 100%); max-height: 94vh; display: flex; flex-direction: column; border-radius: 32px; background: var(--t-sheet); overflow: hidden; -webkit-backdrop-filter: blur(32px); backdrop-filter: blur(32px); }
+.sheet { position: fixed; inset: 0; z-index: 800; display: none; align-items: center; justify-content: center; padding: 3vh 3vw; }
+.sheet-inner { width: min(1040px, 100%); max-height: 94vh; display: flex; flex-direction: column; border-radius: 32px; background: var(--t-sheet); overflow: hidden; }
 .sheet-header { display: flex; justify-content: space-between; align-items: center; padding: 22px 24px 18px 40px; border-bottom: 1px solid var(--t-line); }
 .sheet-header h2 { font-size: 1.6rem; font-weight: 500; letter-spacing: -0.02em; }
 .sheet-close { width: 56px; height: 56px; border: 1px solid var(--t-line); border-radius: 50%; background: var(--t-glass); color: var(--t-fg); font-size: 2rem; line-height: 1; cursor: pointer; display: grid; place-items: center; }
@@ -210,8 +209,8 @@ body { background: transparent; min-height: 100vh; font-family: var(--t-font); f
 
 
 /* Modals: glass sheets */
-.modal { position: fixed; z-index: 1000; inset: 0; background: var(--t-overlay); -webkit-backdrop-filter: blur(12px); backdrop-filter: blur(12px); overflow-y: auto; }
-.modal-content { background: var(--t-sheet); color: var(--t-fg); margin: 4vh auto; width: 92%; max-width: 640px; border-radius: 28px; overflow: hidden; -webkit-backdrop-filter: blur(32px); backdrop-filter: blur(32px); }
+.modal { position: fixed; z-index: 1000; inset: 0; overflow-y: auto; }
+.modal-content { background: var(--t-sheet); color: var(--t-fg); margin: 4vh auto; width: 92%; max-width: 640px; border-radius: 28px; overflow: hidden; }
 .modal-header { display: flex; justify-content: space-between; align-items: center; padding: 20px 20px 20px 32px; border-bottom: 1px solid var(--t-line); }
 .modal-header h2 { font-size: 1.4rem; font-weight: 500; letter-spacing: -0.02em; }
 .close { width: 48px; height: 48px; border: 1px solid var(--t-line); border-radius: 50%; background: var(--t-glass); color: var(--t-fg); font-size: 1.6rem; line-height: 1; cursor: pointer; display: grid; place-items: center; }
@@ -262,3 +261,26 @@ body { background: transparent; min-height: 100vh; font-family: var(--t-font); f
 .announcement-review::before { background: var(--t-fg); }
 .announcement-review strong { font-weight: 600; margin-right: 12px; }
 .announcement-review span { color: var(--t-fg-2); }
+
+/* 2026-10-03 17:15, the open sheet/modal IS the one blur layer: blur + dim of everything behind it. Per-card blurs are dropped while it is open. */
+.sheet, .modal { background: var(--t-dim); -webkit-backdrop-filter: blur(24px) saturate(1.2); backdrop-filter: blur(24px) saturate(1.2); }
+@supports not ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
+    .sheet, .modal { background: rgba(0, 0, 0, 0.78); }
+    :root[data-theme="light"] .sheet, :root[data-theme="light"] .modal { background: rgba(255, 255, 255, 0.82); }
+}
+html.layer-open :is(.tile, .announcement, .loading, .error, .guest-link-card, .card) { -webkit-backdrop-filter: none !important; backdrop-filter: none !important; }
+
+/* 2026-10-03 17:15, ease-in transitions (opacity / transform / filter only). Enter settles gently, exit is quicker. */
+.sheet, .modal { opacity: 0; transition: opacity 0.2s ease-in; }
+.sheet.is-open, .modal.is-open { opacity: 1; transition: opacity 0.32s cubic-bezier(0.22, 1, 0.36, 1); }
+.sheet-inner, .modal-content { opacity: 0; transform: translateY(12px) scale(0.98); transition: opacity 0.2s ease-in, transform 0.2s ease-in; }
+.is-open > .sheet-inner, .is-open > .modal-content { opacity: 1; transform: none; transition: opacity 0.32s cubic-bezier(0.22, 1, 0.36, 1), transform 0.32s cubic-bezier(0.22, 1, 0.36, 1); }
+#content, #pairing { animation: sg-enter 0.45s cubic-bezier(0.22, 1, 0.36, 1); }
+@keyframes sg-enter { from { opacity: 0; transform: translateY(12px); } }
+@keyframes sg-rise { from { opacity: 0; transform: translateY(14px); } }
+@keyframes sg-fade { from { opacity: 0.3; } }
+.tile { animation: sg-rise 0.5s cubic-bezier(0.22, 1, 0.36, 1) backwards; animation-delay: calc(var(--i, 0) * 40ms + 120ms); transition: background 0.15s ease, transform 0.15s cubic-bezier(0.22, 1, 0.36, 1); }
+.tile:active { transform: scale(0.97); }
+.tiles > :nth-child(1) { --i: 0; } .tiles > :nth-child(2) { --i: 1; } .tiles > :nth-child(3) { --i: 2; } .tiles > :nth-child(4) { --i: 3; }
+.tiles > :nth-child(5) { --i: 4; } .tiles > :nth-child(6) { --i: 5; } .tiles > :nth-child(7) { --i: 6; }
+.clock-time.tick { animation: sg-fade 0.6s ease-out; }

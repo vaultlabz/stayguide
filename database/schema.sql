@@ -64,7 +64,7 @@ CREATE TABLE properties (
     longitude DECIMAL(9,6) NULL,
     temperature_unit ENUM('F', 'C') NOT NULL DEFAULT 'F',
     clock_format ENUM('12h', '24h') NOT NULL DEFAULT '12h',
-    tablet_background ENUM('solid', 'baltic-rose', 'rich-bistre', 'image') NOT NULL DEFAULT 'solid', -- 2026-10-03 16:42
+    tablet_background ENUM('solid', 'image', 'manhattan-ice', 'apricot-storm', 'barley-titan', 'silver-cloud', 'erie-charcoal', 'burnham-stone', 'baltic-rose', 'rich-bistre') NOT NULL DEFAULT 'solid', -- 2026-10-03 16:42
     status ENUM('active', 'inactive') DEFAULT 'active',
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,

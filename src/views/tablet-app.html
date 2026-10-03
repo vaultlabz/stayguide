@@ -7,23 +7,56 @@
     <!-- 2026-10-03 15:38, shared tokens first, then tablet styles -->
     <link rel="stylesheet" href="/css/theme.css">
     <link rel="stylesheet" href="/css/tablet-app.css">
-    <!-- 2026-10-03 16:42, the look is chosen by the property manager, not guests: style = solid | baltic-rose | rich-bistre | image,
-         theme = auto | light | dark (solid + image only; gradients are always dark). The last known look is cached
-         so it applies before first paint and offline. Default (nothing known yet) is solid black. -->
+    <!-- 2026-10-03 17:15, the look is chosen by the property manager, not guests: style = solid | image | one of 8 gradient presets
+         (see /js/tablet-backgrounds.js), theme = auto | light | dark (solid + image only; each gradient forces its own
+         light or dark treatment). The last known look is cached so it applies before first paint and offline.
+         Default (nothing known yet) is solid black. -->
+    <script src="/js/tablet-backgrounds.js"></script>
     <script>
         var TABLET_LOOK_KEY = 'stayguide_tablet_look';
         var currentLook = { theme: 'dark', bg: '', style: 'solid' };
+        var GRADIENT_VARS = ['--tablet-bg', '--t-bg-fallback', '--t-btn-bg', '--t-btn-fg', '--t-btn-line', '--t-scrim'];
         function applyTabletLook(theme, bgUrl, style) {
             currentLook = { theme: theme, bg: bgUrl, style: style };
             var root = document.documentElement;
             var okBg = typeof bgUrl === 'string' && (/^\/uploads\/[^\s"'\\()]+$/.test(bgUrl) || /^https:\/\/[^\s"'\\()]+$/.test(bgUrl));
-            var gradient = style === 'baltic-rose' || style === 'rich-bistre';
-            var kind = gradient ? style : (style === 'image' && okBg ? 'image' : 'solid');
-            var look = gradient ? 'dark' : (theme === 'light' || theme === 'dark') ? theme
+            var gradient = null;
+            (window.TABLET_BACKGROUNDS || []).forEach(function (g) { if (g.slug === style) gradient = g; });
+            var kind = gradient ? 'gradient' : (style === 'image' && okBg ? 'image' : 'solid');
+            var look = gradient ? gradient.group : (theme === 'light' || theme === 'dark') ? theme
                 : (window.matchMedia && window.matchMedia('(prefers-color-scheme: light)').matches ? 'light' : 'dark');
+            // crossfade from the previous background when the look changes after first paint
+            var sig = look + '|' + kind + '|' + (gradient ? gradient.slug : '') + '|' + (kind === 'image' ? bgUrl : '');
+            var layer = document.getElementById('bg-layer');
+            var fade = null;
+            if (layer && window.__lookSig && window.__lookSig !== sig) {
+                var cs = getComputedStyle(layer);
+                fade = document.createElement('div');
+                fade.className = 'bg-fade';
+                fade.style.backgroundColor = cs.backgroundColor;
+                fade.style.backgroundImage = cs.backgroundImage;
+                layer.parentNode.insertBefore(fade, layer.nextSibling);
+            }
+            window.__lookSig = sig;
             root.setAttribute('data-theme', look);
             root.setAttribute('data-bg', kind);
-            if (kind === 'image') root.style.setProperty('--tablet-bg', 'url("' + bgUrl + '")'); else root.style.removeProperty('--tablet-bg');
+            if (gradient) root.setAttribute('data-gradient', gradient.slug); else root.removeAttribute('data-gradient');
+            GRADIENT_VARS.forEach(function (v) { root.style.removeProperty(v); });
+            if (gradient) {
+                var light = gradient.group === 'light';
+                root.style.setProperty('--tablet-bg', 'url("/img/gradients/' + gradient.file + '")');
+                root.style.setProperty('--t-bg-fallback', gradient.fallback);
+                root.style.setProperty('--t-btn-bg', 'linear-gradient(to bottom, ' + gradient.linear[0] + ', ' + gradient.linear[1] + ')');
+                root.style.setProperty('--t-btn-fg', light ? '#000000' : '#ffffff');
+                root.style.setProperty('--t-btn-line', light ? 'rgba(0, 0, 0, 0.18)' : 'rgba(255, 255, 255, 0.18)');
+                if (gradient.scrim) root.style.setProperty('--t-scrim', gradient.scrim);
+            } else if (kind === 'image') {
+                root.style.setProperty('--tablet-bg', 'url("' + bgUrl + '")');
+            }
+            if (fade) {
+                requestAnimationFrame(function () { requestAnimationFrame(function () { fade.style.opacity = '0'; }); });
+                setTimeout(function () { if (fade.parentNode) fade.parentNode.removeChild(fade); }, 1100);
+            }
         }
         try { var look = JSON.parse(localStorage.getItem(TABLET_LOOK_KEY) || 'null'); applyTabletLook(look ? look.theme : 'dark', look ? look.bg : '', look ? look.style : 'solid'); } catch (e) { applyTabletLook('dark', '', 'solid'); }
         try { window.matchMedia('(prefers-color-scheme: light)').addEventListener('change', function () { applyTabletLook(currentLook.theme, currentLook.bg, currentLook.style); }); } catch (e) {}
@@ -410,7 +443,7 @@
             // 2026-10-03 15:38, apply the manager-chosen theme + background (cached for the next load / offline)
             const lookTheme = ['light', 'dark'].includes(property.tablet_theme) ? property.tablet_theme : 'auto';
             const lookBg = safeUrl(property.background_image_url);
-            const lookStyle = ['baltic-rose', 'rich-bistre', 'image'].includes(property.tablet_background) ? property.tablet_background : 'solid';
+            const lookStyle = (property.tablet_background === 'image' || (window.TABLET_BACKGROUNDS || []).some(g => g.slug === property.tablet_background)) ? property.tablet_background : 'solid';
             applyTabletLook(lookTheme, lookBg, lookStyle);
             if (isDeviceMode) storageSet(TABLET_LOOK_KEY, JSON.stringify({ theme: lookTheme, bg: lookBg, style: lookStyle }));
 
@@ -588,7 +621,7 @@
         let availableAmenities = [];
         
         function openReportModal() {
-            document.getElementById('reportModal').style.display = 'block';
+            showLayer(document.getElementById('reportModal'), 'block');
             document.body.style.overflow = 'hidden'; // Prevent background scrolling
             
             // Load amenities for the dropdown
@@ -596,7 +629,7 @@
         }
         
         function closeReportModal() {
-            document.getElementById('reportModal').style.display = 'none';
+            hideLayer(document.getElementById('reportModal'));
             document.body.style.overflow = 'auto'; // Restore scrolling
             
             // Reset form
@@ -813,12 +846,12 @@
                 player.appendChild(el);
             }
 
-            document.getElementById('videoModal').style.display = 'block';
+            showLayer(document.getElementById('videoModal'), 'block');
             document.body.style.overflow = 'hidden';
         }
 
         function closeVideoModal() {
-            document.getElementById('videoModal').style.display = 'none';
+            hideLayer(document.getElementById('videoModal'));
             document.getElementById('video-player').innerHTML = ''; // stops playback
             document.body.style.overflow = 'auto';
         }
@@ -840,13 +873,42 @@
             if (tile) tile.style.display = show ? '' : 'none';
         }
 
+        // 2026-10-03 17:15, ease-in transitions: layers fade/settle in (320 ms ease-out curve) and out faster (200 ms ease-in), driven by the
+        // .is-open class + transitionend (timeout fallback). One blur overlay (the sheet/modal itself); html.layer-open drops per-card blurs.
+        function updateLayerOpen() {
+            const any = [...document.querySelectorAll('.sheet, .modal')].some(el => el.classList.contains('is-open'));
+            document.documentElement.classList.toggle('layer-open', any);
+        }
+        function showLayer(el, display) {
+            el.style.display = display;
+            void el.offsetWidth; // flush so the transition runs from the closed state
+            el.classList.add('is-open');
+            updateLayerOpen();
+        }
+        function hideLayer(el) {
+            el.classList.remove('is-open');
+            updateLayerOpen();
+            // reduced motion: no transition to wait for
+            if (window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches) { el.style.display = 'none'; return; }
+            let finished = false;
+            const finish = () => {
+                if (finished) return;
+                finished = true;
+                el.removeEventListener('transitionend', onEnd);
+                if (!el.classList.contains('is-open')) el.style.display = 'none';
+            };
+            const onEnd = (event) => { if (event.target === el && event.propertyName === 'opacity') finish(); };
+            el.addEventListener('transitionend', onEnd);
+            setTimeout(finish, 350);
+        }
+
         function openSheet(id) {
             if (!SHEET_IDS.includes(id)) return;
             if (openSheetId) closeSheet(true);
             sheetOpener = document.activeElement;
             openSheetId = id;
             const sheet = document.getElementById('sheet-' + id);
-            sheet.style.display = 'flex';
+            showLayer(sheet, 'flex');
             sheet.querySelector('.sheet-body').scrollTop = 0;
             document.body.style.overflow = 'hidden';
             sheet.querySelector('.sheet-close').focus();
@@ -854,14 +916,14 @@
 
         function closeSheet(keepFocus) {
             if (!openSheetId) return;
-            document.getElementById('sheet-' + openSheetId).style.display = 'none';
+            hideLayer(document.getElementById('sheet-' + openSheetId));
             openSheetId = null;
             document.body.style.overflow = 'auto';
             if (!keepFocus && sheetOpener && document.contains(sheetOpener)) sheetOpener.focus();
             sheetOpener = null;
         }
 
-        function isShown(id) { const el = document.getElementById(id); return !!el && el.style.display !== 'none' && el.style.display !== ''; }
+        function isShown(id) { const el = document.getElementById(id); return !!el && el.classList.contains('is-open'); }
 
         // The topmost dialog: video modal > report modal > sheet
         function topDialog() {
@@ -913,7 +975,13 @@
             let hours = now.getHours();
             let suffix = '';
             if (clockFormat === '12h') { suffix = hours >= 12 ? 'PM' : 'AM'; hours = hours % 12 || 12; } else { hours = String(hours).padStart(2, '0'); }
-            document.getElementById('clock-time').textContent = `${hours}:${minutes}`;
+            const timeEl = document.getElementById('clock-time');
+            const timeText = `${hours}:${minutes}`;
+            if (timeEl.textContent !== timeText) {
+                const first = timeEl.textContent === '--:--';
+                timeEl.textContent = timeText;
+                if (!first) { timeEl.classList.remove('tick'); void timeEl.offsetWidth; timeEl.classList.add('tick'); } // minute crossfade
+            }
             document.getElementById('clock-ampm').textContent = suffix;
             document.getElementById('clock-date').textContent = now.toLocaleDateString(undefined, { weekday: 'long', month: 'short', day: 'numeric' });
         }

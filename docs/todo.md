@@ -10,14 +10,17 @@
 - ✅ Wi-Fi sheet shows very large network/password plus a "Join Wi-Fi" QR (`WIFI:T:WPA;S:..;P:..;;` with escaping), generated server-side as `wifi_qr_svg`
 - ✅ Weather: `GET /device/weather` (device token) and `/company/:slug/property/:prop/api/weather` (admin preview) proxy Open-Meteo with a 5 s timeout and a 30-minute per-property cache (stale value on upstream failure); `GET /company/:slug/geocode?q=` finds coordinates from an address (ZIP, then city)
 - ✅ New property fields `latitude`, `longitude`, `temperature_unit` ('F'|'C'), `clock_format` ('12h'|'24h'): migrations `2026-10-03_tablet_background.sql` and `2026-10-03_tablet_home.sql`, whitelist, validation, type, schema, mock data (Seaside Villa = Santa Monica)
-- ✅ Gradients served from `/img/gradients/*.webp` (new static mount) and precached by the service worker (VERSION v4)
+- ✅ All 8 Figma gradients selectable (Manhattan Ice, Apricot Storm, Barley Titan, Silver Cloud = light; Erie Charcoal, Burnham Stone, Baltic Rose, Rich Bistre = dark). One shared preset list `public/js/tablet-backgrounds.js` (slug, file, fallback, mode, Figma Linear, scrim) drives the tablet, the dashboard picker (10 swatch tiles with real thumbnails, grouped Basics / Light / Dark) and the server enum validation; each preset forces its own light or dark text treatment and its Linear becomes the primary-button gradient
+- ✅ Gradients served from `/img/gradients/*.webp` (new static mount); the service worker (VERSION v5) caches a gradient cache-first the first time it loads, so it works offline afterwards without a heavy install
+- ✅ Ease-in transitions (opacity/transform/filter only): sheets and modals settle in over 320 ms (cubic-bezier .22,1,.36,1) and leave in 200 ms ease-in; staggered fade-up of the home tiles (40 ms apart), press scale, background crossfade on look change, minute crossfade on the clock; `prefers-reduced-motion` makes everything instant
+- ✅ Opening a sheet or modal blurs and dims everything behind it with one `backdrop-filter` layer (24px blur, saturate 120%); per-card blurs are dropped while it is open; solid dim fallback where backdrop-filter is unsupported
 
 **Why:**
 - The user asked for a sleeker, minimal, black/white-with-transparency tablet using the Figma "Baltic Rose" and "Rich Bistre" gradients, an icon-only front screen, and a clock with time and temperature
 
 **How:**
 - Tokens (`--t-*`) in `tablet-app.css` keyed on `html[data-theme]` and `html[data-bg]`, set by `applyTabletLook()` (also cached in localStorage so the look applies before first paint and offline). Body stays transparent so the fixed background layer shows
-- Rose Taupe region is the lightest part of Baltic Rose, so that preset adds a 22% black scrim; image backgrounds use a 68% (dark) / 78% (light) scrim
+- Lightest regions were measured from the WebP files: Baltic Rose, Burnham Stone and Erie Charcoal carry 22%, 22% and 15% black scrims so white text stays AA; image backgrounds use a 68% (dark) / 78% (light) scrim
 - Clock re-renders on the minute boundary; weather is fetched on load and every 30 minutes and the last value is kept in localStorage (dimmed when it cannot refresh); `/device/weather` is not in the service worker so it is network-only
 - Open-Meteo base URLs are overridable with `OPEN_METEO_BASE_URL` / `OPEN_METEO_GEOCODE_URL` so tests use a local stub
 

@@ -4,6 +4,7 @@ import { CompanyService } from '../services/CompanyService';
 import { AuthRequest, Property } from '../types';
 import { LinkService, isHttpUrl } from '../services/LinkService';
 import QRCode from 'qrcode';
+import path from 'path';
 import { wifiQrPayload } from '../utils/wifi';
 import { getWeather, geocodeAddress } from '../utils/weather';
 import { getImageUrl, processAndSaveImage } from '../middleware/upload';
@@ -15,6 +16,10 @@ interface CompanyParams {
 interface PropertyParams extends CompanyParams {
   propertySlug: string;
 }
+
+// 2026-10-03 17:14, background presets live in one shared file (public/js/tablet-backgrounds.js, also used by the tablet and dashboard)
+const TABLET_BACKGROUND_SLUGS: string[] = (require(path.join(__dirname, '../../public/js/tablet-backgrounds.js')).TABLET_BACKGROUNDS as Array<{ slug: string }>).map(b => b.slug);
+const TABLET_BACKGROUND_VALUES = ['solid', 'image', ...TABLET_BACKGROUND_SLUGS];
 
 export class PropertyController {
   private propertyService = new PropertyService();
@@ -425,7 +430,7 @@ export class PropertyController {
     // 2026-10-03 16:42, tablet background style enum (null/empty resets to solid)
     if (body.tablet_background !== undefined) {
       const style = body.tablet_background || 'solid';
-      if (!['solid', 'baltic-rose', 'rich-bistre', 'image'].includes(style)) return { error: 'tablet_background must be solid, baltic-rose, rich-bistre or image' };
+      if (!TABLET_BACKGROUND_VALUES.includes(style)) return { error: `tablet_background must be one of: ${TABLET_BACKGROUND_VALUES.join(', ')}` };
       fields.tablet_background = style;
     }
     // 2026-10-03 17:00, weather location (decimal ranges), temperature unit and clock format

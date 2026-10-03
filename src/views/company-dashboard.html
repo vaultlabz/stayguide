@@ -7,6 +7,7 @@
     <!-- 2026-10-03 15:31, shared design tokens + light/dark theme (set before paint to avoid a flash) -->
     <link rel="stylesheet" href="/css/theme.css">
     <script src="/js/theme.js"></script>
+    <script src="/js/tablet-backgrounds.js"></script>
     <style>
         * {
             margin: 0;
@@ -287,11 +288,14 @@
         }
         
         /* 2026-10-03 16:44, tablet background picker (swatches are live previews of what the tablet will show) */
+        .bg-group-title { margin: 0.75rem 0 0.4rem; font-size: 0.75rem; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; color: var(--text-muted); }
+        .bg-group-title:first-child { margin-top: 0; }
         .bg-options { display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 0.75rem; }
         .bg-option { display: flex; flex-direction: column; gap: 0.5rem; padding: 0.5rem; background: var(--surface); color: var(--text); border: 1px solid var(--border-strong); border-radius: var(--radius); cursor: pointer; font: inherit; font-size: 0.8rem; font-weight: 600; text-align: left; }
         .bg-option:hover { background: var(--surface-2); }
         .bg-option[aria-checked="true"] { border-color: var(--accent); box-shadow: 0 0 0 2px var(--accent); }
         .bg-swatch { display: block; height: 64px; border-radius: var(--radius-sm); border: 1px solid var(--border); }
+        .bg-swatch-thumb { background-size: cover; background-position: center; }
         .bg-swatch-solid { background: linear-gradient(135deg, #fff 0 50%, #000 50% 100%); }
         .bg-swatch-image { background: var(--surface-3) center / cover; }
         
@@ -700,20 +704,8 @@
                     <div class="form-group">
                         <label class="form-label" id="tablet-background-label">Background</label>
                         <input type="hidden" id="tablet-background" value="solid">
-                        <div class="bg-options" role="radiogroup" aria-labelledby="tablet-background-label">
-                            <button type="button" class="bg-option" role="radio" data-bg="solid" aria-checked="true" onclick="setTabletBackground('solid')">
-                                <span class="bg-swatch bg-swatch-solid"></span><span>Solid black / white</span>
-                            </button>
-                            <button type="button" class="bg-option" role="radio" data-bg="baltic-rose" aria-checked="false" onclick="setTabletBackground('baltic-rose')">
-                                <span class="bg-swatch" style="background: #3E2D3F url(/img/gradients/baltic-rose.webp) center / cover;"></span><span>Baltic Rose</span>
-                            </button>
-                            <button type="button" class="bg-option" role="radio" data-bg="rich-bistre" aria-checked="false" onclick="setTabletBackground('rich-bistre')">
-                                <span class="bg-swatch" style="background: #060201 url(/img/gradients/rich-bistre.webp) center / cover;"></span><span>Rich Bistre</span>
-                            </button>
-                            <button type="button" class="bg-option" role="radio" data-bg="image" aria-checked="false" onclick="setTabletBackground('image')">
-                                <span class="bg-swatch bg-swatch-image" id="bg-swatch-image"></span><span>Custom image</span>
-                            </button>
-                        </div>
+                        <!-- 2026-10-03 17:15, picker is built from the shared preset list in /js/tablet-backgrounds.js (Solid, Image, 4 light and 4 dark gradients) -->
+                        <div id="bg-picker" role="radiogroup" aria-labelledby="tablet-background-label"></div>
                     </div>
                     <div class="form-group" id="tablet-theme-group">
                         <label class="form-label" for="tablet-theme">Theme (solid and image backgrounds)</label>
@@ -1460,12 +1452,27 @@
         });
         
         // 2026-10-03 16:44, background picker: hidden input holds the value; swatches are a radiogroup; image fields only for 'image'
+        function renderBackgroundPicker() {
+            const picker = document.getElementById('bg-picker');
+            const presets = window.TABLET_BACKGROUNDS || [];
+            const tile = (value, name, swatch) => `<button type="button" class="bg-option" role="radio" data-bg="${escapeHtml(value)}" aria-checked="false" onclick="setTabletBackground('${escapeHtml(value)}')">${swatch}<span>${escapeHtml(name)}</span></button>`;
+            const gradientTile = (g) => tile(g.slug, g.name, `<span class="bg-swatch bg-swatch-thumb" style="background-color: ${escapeHtml(g.fallback)}; background-image: url(/img/gradients/${escapeHtml(g.file)});"></span>`);
+            picker.innerHTML =
+                '<div class="bg-group-title">Basics</div><div class="bg-options">' +
+                    tile('solid', 'Solid black / white', '<span class="bg-swatch bg-swatch-solid"></span>') +
+                    tile('image', 'Custom image', '<span class="bg-swatch bg-swatch-image" id="bg-swatch-image"></span>') + '</div>' +
+                '<div class="bg-group-title">Light gradients</div><div class="bg-options">' + presets.filter(g => g.group === 'light').map(gradientTile).join('') + '</div>' +
+                '<div class="bg-group-title">Dark gradients</div><div class="bg-options">' + presets.filter(g => g.group === 'dark').map(gradientTile).join('') + '</div>';
+        }
+
         function setTabletBackground(value) {
             document.getElementById('tablet-background').value = value;
             document.querySelectorAll('.bg-option').forEach(btn => btn.setAttribute('aria-checked', String(btn.dataset.bg === value)));
             document.getElementById('tablet-image-group').style.display = value === 'image' ? 'block' : 'none';
             document.getElementById('tablet-theme-group').style.display = (value === 'solid' || value === 'image') ? 'block' : 'none';
         }
+        renderBackgroundPicker();
+        setTabletBackground('solid');
         // 2026-10-03 17:06, look up coordinates for the address field (ZIP, then city) via the server's Open-Meteo geocoding proxy; manager reviews, then saves
         async function findLocation() {
             const status = document.getElementById('geocode-status');

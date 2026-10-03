@@ -57,7 +57,7 @@ export interface Property {
   longitude?: number | string | null;
   temperature_unit?: 'F' | 'C';
   clock_format?: '12h' | '24h';
-  tablet_background?: 'solid' | 'baltic-rose' | 'rich-bistre' | 'image';
+  tablet_background?: string; // 'solid' | 'image' | a gradient slug from public/js/tablet-backgrounds.js
   status: 'active' | 'inactive';
   created_at: Date;
   updated_at: Date;
