@@ -11,6 +11,55 @@ How to prepare an Android tablet so it boots straight into StayGuide, can't be u
 
 ---
 
+## Hardware
+
+<!-- 2026-10-03 14:06, tablet specs + verified models (prices/availability checked 2026-10-03; re-check before ordering) -->
+
+### Minimum specs (for the best presentation)
+
+| Area | Minimum | Recommended | Why it matters for StayGuide |
+|---|---|---|---|
+| Screen size | 10.1" | **11"** | The landscape card layout is designed for ~1024–1280 px wide |
+| Resolution | 1920×1200 | 1920×1200 – 2560×1600 | Sharp text and QR codes scannable from across the room |
+| Brightness | 400 nits, IPS | 500+ nits | Readable in sunny rooms; wide viewing angles on a wall mount |
+| Android | 14 | **16** | Current Chrome WebView (service worker, modern CSS) |
+| Update support | 3+ years remaining | 5–7 years | Tablets sit on the network for years |
+| Google Play certified | Required | Required | Fully Kiosk + WebView update via Play. **No Amazon Fire tablets** |
+| RAM / storage | 4 GB / 64 GB | 6–8 GB / 128 GB | Smooth embedded video; no WebView reloads after days of uptime |
+| Wi-Fi | Wi-Fi 5, dual-band | Wi-Fi 6 | 5 GHz keeps video smooth in crowded rental networks |
+| Speakers | Stereo | Quad | Audible how-to videos |
+| Charging | USB-C, rated for continuous charging | Battery-protection limit or no-battery mode | Always-on charging swells batteries, the #1 kiosk failure |
+| Management | Android Enterprise | Samsung Knox (or equivalent) | Remote lock-down, updates, wipe |
+
+**Avoid:** Amazon Fire (no Google Play), Android Go / 2–3 GB RAM models, unbranded tablets without security updates, and tablets with no battery-protection option.
+
+### Recommended models (checked 2026-10-03)
+
+| Tier | Model | Key specs | Approx. price | Notes |
+|---|---|---|---|---|
+| **Standard (default)** | **Samsung Galaxy Tab A11+** (SM-X230), 8 GB / 256 GB | 11" 1920×1200 90 Hz, 480 nits, Android 16, quad speakers, Wi-Fi 5, IP52 | ~$210–250 | 7 years of OS and security updates promised; Knox; best value for the fleet |
+| **Premium** | **Samsung Galaxy Tab S10 FE** | 10.9" 2304×1440, up to 800 nits, 8–12 GB RAM | from ~$550 | Brighter, sharper; for luxury properties |
+| **Rugged** | **Samsung Galaxy Tab Active5 Pro** | 10.1" 1920×1200, IP68, replaceable batteries, **No Battery Mode** | from ~$660 | For pools, cabins, outdoor kitchens. No Battery Mode runs from wall power but lowers max brightness/volume |
+| **Non-Samsung alternative** | **Lenovo Idea Tab** | 11" WQHD+ 144 Hz, 8 GB RAM, Android 16 | check current price | Only 2 major Android upgrades promised; skip the older Lenovo Tab M11 (ships with Android 13) |
+
+**Standardize on one model per tier.** It keeps provisioning, spares and this guide simple.
+
+### Battery longevity (always-on kiosks)
+
+- **Samsung:** enable **Settings → Battery → Battery protection** (One UI caps charging at roughly 80–85%, depending on version). Confirm the setting exists on the first unit you receive.
+- **Tab Active5 Pro:** use **No Battery Mode** when mounted on permanent power. Expect lower peak brightness.
+- Plan to inspect batteries yearly. Replace any tablet whose back or screen starts to lift.
+
+### Accessories
+
+- **Lockable enclosure or mount with built-in charging,** sized for the exact model (11" enclosures don't fit 10.1" tablets).
+- **Quality USB-C power supply** (≥ 25 W for the A11+) and a cable short enough to hide inside the enclosure.
+- Optional: **USB-C hub with Ethernet** where Wi-Fi is unreliable.
+
+**Sources (checked 2026-10-03):** [Galaxy Tab A11+ (Samsung US)](https://www.samsung.com/us/tablets/galaxy-tab-a11-plus/) · [Tab A11+ launch specs (Neowin)](https://www.neowin.net/news/samsung-launches-new-11-inch-galaxy-tab-a11-on-a-budget-ahead-of-new-years-eve/) · [Tab A11+ pricing (9to5Toys)](https://9to5toys.com/2026/02/09/samsungs-affordable-galaxy-tab-a11-best-price/) · [Tab A11+ update policy (SamMobile)](https://www.sammobile.com/news/galaxy-tab-a11-gets-april-2026-security-update/) · [Galaxy Tab S10 FE (Samsung US)](https://www.samsung.com/us/tablets/galaxy-tab-s10-fe/) · [Tab Active series / No Battery Mode (Samsung Business)](https://www.samsung.com/us/business/mobile/tablets/galaxy-tab-active/explore/) · [Tab Active5 Pro pricing (Samsung US Business)](https://www.samsung.com/us/business/tablets/galaxy-tab-active5-pro/buy/galaxy-tab-active5-pro-128gb-unlocked-sku-sm-x358uzgan14) · [Lenovo Idea Tab vs Tab M11 (Kimovil)](https://www.kimovil.com/en/compare-tablets/lenovo-idea-tab,lenovo-tab-m11) · [Lenovo Tab M11 update policy (9to5Google)](https://9to5google.com/2024/01/08/lenovo-tab-m11-price-specs-release-date/)
+
+---
+
 ## 1. Server prerequisites (once, not per tablet)
 
 - [ ] StayGuide is served over **HTTPS**. Offline mode (the service worker) only works on secure origins.

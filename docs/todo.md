@@ -1,5 +1,25 @@
 # StayGuide SaaS Platform Development Plan
 
+## [2026-10-03] - DOCS: Tablet Hardware Specs & Recommended Models
+
+**What Changed:**
+- ✅ New "Hardware" section in `docs/KIOSK_SETUP.md`: minimum/recommended specs table, four model tiers, battery-longevity settings, accessories, sources
+
+**Why:**
+- StayGuide supplies the tablets ($300/tablet/year); procurement needs a spec that guarantees good presentation and a long service life
+
+**How:**
+- Specs derived from the app's needs (landscape 1024–1280 px layout, QR codes, embedded video, service worker, Fully Kiosk)
+- Models checked by web search on 2026-10-03: Galaxy Tab A11+ (standard), Tab S10 FE (premium), Tab Active5 Pro (rugged), Lenovo Idea Tab (alternative)
+
+**Impact:**
+- **Procurement**: one standard model with 7 years of promised updates
+- **Reliability**: battery-protection guidance for always-on use
+
+**Technical Details:**
+- Prices are approximate as of 2026-10-03; re-check before ordering
+- The battery-protection menu path varies by One UI version; verify on the first unit
+
 ## [2026-10-03] - MAINTENANCE: Dependency Security Updates + Tablet Announcements
 
 **What Changed:**
