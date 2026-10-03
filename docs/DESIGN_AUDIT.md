@@ -41,3 +41,6 @@ Dashboards collapse at 768px (one column) but the header wrapped awkwardly and t
 3. Property panel is a single long scroll; tabs would reduce choice load.
 4. Variant stat cards keep a colored left border that curves with the card radius (slight artifact).
 5. The pairing screen (before any content loads) cannot know the manager's theme, so it follows the OS; the look is cached after the first successful load.
+
+## Round 2 (tablet) addendum
+The tablet was redesigned again from the user's direction: solid black/white with transparency, Figma "Baltic Rose" and "Rich Bistre" gradients, an icon-only home, and a clock with temperature. Resolutions listed above for the tablet (card grid, QR-above-info, Wi-Fi hidden below the fold) are superseded: the home is now 7 large tiles and every section opens in a sheet. See the 2026-10-03 "Tablet redesign round 2" entry in `docs/todo.md`.

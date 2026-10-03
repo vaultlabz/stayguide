@@ -1,5 +1,36 @@
 # StayGuide SaaS Platform Development Plan
 
+## [2026-10-03] - FEATURE: Tablet redesign round 2 - icon-only home, glass UI, Baltic Rose / Rich Bistre, clock + weather
+
+**What Changed:**
+- ✅ Tablet look rebuilt: solid pure black/white (or Baltic Rose / Rich Bistre gradients, or a custom image) with frosted-glass surfaces (translucent fill + 1px hairline, no shadows, no stripes, monochrome line icons), system sans at medium weight, serif dropped
+- ✅ Per-property `tablet_background` ('solid' | 'baltic-rose' | 'rich-bistre' | 'image'); `tablet_theme` now only governs solid and image (gradients force the dark treatment); dashboard picker with live swatches
+- ✅ Icon-only home screen: clock + date, temperature with condition icon, small property name, slim announcement and checkout-day review banners, then 7 large glass tiles (Wi-Fi, House Info, Amenities, How-to Videos, Local Guide, Book Again, Report an Issue). Empty sections hide their tile (Wi-Fi and Report always show)
+- ✅ Each tile opens a large glass sheet (focus-trapped, ESC / backdrop / close button, focus returns to the tile); sheets and modals auto-close after 2 minutes idle
+- ✅ Wi-Fi sheet shows very large network/password plus a "Join Wi-Fi" QR (`WIFI:T:WPA;S:..;P:..;;` with escaping), generated server-side as `wifi_qr_svg`
+- ✅ Weather: `GET /device/weather` (device token) and `/company/:slug/property/:prop/api/weather` (admin preview) proxy Open-Meteo with a 5 s timeout and a 30-minute per-property cache (stale value on upstream failure); `GET /company/:slug/geocode?q=` finds coordinates from an address (ZIP, then city)
+- ✅ New property fields `latitude`, `longitude`, `temperature_unit` ('F'|'C'), `clock_format` ('12h'|'24h'): migrations `2026-10-03_tablet_background.sql` and `2026-10-03_tablet_home.sql`, whitelist, validation, type, schema, mock data (Seaside Villa = Santa Monica)
+- ✅ Gradients served from `/img/gradients/*.webp` (new static mount) and precached by the service worker (VERSION v4)
+
+**Why:**
+- The user asked for a sleeker, minimal, black/white-with-transparency tablet using the Figma "Baltic Rose" and "Rich Bistre" gradients, an icon-only front screen, and a clock with time and temperature
+
+**How:**
+- Tokens (`--t-*`) in `tablet-app.css` keyed on `html[data-theme]` and `html[data-bg]`, set by `applyTabletLook()` (also cached in localStorage so the look applies before first paint and offline). Body stays transparent so the fixed background layer shows
+- Rose Taupe region is the lightest part of Baltic Rose, so that preset adds a 22% black scrim; image backgrounds use a 68% (dark) / 78% (light) scrim
+- Clock re-renders on the minute boundary; weather is fetched on load and every 30 minutes and the last value is kept in localStorage (dimmed when it cannot refresh); `/device/weather` is not in the service worker so it is network-only
+- Open-Meteo base URLs are overridable with `OPEN_METEO_BASE_URL` / `OPEN_METEO_GEOCODE_URL` so tests use a local stub
+
+**Impact:**
+- **Guests**: the first screen is calm and tappable from 1 m; Wi-Fi is one tap away with a scan-to-join QR
+- **Managers**: one picker for the whole look, one control for weather location
+- **Offline**: gradients, last weather and the last look all survive a Wi-Fi drop
+
+**Technical Details:**
+- Review prompt moved from a card to a slim banner that opens the Book sheet; `#guest-links-section` (review card + book QR + showcase) now lives in that sheet
+- Browser tests that clicked `#videos-section .video-link` now open the Videos sheet first; selectors and IDs are otherwise unchanged
+- Verified: tsc/build, inline-script syntax, unit checks for the Wi-Fi QR escaping and WMO weather-code mapping, regression suites, and the design suite (see the final report for counts)
+
 ## [2026-10-03] - FEATURE: Design system, light/dark themes and custom tablet backgrounds
 
 **What Changed:**

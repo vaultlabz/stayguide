@@ -7,24 +7,33 @@
     <!-- 2026-10-03 15:38, shared tokens first, then tablet styles -->
     <link rel="stylesheet" href="/css/theme.css">
     <link rel="stylesheet" href="/css/tablet-app.css">
-    <!-- 2026-10-03 15:38, the look (theme + custom background) is chosen by the property manager, not guests. The last
-         known look is cached so it applies before first paint and while offline. -->
+    <!-- 2026-10-03 16:42, the look is chosen by the property manager, not guests: style = solid | baltic-rose | rich-bistre | image,
+         theme = auto | light | dark (solid + image only; gradients are always dark). The last known look is cached
+         so it applies before first paint and offline. Default (nothing known yet) is solid black. -->
     <script>
         var TABLET_LOOK_KEY = 'stayguide_tablet_look';
-        function applyTabletLook(theme, bgUrl) {
+        var currentLook = { theme: 'dark', bg: '', style: 'solid' };
+        function applyTabletLook(theme, bgUrl, style) {
+            currentLook = { theme: theme, bg: bgUrl, style: style };
             var root = document.documentElement;
-            if (theme === 'light' || theme === 'dark') root.setAttribute('data-theme', theme); else root.removeAttribute('data-theme');
-            var ok = typeof bgUrl === 'string' && (/^\/uploads\/[^\s"'\\()]+$/.test(bgUrl) || /^https:\/\/[^\s"'\\()]+$/.test(bgUrl));
-            if (ok) { root.style.setProperty('--tablet-bg', 'url("' + bgUrl + '")'); root.classList.add('has-bg'); }
-            else { root.style.removeProperty('--tablet-bg'); root.classList.remove('has-bg'); }
+            var okBg = typeof bgUrl === 'string' && (/^\/uploads\/[^\s"'\\()]+$/.test(bgUrl) || /^https:\/\/[^\s"'\\()]+$/.test(bgUrl));
+            var gradient = style === 'baltic-rose' || style === 'rich-bistre';
+            var kind = gradient ? style : (style === 'image' && okBg ? 'image' : 'solid');
+            var look = gradient ? 'dark' : (theme === 'light' || theme === 'dark') ? theme
+                : (window.matchMedia && window.matchMedia('(prefers-color-scheme: light)').matches ? 'light' : 'dark');
+            root.setAttribute('data-theme', look);
+            root.setAttribute('data-bg', kind);
+            if (kind === 'image') root.style.setProperty('--tablet-bg', 'url("' + bgUrl + '")'); else root.style.removeProperty('--tablet-bg');
         }
-        try { var look = JSON.parse(localStorage.getItem(TABLET_LOOK_KEY) || 'null'); if (look) applyTabletLook(look.theme, look.bg); } catch (e) {}
+        try { var look = JSON.parse(localStorage.getItem(TABLET_LOOK_KEY) || 'null'); applyTabletLook(look ? look.theme : 'dark', look ? look.bg : '', look ? look.style : 'solid'); } catch (e) { applyTabletLook('dark', '', 'solid'); }
+        try { window.matchMedia('(prefers-color-scheme: light)').addEventListener('change', function () { applyTabletLook(currentLook.theme, currentLook.bg, currentLook.style); }); } catch (e) {}
     </script>
     <!-- 2026-10-03 11:52, PWA manifest (offline support for paired tablets) -->
     <link rel="manifest" href="/manifest.json">
-    <meta name="theme-color" content="#1d6b60">
+    <meta name="theme-color" content="#000000">
 </head>
 <body>
+    <!-- 2026-10-03 16:42, tablet redesign round 2: sleek black/white + transparency, optional Baltic Rose / Rich Bistre gradients -->
     <!-- 2026-10-03 15:38, custom background layer (image + scrim) -->
     <div id="bg-layer" class="bg-layer" aria-hidden="true"></div>
     <!-- 2026-10-03 11:52, shown when content comes from the offline cache -->
@@ -51,76 +60,115 @@
         </div>
         
         <div id="content" style="display: none;">
-            <div class="header">
-                <div class="header-text">
-                    <div class="company-logo" id="company-name">StayGuide</div>
-                    <h1 class="property-name" id="property-name">Loading...</h1>
-                    <div class="property-address" id="property-address"></div>
-                    <div class="property-description" id="property-description"></div>
+            <!-- 2026-10-03 17:01, icon-only home: clock + temperature, property name, slim banners, then large icon tiles; every section opens in a sheet -->
+            <header class="home-top">
+                <div class="clock">
+                    <div class="clock-time"><span id="clock-time">--:--</span><span id="clock-ampm" class="clock-ampm"></span></div>
+                    <div id="clock-date" class="clock-date"></div>
                 </div>
-            </div>
-            
+                <div class="home-side">
+                    <div id="weather" class="weather" style="display: none;" role="img" aria-label="Weather">
+                        <span id="weather-icon" class="weather-icon" aria-hidden="true"></span>
+                        <span id="weather-temp" class="weather-temp"></span>
+                    </div>
+                    <div class="home-name">
+                        <div id="main-image"></div>
+                        <div class="home-name-text">
+                            <div class="company-logo" id="company-name">StayGuide</div>
+                            <h1 class="property-name" id="property-name">Loading...</h1>
+                        </div>
+                    </div>
+                </div>
+            </header>
+
             <div id="welcome-section"></div>
 
             <!-- 2026-10-03 12:45, manager announcements (pool closed, maintenance visits, etc.) -->
             <div id="announcements-section"></div>
+            <button type="button" id="review-banner" class="announcement announcement-review" style="display: none;" onclick="openSheet('book')"></button>
 
-            
-            <div class="content-grid">
-                <div class="card">
-                    <div class="card-header">
-                        <div class="card-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12.5a10 10 0 0 1 14 0"/><path d="M8.5 16a5 5 0 0 1 7 0"/><path d="M2 9a14 14 0 0 1 20 0"/><circle cx="12" cy="19.5" r="1" fill="currentColor"/></svg></div>
-                        <div class="card-title">WiFi Information</div>
-                    </div>
+            <nav class="tiles" aria-label="Guest guide">
+            <button type="button" class="tile" data-sheet="wifi" onclick="openSheet('wifi')"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12.5a10 10 0 0 1 14 0"/><path d="M8.5 16a5 5 0 0 1 7 0"/><path d="M2 9a14 14 0 0 1 20 0"/><circle cx="12" cy="19.5" r="1" fill="currentColor"/></svg><span class="tile-label">Wi-Fi</span></button>
+            <button type="button" class="tile" data-sheet="house" onclick="openSheet('house')"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 11l9-8 9 8"/><path d="M5 10v10h14V10"/><path d="M10 20v-6h4v6"/></svg><span class="tile-label">House Info</span></button>
+            <button type="button" class="tile" data-sheet="amenities" onclick="openSheet('amenities')"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3l2.7 5.6 6.1.9-4.4 4.3 1 6.1L12 17l-5.4 2.9 1-6.1L3.2 9.5l6.1-.9z"/></svg><span class="tile-label">Amenities</span></button>
+            <button type="button" class="tile" data-sheet="videos" onclick="openSheet('videos')"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="5" width="18" height="14" rx="3"/><path d="M10 9.5v5l4.5-2.5z" fill="currentColor"/></svg><span class="tile-label">How-to Videos</span></button>
+            <button type="button" class="tile" data-sheet="guide" onclick="openSheet('guide')"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 21s7-6.2 7-11.5A7 7 0 0 0 5 9.5C5 14.8 12 21 12 21z"/><circle cx="12" cy="9.5" r="2.5"/></svg><span class="tile-label">Local Guide</span></button>
+            <button type="button" class="tile" data-sheet="book" onclick="openSheet('book')"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3.5" y="5" width="17" height="15.5" rx="2.5"/><path d="M3.5 10h17M8 3v4M16 3v4"/><path d="M9 15l2 2 4-4"/></svg><span class="tile-label">Book Again</span></button>
+            <div class="report-card"><button type="button" class="tile report-button" onclick="openReportModal()"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M14.7 6.3a4 4 0 0 0 5 5L21 12.6 12.6 21a2.1 2.1 0 0 1-3-3L18 9.6"/><path d="M14.7 6.3L9.6 11.4M5 3l4 4-2 2-4-4z"/></svg><span class="tile-label">Report an Issue</span></button></div>
+            </nav>
+        </div>
+    </div>
+
+    <div id="sheet-wifi" class="sheet" role="dialog" aria-modal="true" aria-labelledby="sheet-wifi-title" style="display: none;">
+        <div class="sheet-inner">
+            <div class="sheet-header">
+                <h2 id="sheet-wifi-title">Wi-Fi</h2>
+                <button type="button" class="sheet-close" aria-label="Close Wi-Fi" onclick="closeSheet()">&times;</button>
+            </div>
+            <div class="sheet-body">
+                <div class="wifi-sheet">
                     <div id="wifi-info"></div>
-                </div>
-                
-                <div class="card">
-                    <div class="card-header">
-                        <div class="card-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 11l9-8 9 8"/><path d="M5 10v10h14V10"/><path d="M10 20v-6h4v6"/></svg></div>
-                        <div class="card-title">Property Information</div>
-                    </div>
-                    <div id="property-info"></div>
-                </div>
-                
-                <div class="card">
-                    <div class="card-header">
-                        <div class="card-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3l2.7 5.6 6.1.9-4.4 4.3 1 6.1L12 17l-5.4 2.9 1-6.1L3.2 9.5l6.1-.9z"/></svg></div>
-                        <div class="card-title">Amenities</div>
-                    </div>
-                    <div id="amenities-section"></div>
-                </div>
-                
-                <div class="card">
-                    <div class="card-header">
-                        <div class="card-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="5" width="18" height="14" rx="3"/><path d="M10 9.5v5l4.5-2.5z" fill="currentColor"/></svg></div>
-                        <div class="card-title">How-to Videos</div>
-                    </div>
-                    <div id="videos-section"></div>
-                </div>
-                
-                <div class="card">
-                    <div class="card-header">
-                        <div class="card-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7 3v8a2 2 0 0 0 2 2v8"/><path d="M5 3v6M9 3v6"/><path d="M17 21V3c-2.2 1.5-3 4-3 7v3h3"/></svg></div>
-                        <div class="card-title">Local Recommendations</div>
-                    </div>
-                    <div id="recommendations-section"></div>
-                </div>
-                
-                <div class="card report-card">
-                    <div class="card-header">
-                        <div class="card-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M14.7 6.3a4 4 0 0 0 5 5L21 12.6 12.6 21a2.1 2.1 0 0 1-3-3L18 9.6"/><path d="M14.7 6.3L9.6 11.4M5 3l4 4-2 2-4-4z"/></svg></div>
-                        <div class="card-title">Report an Issue</div>
-                    </div>
-                    <div class="card-content">
-                        <p>Need assistance or have an issue to report? Let us know and we'll take care of it promptly.</p>
-                        <button class="report-button" onclick="openReportModal()">Report Issue</button>
-                    </div>
+                    <div id="wifi-qr" class="wifi-qr"></div>
                 </div>
             </div>
-
-            <!-- 2026-10-03 15:39, QR cards moved below the info cards so Wi-Fi and house info stay above the fold (id unchanged) -->
-            <div id="guest-links-section"></div>
+        </div>
+    </div>
+    <div id="sheet-house" class="sheet" role="dialog" aria-modal="true" aria-labelledby="sheet-house-title" style="display: none;">
+        <div class="sheet-inner">
+            <div class="sheet-header">
+                <h2 id="sheet-house-title">House Info</h2>
+                <button type="button" class="sheet-close" aria-label="Close House Info" onclick="closeSheet()">&times;</button>
+            </div>
+            <div class="sheet-body">
+                <div class="property-address" id="property-address"></div>
+                <div class="property-description" id="property-description"></div>
+                <div id="property-info"></div>
+            </div>
+        </div>
+    </div>
+    <div id="sheet-amenities" class="sheet" role="dialog" aria-modal="true" aria-labelledby="sheet-amenities-title" style="display: none;">
+        <div class="sheet-inner">
+            <div class="sheet-header">
+                <h2 id="sheet-amenities-title">Amenities</h2>
+                <button type="button" class="sheet-close" aria-label="Close Amenities" onclick="closeSheet()">&times;</button>
+            </div>
+            <div class="sheet-body">
+                <div id="amenities-section"></div>
+            </div>
+        </div>
+    </div>
+    <div id="sheet-videos" class="sheet" role="dialog" aria-modal="true" aria-labelledby="sheet-videos-title" style="display: none;">
+        <div class="sheet-inner">
+            <div class="sheet-header">
+                <h2 id="sheet-videos-title">How-to Videos</h2>
+                <button type="button" class="sheet-close" aria-label="Close How-to Videos" onclick="closeSheet()">&times;</button>
+            </div>
+            <div class="sheet-body">
+                <div id="videos-section"></div>
+            </div>
+        </div>
+    </div>
+    <div id="sheet-guide" class="sheet" role="dialog" aria-modal="true" aria-labelledby="sheet-guide-title" style="display: none;">
+        <div class="sheet-inner">
+            <div class="sheet-header">
+                <h2 id="sheet-guide-title">Local Guide</h2>
+                <button type="button" class="sheet-close" aria-label="Close Local Guide" onclick="closeSheet()">&times;</button>
+            </div>
+            <div class="sheet-body">
+                <div id="recommendations-section"></div>
+            </div>
+        </div>
+    </div>
+    <div id="sheet-book" class="sheet" role="dialog" aria-modal="true" aria-labelledby="sheet-book-title" style="display: none;">
+        <div class="sheet-inner">
+            <div class="sheet-header">
+                <h2 id="sheet-book-title">Book Again</h2>
+                <button type="button" class="sheet-close" aria-label="Close Book Again" onclick="closeSheet()">&times;</button>
+            </div>
+            <div class="sheet-body">
+                <!-- 2026-10-03 17:01, review prompt (checkout day), book-direct QR and other properties live here -->
+                <div id="guest-links-section"></div>
+            </div>
         </div>
     </div>
 
@@ -199,7 +247,7 @@
             </form>
             
             <div id="reportSuccess" class="success-message" style="display: none;">
-                <h3>✅ Report Submitted Successfully!</h3>
+                <h3>Report submitted</h3>
                 <p>Thank you for reporting the issue. We'll address it as soon as possible.</p>
                 <button class="btn-close" onclick="closeReportModal()">Close</button>
             </div>
@@ -362,8 +410,9 @@
             // 2026-10-03 15:38, apply the manager-chosen theme + background (cached for the next load / offline)
             const lookTheme = ['light', 'dark'].includes(property.tablet_theme) ? property.tablet_theme : 'auto';
             const lookBg = safeUrl(property.background_image_url);
-            applyTabletLook(lookTheme, lookBg);
-            if (isDeviceMode) storageSet(TABLET_LOOK_KEY, JSON.stringify({ theme: lookTheme, bg: lookBg }));
+            const lookStyle = ['baltic-rose', 'rich-bistre', 'image'].includes(property.tablet_background) ? property.tablet_background : 'solid';
+            applyTabletLook(lookTheme, lookBg, lookStyle);
+            if (isDeviceMode) storageSet(TABLET_LOOK_KEY, JSON.stringify({ theme: lookTheme, bg: lookBg, style: lookStyle }));
 
             // Update header
             document.getElementById('company-name').textContent = company.name;
@@ -376,7 +425,7 @@
             if (!imageDiv) {
                 imageDiv = document.createElement('div');
                 imageDiv.id = 'main-image';
-                document.querySelector('.header').appendChild(imageDiv);
+                document.querySelector('.home-name').prepend(imageDiv);
             }
             const mainImage = safeUrl(property.main_image_url);
             imageDiv.innerHTML = mainImage ? `
@@ -418,7 +467,7 @@
                 ['instructions', 'Check-in Instructions', property.check_in_instructions],
                 ['instructions', 'Check-out Instructions', property.check_out_instructions],
                 ['instructions', 'House Rules', property.house_rules],
-                ['emergency-contact', '🚨 Emergency Contact', property.emergency_contact]
+                ['emergency-contact', 'Emergency Contact', property.emergency_contact]
             ];
             const propertyInfoHTML = infoBlocks
                 .filter(([, , text]) => text)
@@ -455,7 +504,7 @@
                         <div class="video-title">${e(video.title)}</div>
                         <div class="video-desc">${e(video.description)}</div>
                         <button type="button" class="video-link" onclick="openVideoModal(${index})">
-                            ▶️ Watch Video
+                            Watch video
                         </button>
                     </div>
                 `).join('');
@@ -474,8 +523,8 @@
                     <div class="recommendation-item">
                         <div class="recommendation-title">${e(item[titleKey] || item.title)}</div>
                         <div class="recommendation-desc">${e(item.description)}</div>
-                        ${item.distance ? `<div class="recommendation-phone">📍 ${e(item.distance)}</div>` : ''}
-                        ${item.phone ? `<div class="recommendation-phone">📞 ${e(item.phone)}</div>` : ''}
+                        ${item.distance ? `<div class="recommendation-phone">${e(item.distance)}</div>` : ''}
+                        ${item.phone ? `<div class="recommendation-phone">${e(item.phone)}</div>` : ''}
                     </div>
                 `).join('');
 
@@ -483,7 +532,7 @@
             if (restaurants && restaurants.length > 0) {
                 recommendationsHTML += `
                     <div class="recommendations">
-                        <h4>🍽️ Restaurants</h4>
+                        <h4>Restaurants</h4>
                         ${recommendationItems(restaurants, 'name')}
                     </div>
                 `;
@@ -491,7 +540,7 @@
             if (local_info && local_info.length > 0) {
                 recommendationsHTML += `
                     <div class="recommendations">
-                        <h4>🏛️ Local Attractions</h4>
+                        <h4>Local Attractions</h4>
                         ${recommendationItems(local_info, 'title')}
                     </div>
                 `;
@@ -500,18 +549,28 @@
                 recommendationsHTML || '<p>Local recommendations will be added soon.</p>';
             
             // 2026-10-03 12:45, announcements (server already filters to active + scheduled window)
-            const announcementIcons = { info: 'ℹ️', warning: '⚠️', urgent: '🚨' };
             document.getElementById('announcements-section').innerHTML = (announcements || []).map(a => {
                 const type = ['info', 'warning', 'urgent'].includes(a.type) ? a.type : 'info';
                 return `
                     <div class="announcement announcement-${type}">
-                        <div class="announcement-icon">${announcementIcons[type]}</div>
                         <div>
                             <div class="announcement-title">${e(a.title)}</div>
                             <div class="announcement-message">${e(a.message)}</div>
                         </div>
                     </div>`;
             }).join('');
+
+            // 2026-10-03 17:02, Wi-Fi join QR (server-generated), home tiles only for sections that have content, clock format, weather
+            document.getElementById('wifi-qr').innerHTML = data.wifi_qr_svg
+                ? `<div class="qr-box">${data.wifi_qr_svg}</div><div class="wifi-qr-caption">Scan to join</div>` : '';
+            const hasInfo = ['check_in_instructions', 'check_out_instructions', 'house_rules', 'emergency_contact'].some(k => property[k]);
+            setTile('house', hasInfo);
+            setTile('amenities', amenities && amenities.length);
+            setTile('videos', videos && videos.length);
+            setTile('guide', (restaurants && restaurants.length) || (local_info && local_info.length));
+            clockFormat = property.clock_format === '24h' ? '24h' : '12h';
+            renderClock();
+            startWeather(property);
 
             // 2026-10-03 12:32, Phase 5: QR codes for booking direct / reviews (guests scan with their phone;
             // the kiosk can't open other sites). Review prompt only on the current guest's checkout day.
@@ -641,6 +700,9 @@
         // 2026-10-03 12:32, Phase 5 guest links (QR SVGs are generated server-side from our own /r/ URLs)
         function renderGuestLinks(links) {
             const section = document.getElementById('guest-links-section');
+            const banner = document.getElementById('review-banner'); // 2026-10-03 17:02, checkout-day review prompt is a slim banner on the home screen
+            banner.style.display = 'none';
+            setTile('book', links && links.book);
             if (!links) { section.innerHTML = ''; return; }
             const e = escapeHtml;
             const today = new Date().toLocaleDateString('en-CA'); // YYYY-MM-DD in the tablet's time zone
@@ -648,10 +710,12 @@
             let html = '';
 
             if (links.review && isCheckoutDay) {
+                banner.innerHTML = '<strong>Thanks for staying with us!</strong><span>Tap to leave a quick review</span>';
+                banner.style.display = 'flex';
                 html += `
                     <div class="guest-link-card guest-link-review">
                         <div class="guest-link-text">
-                            <h3>Thanks for staying with us! ⭐</h3>
+                            <h3>Thanks for staying with us!</h3>
                             <p>Enjoyed your stay? Scan with your phone to leave a quick review.</p>
                         </div>
                         <div class="qr-box">${links.review.qr_svg}</div>
@@ -664,7 +728,7 @@
                         <div class="guest-link-text">
                             <h3>Book your next stay direct</h3>
                             <p>Scan with your phone to book this home again${links.showcase && links.showcase.length ? ' or explore our other properties' : ''}.</p>
-                            ${links.book.offer ? `<p class="guest-link-offer">🎁 ${e(links.book.offer)}</p>` : ''}
+                            ${links.book.offer ? `<p class="guest-link-offer">${e(links.book.offer)}</p>` : ''}
                         </div>
                         <div class="qr-box">${links.book.qr_svg}</div>
                     </div>`;
@@ -766,12 +830,158 @@
             el.style.display = 'block';
         }
 
+        // 2026-10-03 17:02, home screen: sheets (one per icon tile), focus trap, ESC, backdrop close, idle return-to-home
+        const SHEET_IDS = ['wifi', 'house', 'amenities', 'videos', 'guide', 'book'];
+        let openSheetId = null;
+        let sheetOpener = null;
+
+        function setTile(name, show) {
+            const tile = document.querySelector(`.tile[data-sheet="${name}"]`);
+            if (tile) tile.style.display = show ? '' : 'none';
+        }
+
+        function openSheet(id) {
+            if (!SHEET_IDS.includes(id)) return;
+            if (openSheetId) closeSheet(true);
+            sheetOpener = document.activeElement;
+            openSheetId = id;
+            const sheet = document.getElementById('sheet-' + id);
+            sheet.style.display = 'flex';
+            sheet.querySelector('.sheet-body').scrollTop = 0;
+            document.body.style.overflow = 'hidden';
+            sheet.querySelector('.sheet-close').focus();
+        }
+
+        function closeSheet(keepFocus) {
+            if (!openSheetId) return;
+            document.getElementById('sheet-' + openSheetId).style.display = 'none';
+            openSheetId = null;
+            document.body.style.overflow = 'auto';
+            if (!keepFocus && sheetOpener && document.contains(sheetOpener)) sheetOpener.focus();
+            sheetOpener = null;
+        }
+
+        function isShown(id) { const el = document.getElementById(id); return !!el && el.style.display !== 'none' && el.style.display !== ''; }
+
+        // The topmost dialog: video modal > report modal > sheet
+        function topDialog() {
+            if (isShown('videoModal')) return document.getElementById('videoModal');
+            if (isShown('reportModal')) return document.getElementById('reportModal');
+            return openSheetId ? document.getElementById('sheet-' + openSheetId) : null;
+        }
+
+        document.addEventListener('keydown', (event) => {
+            const dialog = topDialog();
+            if (!dialog) return;
+            if (event.key === 'Escape') {
+                if (dialog.id === 'videoModal') closeVideoModal();
+                else if (dialog.id === 'reportModal') closeReportModal();
+                else closeSheet();
+                return;
+            }
+            if (event.key !== 'Tab') return;
+            const focusable = [...dialog.querySelectorAll('a[href], button:not([disabled]), input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])')]
+                .filter(el => el.offsetParent !== null);
+            if (!focusable.length) return;
+            const first = focusable[0], last = focusable[focusable.length - 1];
+            if (!dialog.contains(document.activeElement)) { event.preventDefault(); first.focus(); }
+            else if (event.shiftKey && document.activeElement === first) { event.preventDefault(); last.focus(); }
+            else if (!event.shiftKey && document.activeElement === last) { event.preventDefault(); first.focus(); }
+        });
+
+        // Kiosk: after 2 minutes without interaction, close everything and show the home icons again
+        const IDLE_MS = Number(window.SG_IDLE_MS) || 2 * 60 * 1000;
+        let idleTimer = null;
+        function goHome() {
+            if (isShown('videoModal')) closeVideoModal();
+            if (isShown('reportModal')) closeReportModal();
+            closeSheet(true);
+            window.scrollTo(0, 0);
+        }
+        function resetIdle() {
+            clearTimeout(idleTimer);
+            idleTimer = setTimeout(goHome, IDLE_MS);
+        }
+        ['pointerdown', 'keydown', 'touchstart', 'wheel'].forEach(name => document.addEventListener(name, resetIdle, { passive: true, capture: true }));
+        resetIdle();
+
+        // 2026-10-03 17:02, clock: updates on the minute boundary, uses the tablet's local time zone
+        let clockFormat = '12h';
+        function renderClock() {
+            const now = new Date();
+            const minutes = String(now.getMinutes()).padStart(2, '0');
+            let hours = now.getHours();
+            let suffix = '';
+            if (clockFormat === '12h') { suffix = hours >= 12 ? 'PM' : 'AM'; hours = hours % 12 || 12; } else { hours = String(hours).padStart(2, '0'); }
+            document.getElementById('clock-time').textContent = `${hours}:${minutes}`;
+            document.getElementById('clock-ampm').textContent = suffix;
+            document.getElementById('clock-date').textContent = now.toLocaleDateString(undefined, { weekday: 'long', month: 'short', day: 'numeric' });
+        }
+        function scheduleClock() {
+            renderClock();
+            setTimeout(scheduleClock, 60000 - (Date.now() % 60000) + 30);
+        }
+        scheduleClock();
+
+        // 2026-10-03 17:02, weather: server proxies Open-Meteo (page CSP is connect-src 'self'); last value cached for offline, shown dimmed
+        const WEATHER_KEY = 'stayguide_tablet_weather';
+        const WEATHER_ICONS = {
+            clear: '<circle cx="12" cy="12" r="4.5"/><path d="M12 2.5v2.5M12 19v2.5M2.5 12H5M19 12h2.5M5.3 5.3l1.8 1.8M16.9 16.9l1.8 1.8M5.3 18.7l1.8-1.8M16.9 7.1l1.8-1.8"/>',
+            partly: '<circle cx="8.5" cy="8.5" r="3"/><path d="M8.5 2.5v1.5M2.5 8.5H4M4.3 4.3l1 1M12.7 4.3l-1 1"/><path d="M8 19h9.5a3.5 3.5 0 0 0 .4-7 5 5 0 0 0-9.4 1.3A3 3 0 0 0 8 19z"/>',
+            cloudy: '<path d="M7 19h10.5a4 4 0 0 0 .5-8 6 6 0 0 0-11.4 1.6A3.3 3.3 0 0 0 7 19z"/>',
+            fog: '<path d="M7 14h10.5a4 4 0 0 0 .5-8 6 6 0 0 0-11.4 1.6A3.3 3.3 0 0 0 7 14z"/><path d="M4 17.5h16M7 21h10"/>',
+            rain: '<path d="M7 14h10.5a4 4 0 0 0 .5-8 6 6 0 0 0-11.4 1.6A3.3 3.3 0 0 0 7 14z"/><path d="M8 17l-1 3M12 17l-1 3M16 17l-1 3"/>',
+            snow: '<path d="M7 14h10.5a4 4 0 0 0 .5-8 6 6 0 0 0-11.4 1.6A3.3 3.3 0 0 0 7 14z"/><path d="M8 18v.01M12 20v.01M16 18v.01M10 21v.01M14 17v.01"/>',
+            storm: '<path d="M7 13h10.5a4 4 0 0 0 .5-8 6 6 0 0 0-11.4 1.6A3.3 3.3 0 0 0 7 13z"/><path d="M12.5 13l-2.5 4h3l-2 4"/>'
+        };
+        const WEATHER_NAMES = { clear: 'clear', partly: 'partly cloudy', cloudy: 'cloudy', fog: 'foggy', rain: 'rainy', snow: 'snowy', storm: 'stormy' };
+        let weatherKey = null;
+        let weatherTimer = null;
+
+        function renderWeather(w, stale) {
+            const box = document.getElementById('weather');
+            if (!w || typeof w.temperature !== 'number' || !WEATHER_ICONS[w.condition]) { box.style.display = 'none'; return; }
+            document.getElementById('weather-icon').innerHTML = `<svg viewBox="0 0 24 24" aria-hidden="true">${WEATHER_ICONS[w.condition]}</svg>`;
+            document.getElementById('weather-temp').textContent = `${w.temperature}°${w.unit === 'C' ? 'C' : 'F'}`;
+            box.setAttribute('aria-label', `${w.temperature} degrees ${w.unit === 'C' ? 'Celsius' : 'Fahrenheit'}, ${WEATHER_NAMES[w.condition]}`);
+            box.classList.toggle('is-stale', !!stale);
+            box.style.display = 'flex';
+        }
+
+        async function loadWeather() {
+            const url = isDeviceMode ? '/device/weather' : `/company/${companySlug}/property/${propertySlug}/api/weather`;
+            try {
+                const response = await fetch(url, { headers: authHeaders() });
+                if (!response.ok) throw new Error('weather ' + response.status);
+                const w = await response.json();
+                storageSet(WEATHER_KEY, JSON.stringify({ key: weatherKey, w }));
+                renderWeather(w, w.stale);
+            } catch {
+                let cached = null;
+                try { cached = JSON.parse(storageGet(WEATHER_KEY) || 'null'); } catch {}
+                renderWeather(cached && cached.key === weatherKey ? cached.w : null, true);
+            }
+        }
+
+        function startWeather(property) {
+            const hasLocation = property.latitude !== null && property.latitude !== undefined && property.longitude !== null && property.longitude !== undefined;
+            const key = hasLocation ? `${property.latitude},${property.longitude},${property.temperature_unit}` : null;
+            if (key === weatherKey && weatherTimer) return; // already running for this location
+            weatherKey = key;
+            clearInterval(weatherTimer); weatherTimer = null;
+            if (!key) { renderWeather(null); return; }
+            loadWeather();
+            weatherTimer = setInterval(loadWeather, 30 * 60 * 1000);
+        }
+
         // Close modal when clicking outside of it
         window.onclick = function(event) {
             const modal = document.getElementById('reportModal');
             if (event.target === modal) {
                 closeReportModal();
             }
+            if (openSheetId && event.target === document.getElementById('sheet-' + openSheetId)) closeSheet(); // 2026-10-03 17:02
+
             // 2026-10-03 11:58
             if (event.target === document.getElementById('videoModal')) {
                 closeVideoModal();

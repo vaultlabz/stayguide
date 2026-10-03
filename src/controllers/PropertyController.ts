@@ -3,6 +3,9 @@ import { PropertyService } from '../services/PropertyService';
 import { CompanyService } from '../services/CompanyService';
 import { AuthRequest, Property } from '../types';
 import { LinkService, isHttpUrl } from '../services/LinkService';
+import QRCode from 'qrcode';
+import { wifiQrPayload } from '../utils/wifi';
+import { getWeather, geocodeAddress } from '../utils/weather';
 import { getImageUrl, processAndSaveImage } from '../middleware/upload';
 
 interface CompanyParams {
@@ -314,6 +317,8 @@ export class PropertyController {
     const baseUrl = (process.env.APP_BASE_URL || `${req.protocol}://${req.get('host')}`).replace(/\/$/, '');
     const guestLinks = await this.linkService.buildGuestLinks(property, baseUrl);
 
+    const wifiPayload = wifiQrPayload(property.wifi_name || '', property.wifi_password);
+
     console.log(`Property content retrieved for tablet: property ${property.id}`);
     res.json({
       message: 'Property content retrieved successfully',
@@ -323,8 +328,55 @@ export class PropertyController {
         logo_url: company.logo_url
       },
       ...propertyWithContent,
-      guest_links: guestLinks
+      guest_links: guestLinks,
+      // 2026-10-03 17:00, "Join Wi-Fi" QR for the Wi-Fi sheet (generated server-side like the guest-link QRs)
+      wifi_qr_svg: wifiPayload ? await QRCode.toString(wifiPayload, { type: 'svg', margin: 1, errorCorrectionLevel: 'M' }) : null
     });
+  }
+
+  // 2026-10-03 17:00, current weather for the tablet home screen (device token) and for the admin preview
+  async getDeviceWeather(req: AuthRequest, res: Response) {
+    try {
+      const property = await this.propertyService.findById(req.device!.property_id);
+      if (!property || property.status !== 'active') return res.status(404).json({ error: 'Property not available' });
+      await this.sendWeather(res, property);
+    } catch (error) {
+      console.error('Error getting device weather:', error);
+      res.status(500).json({ error: 'Failed to retrieve weather' });
+    }
+  }
+
+  async getPropertyWeather(req: AuthRequest, res: Response) {
+    try {
+      const { companySlug, propertySlug } = req.params;
+      const company = await this.companyService.findBySlug(companySlug);
+      if (!company) return res.status(404).json({ error: 'Company not found' });
+      if (req.user?.role === 'company_admin' && req.user.company_id !== company.id) return res.status(403).json({ error: 'Access denied' });
+      const property = await this.propertyService.findBySlug(company.id, propertySlug);
+      if (!property) return res.status(404).json({ error: 'Property not found' });
+      await this.sendWeather(res, property);
+    } catch (error) {
+      console.error('Error getting property weather:', error);
+      res.status(500).json({ error: 'Failed to retrieve weather' });
+    }
+  }
+
+  private async sendWeather(res: Response, property: Property) {
+    const lat = property.latitude === null || property.latitude === undefined ? NaN : Number(property.latitude);
+    const lon = property.longitude === null || property.longitude === undefined ? NaN : Number(property.longitude);
+    if (!Number.isFinite(lat) || !Number.isFinite(lon)) return res.status(404).json({ error: 'No location set for this property' });
+    const weather = await getWeather(property.id, lat, lon, property.temperature_unit === 'C' ? 'C' : 'F');
+    if (!weather) return res.status(503).json({ error: 'Weather unavailable' });
+    res.json(weather);
+  }
+
+  // 2026-10-03 17:00, dashboard helper: find coordinates for an address (ZIP, then city) via Open-Meteo geocoding
+  async geocode(req: AuthRequest, res: Response) {
+    const query = typeof req.query.q === 'string' ? req.query.q.trim() : '';
+    if (query.length < 3 || query.length > 300) return res.status(400).json({ error: 'Enter an address, city or ZIP code first' });
+    const hit = await geocodeAddress(query);
+    if (!hit) return res.status(404).json({ error: 'Could not find that location. Enter coordinates manually.' });
+    res.json(hit);
   }
 
   // 2026-10-03 12:32, QR scan counts for the dashboard (last 30 days)
@@ -369,6 +421,30 @@ export class PropertyController {
       const theme = body.tablet_theme || 'auto';
       if (!['auto', 'light', 'dark'].includes(theme)) return { error: 'tablet_theme must be auto, light or dark' };
       fields.tablet_theme = theme;
+    }
+    // 2026-10-03 16:42, tablet background style enum (null/empty resets to solid)
+    if (body.tablet_background !== undefined) {
+      const style = body.tablet_background || 'solid';
+      if (!['solid', 'baltic-rose', 'rich-bistre', 'image'].includes(style)) return { error: 'tablet_background must be solid, baltic-rose, rich-bistre or image' };
+      fields.tablet_background = style;
+    }
+    // 2026-10-03 17:00, weather location (decimal ranges), temperature unit and clock format
+    for (const [key, min, max] of [['latitude', -90, 90], ['longitude', -180, 180]] as const) {
+      if (body[key] === undefined) continue;
+      if (body[key] === null || body[key] === '') { fields[key] = null; continue; }
+      const num = Number(body[key]);
+      if (!Number.isFinite(num) || num < min || num > max) return { error: `${key} must be a number between ${min} and ${max}` };
+      fields[key] = Math.round(num * 1e6) / 1e6;
+    }
+    if (body.temperature_unit !== undefined) {
+      const unit = body.temperature_unit || 'F';
+      if (!['F', 'C'].includes(unit)) return { error: 'temperature_unit must be F or C' };
+      fields.temperature_unit = unit;
+    }
+    if (body.clock_format !== undefined) {
+      const format = body.clock_format || '12h';
+      if (!['12h', '24h'].includes(format)) return { error: 'clock_format must be 12h or 24h' };
+      fields.clock_format = format;
     }
     if (body.return_guest_offer !== undefined) {
       const offer = typeof body.return_guest_offer === 'string' ? body.return_guest_offer.trim() : '';

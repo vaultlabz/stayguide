@@ -286,6 +286,15 @@
             border-bottom: 1px solid var(--border);
         }
         
+        /* 2026-10-03 16:44, tablet background picker (swatches are live previews of what the tablet will show) */
+        .bg-options { display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 0.75rem; }
+        .bg-option { display: flex; flex-direction: column; gap: 0.5rem; padding: 0.5rem; background: var(--surface); color: var(--text); border: 1px solid var(--border-strong); border-radius: var(--radius); cursor: pointer; font: inherit; font-size: 0.8rem; font-weight: 600; text-align: left; }
+        .bg-option:hover { background: var(--surface-2); }
+        .bg-option[aria-checked="true"] { border-color: var(--accent); box-shadow: 0 0 0 2px var(--accent); }
+        .bg-swatch { display: block; height: 64px; border-radius: var(--radius-sm); border: 1px solid var(--border); }
+        .bg-swatch-solid { background: linear-gradient(135deg, #fff 0 50%, #000 50% 100%); }
+        .bg-swatch-image { background: var(--surface-3) center / cover; }
+        
         /* Slide Panel Styles */
         .slide-panel {
             position: fixed;
@@ -682,35 +691,83 @@
                     <div id="main-image-upload-status" style="margin-top: 0.5rem; font-size: 0.875rem;"></div>
                 </div>
 
-                <!-- 2026-10-03 15:40, per-property tablet look: theme + custom background (guests cannot change it) -->
+                <!-- 2026-10-03 16:44, per-property tablet look: background style (solid / gradient presets / image) + theme; guests cannot change it -->
                 <div class="property-form-section">
                     <h3>Tablet Appearance</h3>
                     <p style="margin: 0 0 1rem 0; color: var(--text-muted); font-size: 0.9rem;">
-                        Applies to this property's guest tablet. Backgrounds get a readability overlay automatically.
+                        Applies to this property's guest tablet. Gradients are always shown in dark mode.
                     </p>
                     <div class="form-group">
-                        <label class="form-label" for="tablet-theme">Theme</label>
+                        <label class="form-label" id="tablet-background-label">Background</label>
+                        <input type="hidden" id="tablet-background" value="solid">
+                        <div class="bg-options" role="radiogroup" aria-labelledby="tablet-background-label">
+                            <button type="button" class="bg-option" role="radio" data-bg="solid" aria-checked="true" onclick="setTabletBackground('solid')">
+                                <span class="bg-swatch bg-swatch-solid"></span><span>Solid black / white</span>
+                            </button>
+                            <button type="button" class="bg-option" role="radio" data-bg="baltic-rose" aria-checked="false" onclick="setTabletBackground('baltic-rose')">
+                                <span class="bg-swatch" style="background: #3E2D3F url(/img/gradients/baltic-rose.webp) center / cover;"></span><span>Baltic Rose</span>
+                            </button>
+                            <button type="button" class="bg-option" role="radio" data-bg="rich-bistre" aria-checked="false" onclick="setTabletBackground('rich-bistre')">
+                                <span class="bg-swatch" style="background: #060201 url(/img/gradients/rich-bistre.webp) center / cover;"></span><span>Rich Bistre</span>
+                            </button>
+                            <button type="button" class="bg-option" role="radio" data-bg="image" aria-checked="false" onclick="setTabletBackground('image')">
+                                <span class="bg-swatch bg-swatch-image" id="bg-swatch-image"></span><span>Custom image</span>
+                            </button>
+                        </div>
+                    </div>
+                    <div class="form-group" id="tablet-theme-group">
+                        <label class="form-label" for="tablet-theme">Theme (solid and image backgrounds)</label>
                         <select id="tablet-theme" class="form-input">
                             <option value="auto">Auto (follow the tablet's system setting)</option>
-                            <option value="light">Light</option>
-                            <option value="dark">Dark</option>
+                            <option value="light">Light (white)</option>
+                            <option value="dark">Dark (black)</option>
                         </select>
                     </div>
+                    <!-- 2026-10-03 17:06, home screen clock + weather: location (lat/lon), temperature unit, clock format -->
                     <div class="form-group">
-                        <label class="form-label" for="background-image-url">Background image</label>
-                        <input type="text" id="background-image-url" class="form-input" placeholder="Upload below or paste an https:// image URL"
-                               oninput="previewImage(this.value, 'background-image-preview')">
+                        <label class="form-label">Location for weather</label>
+                        <div class="form-row">
+                            <input type="number" id="latitude" class="form-input" step="any" min="-90" max="90" placeholder="Latitude (e.g. 34.0195)" aria-label="Latitude">
+                            <input type="number" id="longitude" class="form-input" step="any" min="-180" max="180" placeholder="Longitude (e.g. -118.4912)" aria-label="Longitude">
+                        </div>
+                        <div style="display: flex; align-items: center; gap: 0.75rem; margin-top: 0.5rem;">
+                            <button type="button" class="btn btn-secondary btn-small" id="geocode-btn" onclick="findLocation()">Find from address</button>
+                            <span id="geocode-status" style="font-size: 0.85rem; color: var(--text-muted);" role="status"></span>
+                        </div>
                     </div>
-                    <div class="upload-area" id="background-image-upload-area" onclick="document.getElementById('background-image-file').click()">
-                        <div class="upload-text">Click to upload a background (landscape photos work best)</div>
-                        <button type="button" class="upload-button">Choose Image</button>
-                        <input type="file" id="background-image-file" accept="image/*" style="display: none;"
-                               onchange="uploadBackgroundImage(this.files[0])">
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label class="form-label" for="temperature-unit">Temperature</label>
+                            <select id="temperature-unit" class="form-input">
+                                <option value="F">Fahrenheit (&deg;F)</option>
+                                <option value="C">Celsius (&deg;C)</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label" for="clock-format">Clock</label>
+                            <select id="clock-format" class="form-input">
+                                <option value="12h">12-hour (5:05 PM)</option>
+                                <option value="24h">24-hour (17:05)</option>
+                            </select>
+                        </div>
                     </div>
-                    <div id="background-image-preview" style="margin-top: 0.5rem;"></div>
-                    <div id="background-image-upload-status" style="margin-top: 0.5rem; font-size: 0.875rem;"></div>
-                    <button type="button" class="btn btn-secondary btn-small" style="margin-top: 0.5rem;"
-                            onclick="document.getElementById('background-image-url').value=''; previewImage('', 'background-image-preview');">Remove background</button>
+                    <div id="tablet-image-group" style="display: none;">
+                        <div class="form-group">
+                            <label class="form-label" for="background-image-url">Background image</label>
+                            <input type="text" id="background-image-url" class="form-input" placeholder="Upload below or paste an https:// image URL"
+                                   oninput="previewImage(this.value, 'background-image-preview')">
+                        </div>
+                        <div class="upload-area" id="background-image-upload-area" onclick="document.getElementById('background-image-file').click()">
+                            <div class="upload-text">Click to upload a background (landscape photos work best)</div>
+                            <button type="button" class="upload-button">Choose Image</button>
+                            <input type="file" id="background-image-file" accept="image/*" style="display: none;"
+                                   onchange="uploadBackgroundImage(this.files[0])">
+                        </div>
+                        <div id="background-image-preview" style="margin-top: 0.5rem;"></div>
+                        <div id="background-image-upload-status" style="margin-top: 0.5rem; font-size: 0.875rem;"></div>
+                        <button type="button" class="btn btn-secondary btn-small" style="margin-top: 0.5rem;"
+                                onclick="document.getElementById('background-image-url').value=''; previewImage('', 'background-image-preview');">Remove image</button>
+                    </div>
                 </div>
 
                 <!-- WiFi & Access Section -->
@@ -1002,7 +1059,8 @@
             // Clear amenities and image previews
             document.getElementById('amenities-list').innerHTML = '';
             document.getElementById('main-image-preview').innerHTML = '';
-            document.getElementById('background-image-preview').innerHTML = ''; // 2026-10-03 15:40
+            document.getElementById('background-image-preview').innerHTML = '';
+            setTabletBackground('solid'); // 2026-10-03 15:40
             document.getElementById('load-amenities-btn').style.display = 'none';
 
             document.getElementById('link-stats').textContent = ''; // 2026-10-03 12:32
@@ -1049,6 +1107,11 @@
                 house_rules: document.getElementById('house-rules').value,
                 emergency_contact: document.getElementById('emergency-contact').value,
                 // 2026-10-03 12:32, Phase 5 guest links
+                tablet_background: document.getElementById('tablet-background').value, // 2026-10-03 16:44
+                latitude: document.getElementById('latitude').value, // 2026-10-03 17:06
+                longitude: document.getElementById('longitude').value,
+                temperature_unit: document.getElementById('temperature-unit').value,
+                clock_format: document.getElementById('clock-format').value,
                 tablet_theme: document.getElementById('tablet-theme').value, // 2026-10-03 15:40
                 background_image_url: document.getElementById('background-image-url').value,
                 direct_booking_url: document.getElementById('direct-booking-url').value,
@@ -1161,6 +1224,12 @@
                 document.getElementById('house-rules').value = property.house_rules || '';
                 document.getElementById('emergency-contact').value = property.emergency_contact || '';
                 // 2026-10-03 12:32, Phase 5 guest links
+                setTabletBackground(property.tablet_background || 'solid'); // 2026-10-03 16:44
+                document.getElementById('latitude').value = property.latitude ?? ''; // 2026-10-03 17:06
+                document.getElementById('longitude').value = property.longitude ?? '';
+                document.getElementById('temperature-unit').value = property.temperature_unit || 'F';
+                document.getElementById('clock-format').value = property.clock_format || '12h';
+                document.getElementById('geocode-status').textContent = '';
                 document.getElementById('tablet-theme').value = property.tablet_theme || 'auto'; // 2026-10-03 15:40
                 document.getElementById('background-image-url').value = property.background_image_url || '';
                 previewImage(property.background_image_url || '', 'background-image-preview');
@@ -1390,8 +1459,44 @@
             }
         });
         
+        // 2026-10-03 16:44, background picker: hidden input holds the value; swatches are a radiogroup; image fields only for 'image'
+        function setTabletBackground(value) {
+            document.getElementById('tablet-background').value = value;
+            document.querySelectorAll('.bg-option').forEach(btn => btn.setAttribute('aria-checked', String(btn.dataset.bg === value)));
+            document.getElementById('tablet-image-group').style.display = value === 'image' ? 'block' : 'none';
+            document.getElementById('tablet-theme-group').style.display = (value === 'solid' || value === 'image') ? 'block' : 'none';
+        }
+        // 2026-10-03 17:06, look up coordinates for the address field (ZIP, then city) via the server's Open-Meteo geocoding proxy; manager reviews, then saves
+        async function findLocation() {
+            const status = document.getElementById('geocode-status');
+            const query = document.getElementById('property-address').value.trim();
+            if (query.length < 3) { status.textContent = 'Enter the property address first.'; return; }
+            status.textContent = 'Searching...';
+            try {
+                const response = await fetch(`/company/${companySlug}/geocode?q=${encodeURIComponent(query)}`, { headers: { 'Authorization': `Bearer ${authToken}` } });
+                const data = await response.json();
+                if (!response.ok) throw new Error(data.error || 'Lookup failed');
+                document.getElementById('latitude').value = data.latitude;
+                document.getElementById('longitude').value = data.longitude;
+                status.textContent = `Found ${data.name}. Review, then save.`;
+            } catch (error) {
+                status.textContent = error.message;
+            }
+        }
+
+        // keep the custom-image swatch in sync with the URL field
+        document.addEventListener('input', (e) => {
+            if (e.target && e.target.id === 'background-image-url') updateImageSwatch(e.target.value);
+        });
+        function updateImageSwatch(url) {
+            const sw = document.getElementById('bg-swatch-image');
+            const safe = /^(\/uploads\/|https:\/\/)[^\s"'\\()]+$/.test(url || '') ? url : '';
+            sw.style.backgroundImage = safe ? `url("${safe}")` : 'none';
+        }
+
         // 2026-10-03 15:40, image preview + upload shared by the main image and the tablet background (URL is escaped: it is user input)
         function previewImage(url, previewId) {
+            if (previewId === 'background-image-preview') updateImageSwatch(url);
             const preview = document.getElementById(previewId);
             if (url && url.trim()) {
                 preview.innerHTML = `<img src="${escapeHtml(url)}" alt="Preview" style="max-width: 200px; max-height: 150px; border-radius: var(--radius-sm); object-fit: cover;">`;

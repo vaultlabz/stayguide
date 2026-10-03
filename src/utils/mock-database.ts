@@ -83,6 +83,7 @@ export const mockProperties = [
     // 2026-10-03 15:29, tablet appearance defaults
     tablet_theme: 'auto',
     background_image_url: null,
+    tablet_background: 'solid', latitude: 34.0195, longitude: -118.4912, temperature_unit: 'F', clock_format: '12h', // 2026-10-03 17:00 Santa Monica demo coordinates // 2026-10-03 16:42
     status: 'active',
     created_at: new Date(),
     updated_at: new Date()
@@ -103,6 +104,7 @@ export const mockProperties = [
     emergency_contact: 'Mountain Rescue: (555) 999-0000',
     tablet_theme: 'auto',
     background_image_url: null,
+    tablet_background: 'solid', latitude: null, longitude: null, temperature_unit: 'F', clock_format: '12h', // 2026-10-03 16:42
     status: 'active',
     created_at: new Date(),
     updated_at: new Date()

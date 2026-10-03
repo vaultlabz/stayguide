@@ -25,6 +25,7 @@ const pairLimiter = rateLimit({
 
 router.post('/device/pair', pairLimiter, deviceController.pair.bind(deviceController));
 
+router.get('/device/weather', authenticateDevice, propertyController.getDeviceWeather.bind(propertyController));
 router.get('/device/content', authenticateDevice, propertyController.getDeviceContent.bind(propertyController));
 
 export default router;
