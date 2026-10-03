@@ -1,0 +1,377 @@
+{
+  "version": 2,
+  "tasks": [
+    {
+      "id": 1,
+      "creationDate": "2025-07-15 00:00",
+      "title": "Project planning: multi-tenant SaaS architecture plan",
+      "description": "Phases, URL structure, MySQL design, local vs Plesk deployment (seeded from docs/todo.md)",
+      "complexity": 4,
+      "completionDate": "2025-07-15 00:00",
+      "status": "done",
+      "priority": "medium",
+      "trelloCardId": null
+    },
+    {
+      "id": 2,
+      "creationDate": "2025-07-15 00:00",
+      "title": "Phase 1: foundation with authentication",
+      "description": "TypeScript/Express setup, MySQL schema, env config, JWT auth with main/company admin roles (seeded from docs/todo.md)",
+      "complexity": 7,
+      "completionDate": "2025-07-15 00:00",
+      "status": "done",
+      "priority": "medium",
+      "trelloCardId": null
+    },
+    {
+      "id": 3,
+      "creationDate": "2025-07-15 00:00",
+      "title": "Phase 2: admin dashboard & company management",
+      "description": "Main admin dashboard with company CRUD (seeded from docs/todo.md)",
+      "complexity": 6,
+      "completionDate": "2025-07-15 00:00",
+      "status": "done",
+      "priority": "medium",
+      "trelloCardId": null
+    },
+    {
+      "id": 4,
+      "creationDate": "2025-07-15 00:00",
+      "title": "Phase 3: property management & company dashboard",
+      "description": "Property CRUD and company-scoped dashboard (seeded from docs/todo.md)",
+      "complexity": 6,
+      "completionDate": "2025-07-15 00:00",
+      "status": "done",
+      "priority": "medium",
+      "trelloCardId": null
+    },
+    {
+      "id": 5,
+      "creationDate": "2025-07-15 00:00",
+      "title": "Mock database mode for testing",
+      "description": "Full mock services so the app runs without MySQL (seeded from docs/todo.md)",
+      "complexity": 4,
+      "completionDate": "2025-07-15 00:00",
+      "status": "done",
+      "priority": "medium",
+      "trelloCardId": null
+    },
+    {
+      "id": 6,
+      "creationDate": "2025-07-15 00:00",
+      "title": "Guest-facing tablet app",
+      "description": "/company/{slug}/property/{slug} tablet interface (seeded from docs/todo.md)",
+      "complexity": 6,
+      "completionDate": "2025-07-15 00:00",
+      "status": "done",
+      "priority": "medium",
+      "trelloCardId": null
+    },
+    {
+      "id": 7,
+      "creationDate": "2025-07-15 00:00",
+      "title": "Amenities management + image upload",
+      "description": "Property amenities CRUD with image support (seeded from docs/todo.md)",
+      "complexity": 5,
+      "completionDate": "2025-07-15 00:00",
+      "status": "done",
+      "priority": "medium",
+      "trelloCardId": null
+    },
+    {
+      "id": 8,
+      "creationDate": "2025-07-15 00:00",
+      "title": "Image upload with drag & drop",
+      "description": "Multer file upload system (seeded from docs/todo.md)",
+      "complexity": 4,
+      "completionDate": "2025-07-15 00:00",
+      "status": "done",
+      "priority": "medium",
+      "trelloCardId": null
+    },
+    {
+      "id": 9,
+      "creationDate": "2025-07-15 00:00",
+      "title": "Slide-panel UI redesign for property management",
+      "description": "Organized slide panel sections (seeded from docs/todo.md)",
+      "complexity": 4,
+      "completionDate": "2025-07-15 00:00",
+      "status": "done",
+      "priority": "medium",
+      "trelloCardId": null
+    },
+    {
+      "id": 10,
+      "creationDate": "2025-07-15 00:00",
+      "title": "Sharp image optimization (multiple sizes)",
+      "description": "Sharp processing with multi-size generation (seeded from docs/todo.md)",
+      "complexity": 4,
+      "completionDate": "2025-07-15 00:00",
+      "status": "done",
+      "priority": "medium",
+      "trelloCardId": null
+    },
+    {
+      "id": 11,
+      "creationDate": "2025-10-04 00:00",
+      "title": "Guest reporting + super admin amenities control",
+      "description": "Integrated amenity-aware issue reporting, amenities table schema fix, audit trail, 15+ endpoints (seeded from docs/todo.md)",
+      "complexity": 8,
+      "completionDate": "2025-10-04 00:00",
+      "status": "done",
+      "priority": "medium",
+      "trelloCardId": null
+    },
+    {
+      "id": 12,
+      "creationDate": "2026-10-03 10:59",
+      "title": "Admin dashboard: Properties & Amenities management section",
+      "description": "Add a Properties & Amenities management section to the admin UI",
+      "complexity": 5,
+      "completionDate": null,
+      "status": "pending",
+      "priority": "medium",
+      "trelloCardId": null,
+      "context": {
+        "doing": "Adding a Properties & Amenities section to the admin dashboard",
+        "achieve": "super admins can manage amenities from the UI instead of API only",
+        "according": "docs/todo.md Optional Future Enhancements #1"
+      }
+    },
+    {
+      "id": 13,
+      "creationDate": "2026-10-03 10:59",
+      "title": "Real-time notifications for urgent issues",
+      "description": "WebSocket-based instant alerts for urgent guest reports",
+      "complexity": 6,
+      "completionDate": null,
+      "status": "pending",
+      "priority": "medium",
+      "trelloCardId": null,
+      "context": {
+        "doing": "Adding WebSocket push for urgent reports",
+        "achieve": "admins see urgent guest issues instantly",
+        "according": "docs/todo.md Optional Future Enhancements #2"
+      }
+    },
+    {
+      "id": 14,
+      "creationDate": "2026-10-03 10:59",
+      "title": "Advanced analytics dashboards",
+      "description": "Detailed reporting and trend analysis dashboards",
+      "complexity": 6,
+      "completionDate": null,
+      "status": "pending",
+      "priority": "low",
+      "trelloCardId": null,
+      "context": {
+        "doing": "Building reporting/trend dashboards",
+        "achieve": "companies and admins get insight into reports and usage",
+        "according": "docs/todo.md Optional Future Enhancements #3"
+      }
+    },
+    {
+      "id": 15,
+      "creationDate": "2026-10-03 10:59",
+      "title": "Email notifications for urgent reports",
+      "description": "Automatic email notifications for urgent reports (EmailService exists but is not wired into reporting)",
+      "complexity": 4,
+      "completionDate": null,
+      "status": "pending",
+      "priority": "medium",
+      "trelloCardId": null,
+      "context": {
+        "doing": "Wiring EmailService into urgent report creation",
+        "achieve": "property managers are emailed about urgent issues",
+        "according": "docs/todo.md Optional Future Enhancements #4"
+      }
+    },
+    {
+      "id": 16,
+      "creationDate": "2026-10-03 10:59",
+      "title": "Native mobile app for property managers",
+      "description": "Mobile app for property managers",
+      "complexity": 8,
+      "completionDate": null,
+      "status": "pending",
+      "priority": "low",
+      "trelloCardId": null,
+      "context": {
+        "doing": "Scoping a native manager mobile app",
+        "achieve": "managers can handle reports on the go",
+        "according": "docs/todo.md Optional Future Enhancements #5"
+      }
+    },
+    {
+      "id": 17,
+      "creationDate": "2026-10-03 10:59",
+      "title": "Helpdesk system (support tickets)",
+      "description": "Planned Phase 3 item #14 — support ticket management per company; no helpdesk code exists in src/",
+      "complexity": 6,
+      "completionDate": null,
+      "status": "pending",
+      "priority": "medium",
+      "trelloCardId": null,
+      "context": {
+        "doing": "Building company helpdesk ticket management",
+        "achieve": "companies can open and track support tickets with the platform",
+        "according": "docs/todo.md Development Phases, Phase 3 #14"
+      }
+    },
+    {
+      "id": 18,
+      "creationDate": "2026-10-03 11:34",
+      "title": "Phase 0: security fixes (SQL field whitelist, amenity/report ownership, tenant middleware)",
+      "description": "See plan lets-discuss-this-i-robust-panda.md",
+      "complexity": 6,
+      "completionDate": "2026-10-03 11:37",
+      "status": "done",
+      "priority": "high",
+      "trelloCardId": null,
+      "context": {
+        "doing": "Fixing SQL injection and cross-tenant access",
+        "achieve": "the admin APIs are safe for real clients",
+        "according": "the 2026-10-03 audit"
+      }
+    },
+    {
+      "id": 19,
+      "creationDate": "2026-10-03 11:34",
+      "title": "Phase 1: tablet device pairing (devices table, pairing codes, device tokens)",
+      "description": "See plan lets-discuss-this-i-robust-panda.md",
+      "complexity": 7,
+      "completionDate": "2026-10-03 11:43",
+      "status": "done",
+      "priority": "high",
+      "trelloCardId": null,
+      "context": {
+        "doing": "Replacing the public property URL with paired device tokens",
+        "achieve": "Wi-Fi/check-in details are not public and reports come only from real tablets",
+        "according": "the tablet kiosk plan"
+      }
+    },
+    {
+      "id": 20,
+      "creationDate": "2026-10-03 11:34",
+      "title": "Phase 2: offline PWA for tablet",
+      "description": "See plan lets-discuss-this-i-robust-panda.md",
+      "complexity": 5,
+      "completionDate": "2026-10-03 11:57",
+      "status": "done",
+      "priority": "medium",
+      "trelloCardId": null,
+      "context": {
+        "doing": "Adding a service worker with cached content",
+        "achieve": "the tablet still works when Wi-Fi drops",
+        "according": "the tablet kiosk plan"
+      }
+    },
+    {
+      "id": 21,
+      "creationDate": "2026-10-03 11:34",
+      "title": "Phase 3: tablet page fixes (escaping, video modal, report form)",
+      "description": "See plan lets-discuss-this-i-robust-panda.md",
+      "complexity": 4,
+      "completionDate": "2026-10-03 12:00",
+      "status": "done",
+      "priority": "medium",
+      "trelloCardId": null,
+      "context": {
+        "doing": "Fixing XSS, the video modal and the report form",
+        "achieve": "the guest page is safe and matches the PRD",
+        "according": "the audit and stayguide vibe.txt"
+      }
+    },
+    {
+      "id": 22,
+      "creationDate": "2026-10-03 11:34",
+      "title": "Phase 4: kiosk provisioning doc (Fully Kiosk)",
+      "description": "See plan lets-discuss-this-i-robust-panda.md",
+      "complexity": 2,
+      "completionDate": "2026-10-03 12:01",
+      "status": "done",
+      "priority": "low",
+      "trelloCardId": null,
+      "context": {
+        "doing": "Writing docs/KIOSK_SETUP.md",
+        "achieve": "tablets can be set up consistently",
+        "according": "the managed-tablet decision"
+      }
+    },
+    {
+      "id": 23,
+      "creationDate": "2026-10-03 11:34",
+      "title": "Phase 5: direct booking + review prompts on tablet",
+      "description": "See plan lets-discuss-this-i-robust-panda.md",
+      "complexity": 5,
+      "completionDate": "2026-10-03 12:36",
+      "status": "done",
+      "priority": "medium",
+      "trelloCardId": null,
+      "context": {
+        "doing": "Adding direct-booking/review links and a QR card",
+        "achieve": "the tablet drives direct bookings and reviews",
+        "according": "the Google Vacation Rentals discussion"
+      }
+    },
+    {
+      "id": 24,
+      "creationDate": "2026-10-03 11:38",
+      "title": "Developer integration guide (docs/INTEGRATION_GUIDE.md)",
+      "description": "Requested 2026-10-03 during tablet plan implementation",
+      "complexity": 3,
+      "completionDate": "2026-10-03 11:38",
+      "status": "done",
+      "priority": "medium",
+      "trelloCardId": null
+    },
+    {
+      "id": 25,
+      "creationDate": "2026-10-03 11:38",
+      "title": "External API v1: company API keys, Stays, Conversions, signed webhooks",
+      "description": "Requested 2026-10-03 during tablet plan implementation",
+      "complexity": 8,
+      "completionDate": null,
+      "status": "pending",
+      "priority": "medium",
+      "trelloCardId": null,
+      "context": {
+        "doing": "Building the external API specified in docs/INTEGRATION_GUIDE.md",
+        "achieve": "owner websites can sync stays, report conversions and receive guest-report webhooks",
+        "according": "docs/INTEGRATION_GUIDE.md sections 5-7"
+      }
+    },
+    {
+      "id": 26,
+      "creationDate": "2026-10-03 12:36",
+      "title": "Upgrade vulnerable dependencies (jws via jsonwebtoken, express, multer, mysql2, sharp)",
+      "description": "Found during tablet plan implementation",
+      "complexity": 4,
+      "completionDate": "2026-10-03 12:50",
+      "status": "done",
+      "priority": "high",
+      "trelloCardId": null,
+      "context": {
+        "doing": "Upgrading packages flagged by npm audit (17 findings, all pre-existing)",
+        "achieve": "no known high-severity advisories in production dependencies",
+        "according": "npm audit run 2026-10-03"
+      }
+    },
+    {
+      "id": 27,
+      "creationDate": "2026-10-03 12:36",
+      "title": "Show announcements on the tablet",
+      "description": "Found during tablet plan implementation",
+      "complexity": 2,
+      "completionDate": "2026-10-03 12:50",
+      "status": "done",
+      "priority": "low",
+      "trelloCardId": null,
+      "context": {
+        "doing": "Rendering the announcements already returned in tablet content",
+        "achieve": "managers can post notices (e.g. pool cleaning) guests actually see",
+        "according": "gap found during Phase 2"
+      }
+    }
+  ]
+}

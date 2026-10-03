@@ -1,0 +1,18 @@
+Things a few things when we report an issue we don't need to get the users name, room number, etc. as they will have already been through a process for application and they are already in the property.  They should see a menu of icons for the amenities/categories that are in the home.  the amenities should operate much the same way in that they can reviewed for instructions and or assistance
+
+Will need to display videos in a modal window and not redirect to YouTube. 
+
+Local recommendations to go to the page with dining outdoor entertainment options that can be monetized in the local community.
+
+app notes:  (dream navigators / dona luz collection) sf home renters??
+best foods in area
+property info and tips
+welcome /. how to 
+wifi codes / tv listing info
+local area info
+notifications and announcements
+desktop admin
+splash page with logo
+view other properties(available)
+
+pricing - 300 per tablet (annual)

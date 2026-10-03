@@ -1,0 +1,723 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>StayGuide Admin - Billing Overview</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: #f5f7fa;
+            color: #333;
+        }
+        
+        .header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 1rem 2rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        
+        .logo {
+            font-size: 1.5rem;
+            font-weight: bold;
+        }
+        
+        .nav-links {
+            display: flex;
+            gap: 1rem;
+        }
+        
+        .nav-links a {
+            color: white;
+            text-decoration: none;
+            padding: 0.5rem 1rem;
+            border-radius: 5px;
+            transition: background-color 0.3s;
+        }
+        
+        .nav-links a:hover, .nav-links a.active {
+            background: rgba(255, 255, 255, 0.2);
+        }
+        
+        .user-info {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+        }
+        
+        .btn {
+            padding: 0.5rem 1rem;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            text-decoration: none;
+            font-weight: 500;
+            transition: all 0.3s ease;
+        }
+        
+        .btn-secondary {
+            background: rgba(255, 255, 255, 0.2);
+            color: white;
+            border: 1px solid rgba(255, 255, 255, 0.3);
+        }
+        
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 2rem;
+        }
+        
+        .page-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 2rem;
+        }
+        
+        .page-title {
+            font-size: 2rem;
+            color: #1f2937;
+        }
+        
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 1.5rem;
+            margin-bottom: 2rem;
+        }
+        
+        .stat-card {
+            background: white;
+            padding: 1.5rem;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.05);
+            border-left: 4px solid #4f46e5;
+        }
+        
+        .stat-card.revenue {
+            border-left-color: #10b981;
+        }
+        
+        .stat-card.pending {
+            border-left-color: #f59e0b;
+        }
+        
+        .stat-card.overdue {
+            border-left-color: #ef4444;
+        }
+        
+        .stat-card.invoices {
+            border-left-color: #6366f1;
+        }
+        
+        .stat-number {
+            font-size: 2rem;
+            font-weight: bold;
+            margin-bottom: 0.5rem;
+        }
+        
+        .stat-label {
+            color: #6b7280;
+            font-size: 0.875rem;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+        
+        .content-section {
+            background: white;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.05);
+            margin-bottom: 2rem;
+        }
+        
+        .section-header {
+            padding: 1.5rem;
+            border-bottom: 1px solid #e5e7eb;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        
+        .section-title {
+            font-size: 1.25rem;
+            font-weight: 600;
+            color: #1f2937;
+        }
+        
+        .section-content {
+            padding: 1.5rem;
+        }
+        
+        .loading {
+            text-align: center;
+            padding: 2rem;
+            color: #6b7280;
+        }
+        
+        .error {
+            background: #fee2e2;
+            color: #991b1b;
+            padding: 1rem;
+            border-radius: 8px;
+            margin-bottom: 1rem;
+        }
+        
+        .billing-table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+        
+        .billing-table th,
+        .billing-table td {
+            padding: 0.75rem;
+            text-align: left;
+            border-bottom: 1px solid #e5e7eb;
+        }
+        
+        .billing-table th {
+            background: #f9fafb;
+            font-weight: 600;
+            color: #374151;
+        }
+        
+        .status-badge {
+            padding: 0.25rem 0.75rem;
+            border-radius: 20px;
+            font-size: 0.75rem;
+            font-weight: 500;
+            text-transform: uppercase;
+        }
+        
+        .status-paid {
+            background: #d1fae5;
+            color: #065f46;
+        }
+        
+        .status-pending {
+            background: #fef3c7;
+            color: #92400e;
+        }
+        
+        .status-overdue {
+            background: #fee2e2;
+            color: #991b1b;
+        }
+        
+        .status-cancelled {
+            background: #f3f4f6;
+            color: #4b5563;
+        }
+        
+        .amount {
+            font-weight: 600;
+            font-family: 'Courier New', monospace;
+        }
+        
+        .company-link {
+            color: #4f46e5;
+            text-decoration: none;
+            font-weight: 500;
+        }
+        
+        .company-link:hover {
+            text-decoration: underline;
+        }
+        
+        .empty-state {
+            text-align: center;
+            padding: 3rem;
+            color: #6b7280;
+        }
+        
+        .empty-state-icon {
+            font-size: 3rem;
+            margin-bottom: 1rem;
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <div class="logo">StayGuide Admin</div>
+        <div class="nav-links">
+            <a href="/admin/dashboard">Dashboard</a>
+            <a href="/admin/billing" class="active">Billing</a>
+            <a href="#" id="helpdesk-link">Helpdesk</a>
+        </div>
+        <div class="user-info">
+            <span id="user-name">Admin User</span>
+            <button class="btn btn-secondary" id="logout-btn">Logout</button>
+        </div>
+    </div>
+
+    <div class="container">
+        <div class="page-header">
+            <h1 class="page-title">Billing Overview</h1>
+            <div style="display: flex; gap: 1rem;">
+                <button class="btn btn-primary" id="generate-billing-btn">Generate Monthly Billing</button>
+                <button class="btn btn-primary" id="view-invoices-btn">View All Invoices</button>
+            </div>
+        </div>
+
+        <!-- Billing Statistics -->
+        <div class="stats-grid">
+            <div class="stat-card revenue">
+                <div class="stat-number" id="total-revenue">$0</div>
+                <div class="stat-label">Total Revenue</div>
+            </div>
+            <div class="stat-card revenue">
+                <div class="stat-number" id="monthly-revenue">$0</div>
+                <div class="stat-label">Paid Revenue</div>
+            </div>
+            <div class="stat-card pending">
+                <div class="stat-number" id="pending-amount">$0</div>
+                <div class="stat-label">Pending Amount</div>
+            </div>
+            <div class="stat-card overdue">
+                <div class="stat-number" id="overdue-amount">$0</div>
+                <div class="stat-label">Overdue Amount</div>
+            </div>
+            <div class="stat-card invoices">
+                <div class="stat-number" id="total-invoices">0</div>
+                <div class="stat-label">Total Invoices</div>
+            </div>
+            <div class="stat-card invoices">
+                <div class="stat-number" id="paid-invoices">0</div>
+                <div class="stat-label">Paid Invoices</div>
+            </div>
+        </div>
+
+        <!-- Recent Billing Activity -->
+        <div class="content-section">
+            <div class="section-header">
+                <h2 class="section-title">Recent Billing Activity</h2>
+            </div>
+            <div class="section-content">
+                <div id="billing-content">
+                    <div class="loading">Loading billing data...</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const API_BASE = '';
+        let authToken = localStorage.getItem('stayguide_token');
+        
+        // Check authentication on page load
+        if (!authToken) {
+            window.location.href = '/admin/login';
+        }
+        
+        // API helper function
+        async function apiCall(endpoint, options = {}) {
+            const config = {
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${authToken}`
+                },
+                ...options
+            };
+            
+            try {
+                const response = await fetch(API_BASE + endpoint, config);
+                
+                if (response.status === 401) {
+                    localStorage.removeItem('stayguide_token');
+                    window.location.href = '/admin/login';
+                    return;
+                }
+                
+                const data = await response.json();
+                
+                if (!response.ok) {
+                    throw new Error(data.error || 'API request failed');
+                }
+                
+                return data;
+            } catch (error) {
+                console.error('API call failed:', error);
+                throw error;
+            }
+        }
+        
+        // Load user profile
+        async function loadUserProfile() {
+            try {
+                const data = await apiCall('/api/auth/profile');
+                document.getElementById('user-name').textContent = 
+                    `${data.user.first_name} ${data.user.last_name}`;
+            } catch (error) {
+                console.error('Failed to load user profile:', error);
+            }
+        }
+        
+        // Load billing data
+        async function loadBillingData() {
+            try {
+                console.log('Loading global billing stats...');
+                const data = await apiCall('/billing/global/stats');
+                
+                if (data.success && data.stats) {
+                    updateBillingStats(data.stats);
+                }
+                
+                // Load recent billing activity (we'll show a summary for now)
+                displayBillingSummary();
+                
+            } catch (error) {
+                console.error('Error loading billing data:', error);
+                document.getElementById('billing-content').innerHTML = 
+                    `<div class="error">Failed to load billing data: ${error.message}</div>`;
+            }
+        }
+        
+        // Update billing statistics
+        function updateBillingStats(stats) {
+            document.getElementById('total-revenue').textContent = `$${stats.total_revenue.toFixed(2)}`;
+            document.getElementById('monthly-revenue').textContent = `$${stats.monthly_revenue.toFixed(2)}`;
+            document.getElementById('pending-amount').textContent = `$${stats.pending_amount.toFixed(2)}`;
+            document.getElementById('overdue-amount').textContent = `$${stats.overdue_amount.toFixed(2)}`;
+            document.getElementById('total-invoices').textContent = stats.total_invoices;
+            document.getElementById('paid-invoices').textContent = stats.paid_invoices;
+        }
+        
+        // Display billing summary or invoice list
+        function displayBillingSummary() {
+            const summaryHTML = `
+                <div class="empty-state">
+                    <div class="empty-state-icon">📊</div>
+                    <h3>Billing Management Center</h3>
+                    <p>Manage all company billing and invoices from this dashboard.</p>
+                    <br>
+                    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1rem; max-width: 600px; margin: 1rem auto;">
+                        <button class="btn btn-primary billing-action" data-action="showAllInvoices" style="padding: 1rem;">
+                            📋 View All Invoices
+                        </button>
+                        <button class="btn btn-primary billing-action" data-action="generateMonthlyBilling" style="padding: 1rem;">
+                            🔄 Generate Monthly Bills
+                        </button>
+                        <button class="btn btn-primary billing-action" data-action="showOverdueInvoices" style="padding: 1rem;">
+                            ⚠️ Overdue Invoices
+                        </button>
+                        <button class="btn btn-primary billing-action" data-action="exportBillingData" style="padding: 1rem;">
+                            📊 Export Data
+                        </button>
+                    </div>
+                </div>
+            `;
+            
+            document.getElementById('billing-content').innerHTML = summaryHTML;
+            
+            // Add event listeners for billing action buttons
+            document.querySelectorAll('.billing-action').forEach(button => {
+                button.addEventListener('click', function() {
+                    const action = this.getAttribute('data-action');
+                    if (window[action]) {
+                        window[action]();
+                    }
+                });
+            });
+        }
+        
+        // Show all invoices across all companies
+        async function showAllInvoices() {
+            try {
+                document.getElementById('billing-content').innerHTML = '<div class="loading">Loading all invoices...</div>';
+                
+                // Get all companies and their billing data
+                const companiesData = await apiCall('/admin/companies');
+                const companies = companiesData.companies;
+                
+                let allInvoices = [];
+                for (const company of companies) {
+                    try {
+                        const billingData = await apiCall(`/billing/company/${company.id}`);
+                        if (billingData.success && billingData.billings) {
+                            billingData.billings.forEach(billing => {
+                                billing.company_name = company.name;
+                                billing.company_slug = company.slug;
+                                allInvoices.push(billing);
+                            });
+                        }
+                    } catch (error) {
+                        console.warn(`Failed to load billing for company ${company.id}:`, error);
+                    }
+                }
+                
+                // Sort by date (newest first)
+                allInvoices.sort((a, b) => new Date(b.billing_period_start) - new Date(a.billing_period_start));
+                
+                displayInvoiceTable(allInvoices);
+                
+            } catch (error) {
+                document.getElementById('billing-content').innerHTML = 
+                    `<div class="error">Failed to load invoices: ${error.message}</div>`;
+            }
+        }
+        
+        // Display invoice table
+        function displayInvoiceTable(invoices) {
+            if (invoices.length === 0) {
+                document.getElementById('billing-content').innerHTML = `
+                    <div class="empty-state">
+                        <div class="empty-state-icon">📄</div>
+                        <h3>No Invoices Found</h3>
+                        <p>No billing records found across all companies.</p>
+                    </div>
+                `;
+                return;
+            }
+            
+            const tableHTML = `
+                <div style="margin-bottom: 1rem; display: flex; justify-content: space-between; align-items: center;">
+                    <h3>All Company Invoices (${invoices.length} total)</h3>
+                    <button class="btn btn-secondary" id="back-to-overview">← Back to Overview</button>
+                </div>
+                <table class="billing-table">
+                    <thead>
+                        <tr>
+                            <th>Company</th>
+                            <th>Invoice #</th>
+                            <th>Billing Period</th>
+                            <th>Properties</th>
+                            <th>Amount</th>
+                            <th>Status</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        ${invoices.map(invoice => `
+                            <tr>
+                                <td>
+                                    <strong>${invoice.company_name}</strong><br>
+                                    <small style="color: #6b7280;">${invoice.company_slug}</small>
+                                </td>
+                                <td>
+                                    <span class="invoice-number">${invoice.invoice_number}</span>
+                                </td>
+                                <td>
+                                    ${new Date(invoice.billing_period_start).toLocaleDateString()} - 
+                                    ${new Date(invoice.billing_period_end).toLocaleDateString()}
+                                </td>
+                                <td>${invoice.property_count} properties</td>
+                                <td>
+                                    <span class="amount">$${invoice.total_amount.toFixed(2)}</span>
+                                    ${invoice.connection_fee > 0 ? 
+                                        `<br><small>($${invoice.connection_fee.toFixed(2)} connection + $${(invoice.property_count * invoice.monthly_fee_per_property).toFixed(2)} monthly)</small>` : 
+                                        `<br><small>($${(invoice.property_count * invoice.monthly_fee_per_property).toFixed(2)} monthly)</small>`
+                                    }
+                                </td>
+                                <td>
+                                    <span class="status-badge status-${invoice.status}">
+                                        ${invoice.status}
+                                    </span>
+                                </td>
+                                <td>
+                                    <select class="status-selector" data-billing-id="${invoice.id}" style="padding: 0.25rem; border-radius: 4px; border: 1px solid #d1d5db;">
+                                        <option value="">Actions</option>
+                                        <option value="paid" ${invoice.status === 'paid' ? 'disabled' : ''}>Mark Paid</option>
+                                        <option value="overdue" ${invoice.status === 'overdue' ? 'disabled' : ''}>Mark Overdue</option>
+                                        <option value="cancelled" ${invoice.status === 'cancelled' ? 'disabled' : ''}>Cancel</option>
+                                    </select>
+                                </td>
+                            </tr>
+                        `).join('')}
+                    </tbody>
+                </table>
+            `;
+            
+            document.getElementById('billing-content').innerHTML = tableHTML;
+            
+            // Add event listeners for status selectors
+            document.querySelectorAll('.status-selector').forEach(select => {
+                select.addEventListener('change', function() {
+                    const billingId = this.getAttribute('data-billing-id');
+                    const newStatus = this.value;
+                    if (newStatus) {
+                        updateInvoiceStatus(parseInt(billingId), newStatus);
+                    }
+                });
+            });
+            
+            // Add event listener for back button
+            const backButton = document.getElementById('back-to-overview');
+            if (backButton) {
+                backButton.addEventListener('click', displayBillingSummary);
+            }
+        }
+        
+        // Update invoice status
+        async function updateInvoiceStatus(billingId, newStatus) {
+            if (!newStatus) return;
+            
+            try {
+                await apiCall(`/billing/${billingId}/status`, {
+                    method: 'PUT',
+                    body: JSON.stringify({ 
+                        status: newStatus,
+                        stripe_payment_intent_id: newStatus === 'paid' ? `pi_admin_${Date.now()}` : undefined
+                    })
+                });
+                
+                alert(`Invoice status updated to ${newStatus}`);
+                showAllInvoices(); // Refresh the list
+                loadBillingData(); // Refresh stats
+                
+            } catch (error) {
+                alert(`Failed to update status: ${error.message}`);
+            }
+        }
+        
+        // Generate monthly billing for all companies
+        async function generateMonthlyBilling() {
+            const proceed = confirm('Generate monthly billing for all active companies?\n\nThis will create new invoices for the current month.');
+            if (!proceed) return;
+            
+            try {
+                document.getElementById('billing-content').innerHTML = '<div class="loading">Generating monthly billing...</div>';
+                
+                // Get all companies
+                const companiesData = await apiCall('/admin/companies');
+                const companies = companiesData.companies.filter(c => c.status === 'active');
+                
+                let generatedCount = 0;
+                let errors = [];
+                
+                for (const company of companies) {
+                    try {
+                        // Get property count for this company
+                        const propertiesData = await apiCall(`/company/${company.slug}/properties`);
+                        const propertyCount = propertiesData.properties ? propertiesData.properties.length : 0;
+                        
+                        // Generate billing for current month
+                        const now = new Date();
+                        const startDate = new Date(now.getFullYear(), now.getMonth(), 1);
+                        const endDate = new Date(now.getFullYear(), now.getMonth() + 1, 0);
+                        
+                        await apiCall(`/billing/company/${company.id}`, {
+                            method: 'POST',
+                            body: JSON.stringify({
+                                company_id: company.id,
+                                billing_period_start: startDate.toISOString().split('T')[0],
+                                billing_period_end: endDate.toISOString().split('T')[0],
+                                property_count: propertyCount
+                            })
+                        });
+                        
+                        generatedCount++;
+                        
+                    } catch (error) {
+                        errors.push(`${company.name}: ${error.message}`);
+                    }
+                }
+                
+                let message = `Generated ${generatedCount} invoices successfully!`;
+                if (errors.length > 0) {
+                    message += `\n\nErrors:\n${errors.join('\n')}`;
+                }
+                
+                alert(message);
+                displayBillingSummary();
+                loadBillingData(); // Refresh stats
+                
+            } catch (error) {
+                alert(`Failed to generate billing: ${error.message}`);
+                displayBillingSummary();
+            }
+        }
+        
+        // Show overdue invoices
+        async function showOverdueInvoices() {
+            try {
+                document.getElementById('billing-content').innerHTML = '<div class="loading">Loading overdue invoices...</div>';
+                
+                // Get all companies and their billing data
+                const companiesData = await apiCall('/admin/companies');
+                const companies = companiesData.companies;
+                
+                let overdueInvoices = [];
+                for (const company of companies) {
+                    try {
+                        const billingData = await apiCall(`/billing/company/${company.id}`);
+                        if (billingData.success && billingData.billings) {
+                            billingData.billings
+                                .filter(b => b.status === 'overdue' || b.status === 'pending')
+                                .forEach(billing => {
+                                    billing.company_name = company.name;
+                                    billing.company_slug = company.slug;
+                                    overdueInvoices.push(billing);
+                                });
+                        }
+                    } catch (error) {
+                        console.warn(`Failed to load billing for company ${company.id}:`, error);
+                    }
+                }
+                
+                // Sort by date (oldest first for overdue)
+                overdueInvoices.sort((a, b) => new Date(a.billing_period_start) - new Date(b.billing_period_start));
+                
+                if (overdueInvoices.length === 0) {
+                    document.getElementById('billing-content').innerHTML = `
+                        <div class="empty-state">
+                            <div class="empty-state-icon">✅</div>
+                            <h3>No Overdue Invoices</h3>
+                            <p>All invoices are paid or up to date!</p>
+                            <button class="btn btn-primary back-button">← Back to Overview</button>
+                        </div>
+                    `;
+                    return;
+                }
+                
+                displayInvoiceTable(overdueInvoices);
+                
+            } catch (error) {
+                document.getElementById('billing-content').innerHTML = 
+                    `<div class="error">Failed to load overdue invoices: ${error.message}</div>`;
+            }
+        }
+        
+        // Export billing data
+        function exportBillingData() {
+            alert('Billing data export feature coming soon!\n\nThis will export to CSV/Excel format.');
+        }
+        
+        // Logout function
+        function logout() {
+            localStorage.removeItem('stayguide_token');
+            window.location.href = '/admin/login';
+        }
+        
+        // Initialize dashboard
+        document.addEventListener('DOMContentLoaded', () => {
+            loadUserProfile();
+            loadBillingData();
+            
+            // Add main event listeners
+            document.getElementById('logout-btn').addEventListener('click', logout);
+            document.getElementById('helpdesk-link').addEventListener('click', function(e) {
+                e.preventDefault();
+                alert('Helpdesk coming soon!');
+            });
+            document.getElementById('generate-billing-btn').addEventListener('click', generateMonthlyBilling);
+            document.getElementById('view-invoices-btn').addEventListener('click', showAllInvoices);
+            
+            // Add event delegation for back buttons
+            document.addEventListener('click', function(e) {
+                if (e.target.classList.contains('back-button')) {
+                    displayBillingSummary();
+                }
+            });
+        });
+    </script>
+</body>
+</html>

@@ -1,0 +1,238 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>StayGuide - Property Management Platform</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            line-height: 1.6;
+            color: #333;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+        }
+        
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 0 20px;
+        }
+        
+        header {
+            padding: 1rem 0;
+            background: rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(10px);
+        }
+        
+        nav {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        
+        .logo {
+            font-size: 1.8rem;
+            font-weight: bold;
+            color: white;
+        }
+        
+        .auth-buttons {
+            display: flex;
+            gap: 1rem;
+        }
+        
+        .btn {
+            padding: 0.8rem 1.5rem;
+            border: none;
+            border-radius: 5px;
+            text-decoration: none;
+            font-weight: 600;
+            transition: all 0.3s ease;
+            cursor: pointer;
+        }
+        
+        .btn-primary {
+            background: #4f46e5;
+            color: white;
+        }
+        
+        .btn-primary:hover {
+            background: #4338ca;
+            transform: translateY(-2px);
+        }
+        
+        .btn-secondary {
+            background: rgba(255, 255, 255, 0.2);
+            color: white;
+            border: 2px solid rgba(255, 255, 255, 0.3);
+        }
+        
+        .btn-secondary:hover {
+            background: rgba(255, 255, 255, 0.3);
+            transform: translateY(-2px);
+        }
+        
+        .hero {
+            text-align: center;
+            padding: 4rem 0;
+            color: white;
+        }
+        
+        .hero h1 {
+            font-size: 3.5rem;
+            margin-bottom: 1rem;
+            font-weight: 700;
+        }
+        
+        .hero p {
+            font-size: 1.3rem;
+            margin-bottom: 2rem;
+            opacity: 0.9;
+        }
+        
+        .features {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 2rem;
+            margin: 4rem 0;
+        }
+        
+        .feature {
+            background: rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(10px);
+            padding: 2rem;
+            border-radius: 10px;
+            text-align: center;
+            color: white;
+        }
+        
+        .feature h3 {
+            font-size: 1.5rem;
+            margin-bottom: 1rem;
+            color: #fbbf24;
+        }
+        
+        .cta {
+            text-align: center;
+            padding: 4rem 0;
+        }
+        
+        .cta h2 {
+            color: white;
+            font-size: 2.5rem;
+            margin-bottom: 2rem;
+        }
+        
+        footer {
+            background: rgba(0, 0, 0, 0.3);
+            color: white;
+            text-align: center;
+            padding: 2rem 0;
+        }
+        
+        @media (max-width: 768px) {
+            .hero h1 {
+                font-size: 2.5rem;
+            }
+            
+            .auth-buttons {
+                flex-direction: column;
+                gap: 0.5rem;
+            }
+            
+            nav {
+                flex-direction: column;
+                gap: 1rem;
+            }
+        }
+    </style>
+</head>
+<body>
+    <header>
+        <nav class="container">
+            <div class="logo">StayGuide</div>
+            <div class="auth-buttons">
+                <a href="/admin/login" class="btn btn-secondary">Admin Login</a>
+                <a href="#company-login" class="btn btn-primary" onclick="showCompanyLogin()">Company Login</a>
+            </div>
+        </nav>
+    </header>
+
+    <main class="container">
+        <section class="hero">
+            <h1>Enhance Your Guests' Experience</h1>
+            <p>The complete multi-tenant platform for property owners to create customized tablet experiences for their rental guests.</p>
+        </section>
+
+        <section class="features">
+            <div class="feature">
+                <h3>🏠 Multi-Property Management</h3>
+                <p>Manage multiple properties with individual customization. Each property gets its own branded tablet experience with local recommendations and property-specific information.</p>
+            </div>
+            
+            <div class="feature">
+                <h3>📱 Tablet-Optimized Interface</h3>
+                <p>Beautiful, intuitive interface designed specifically for tablet displays. Perfect for guest interaction with local restaurants, attractions, and property information.</p>
+            </div>
+            
+            <div class="feature">
+                <h3>🔧 Easy Content Management</h3>
+                <p>Simple admin dashboard to update property information, local recommendations, announcements, and how-to videos. No technical expertise required.</p>
+            </div>
+            
+            <div class="feature">
+                <h3>💰 Flexible Billing</h3>
+                <p>Transparent pricing with connection fees and per-property monthly rates. Scale your business without hidden costs or complicated pricing structures.</p>
+            </div>
+            
+            <div class="feature">
+                <h3>🎯 Local Recommendations</h3>
+                <p>Curated lists of local restaurants, attractions, and services. Help your guests discover the best your area has to offer with integrated Google Maps.</p>
+            </div>
+            
+            <div class="feature">
+                <h3>📞 Built-in Support</h3>
+                <p>Integrated helpdesk system for your questions and support needs. Get help when you need it from our dedicated support team.</p>
+            </div>
+        </section>
+
+        <section class="cta">
+            <h2>Ready to Get Started?</h2>
+            <div class="auth-buttons">
+                <a href="/admin/login" class="btn btn-primary">Platform Admin</a>
+                <a href="#company-login" class="btn btn-secondary" onclick="showCompanyLogin()">Company Access</a>
+                <a href="/company/demo-rentals/login" class="btn btn-secondary" style="background: rgba(16, 185, 129, 0.3); border-color: rgba(16, 185, 129, 0.5);">🎮 Demo Company</a>
+            </div>
+        </section>
+    </main>
+
+    <footer>
+        <div class="container">
+            <p>&copy; 2025 StayGuide. Enhancing the rental experience, one property at a time.</p>
+        </div>
+    </footer>
+
+    <script>
+        function showCompanyLogin() {
+            const companySlug = prompt('Enter your company identifier (e.g., "demo-rentals"):');
+            if (companySlug && companySlug.trim()) {
+                window.location.href = `/company/${companySlug.trim()}/login`;
+            } else if (companySlug === '') {
+                alert('Please enter a company identifier. Example: demo-rentals');
+            }
+        }
+        
+        // Add demo login shortcut
+        function goDemoLogin() {
+            window.location.href = '/company/demo-rentals/login';
+        }
+    </script>
+</body>
+</html>

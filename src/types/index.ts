@@ -1,0 +1,83 @@
+import { Request } from 'express';
+
+export interface Company {
+  id: number;
+  name: string;
+  slug: string;
+  email: string;
+  phone?: string;
+  address?: string;
+  logo_url?: string;
+  status: 'active' | 'inactive' | 'suspended';
+  connection_fee: number;
+  monthly_fee_per_property: number;
+  created_at: Date;
+  updated_at: Date;
+}
+
+export interface User {
+  id: number;
+  email: string;
+  password_hash: string;
+  first_name: string;
+  last_name: string;
+  role: 'super_admin' | 'company_admin';
+  company_id?: number;
+  status: 'active' | 'inactive';
+  last_login?: Date;
+  created_at: Date;
+  updated_at: Date;
+}
+
+export interface Property {
+  id: number;
+  company_id: number;
+  name: string;
+  slug: string;
+  address?: string;
+  description?: string;
+  wifi_name?: string;
+  wifi_password?: string;
+  check_in_instructions?: string;
+  check_out_instructions?: string;
+  house_rules?: string;
+  emergency_contact?: string;
+  main_image_url?: string | null;
+  // 2026-10-03 12:32, Phase 5 guest links
+  direct_booking_url?: string | null;
+  review_url?: string | null;
+  return_guest_offer?: string | null;
+  guest_checkout_date?: string | Date | null;
+  status: 'active' | 'inactive';
+  created_at: Date;
+  updated_at: Date;
+}
+
+// 2026-10-03 11:39, paired in-home devices (tablets now; sensors etc. later via `type`)
+export interface Device {
+  id: number;
+  property_id: number;
+  type: 'tablet';
+  name?: string;
+  token_hash?: string | null;
+  pairing_code?: string | null;
+  pairing_expires_at?: Date | null;
+  last_seen_at?: Date | null;
+  status: 'pending' | 'active' | 'revoked';
+  created_at: Date;
+}
+
+export interface AuthRequest extends Request {
+  user?: User;
+  device?: Device;
+}
+
+export interface JWTPayload {
+  userId: number;
+  email: string;
+  role: string;
+  companyId?: number;
+}
+
+export * from './billing';
+export * from './email';

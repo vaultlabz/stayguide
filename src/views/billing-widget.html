@@ -1,0 +1,77 @@
+<!-- Billing Widget for Admin Dashboard -->
+<div class="content-section">
+    <div class="section-header">
+        <h2 class="section-title">Recent Billing Activity</h2>
+        <a href="/admin/billing" class="btn btn-primary">View All Billing</a>
+    </div>
+    <div class="section-content">
+        <div id="billing-widget-content">
+            <div class="loading">Loading billing activity...</div>
+        </div>
+    </div>
+</div>
+
+<script>
+// Billing widget functionality
+async function loadBillingWidget() {
+    try {
+        // Load recent billing activity
+        const statsData = await apiCall('/billing/global/stats');
+        
+        if (statsData.success) {
+            displayBillingWidget(statsData.stats);
+        }
+        
+    } catch (error) {
+        document.getElementById('billing-widget-content').innerHTML = 
+            `<div class="error">Failed to load billing data: ${error.message}</div>`;
+    }
+}
+
+function displayBillingWidget(stats) {
+    const widgetHTML = `
+        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 1rem; margin-bottom: 1.5rem;">
+            <div style="text-align: center; padding: 1rem; background: #f0fdf4; border-radius: 8px;">
+                <div style="font-size: 1.25rem; font-weight: bold; color: #059669;">$${stats.monthly_revenue.toFixed(2)}</div>
+                <div style="font-size: 0.75rem; color: #065f46;">Paid This Month</div>
+            </div>
+            <div style="text-align: center; padding: 1rem; background: #fef3c7; border-radius: 8px;">
+                <div style="font-size: 1.25rem; font-weight: bold; color: #d97706;">$${stats.pending_amount.toFixed(2)}</div>
+                <div style="font-size: 0.75rem; color: #92400e;">Pending Payments</div>
+            </div>
+            <div style="text-align: center; padding: 1rem; background: #fee2e2; border-radius: 8px;">
+                <div style="font-size: 1.25rem; font-weight: bold; color: #dc2626;">$${stats.overdue_amount.toFixed(2)}</div>
+                <div style="font-size: 0.75rem; color: #991b1b;">Overdue Amount</div>
+            </div>
+        </div>
+        
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
+            <div>
+                <strong>${stats.total_invoices}</strong> total invoices, 
+                <strong>${stats.paid_invoices}</strong> paid
+            </div>
+            <div style="display: flex; gap: 0.5rem;">
+                <button class="btn btn-primary btn-small" onclick="window.location.href='/admin/billing'">
+                    Manage Billing
+                </button>
+            </div>
+        </div>
+        
+        <div style="text-align: center; color: #6b7280; font-size: 0.875rem;">
+            ${stats.overdue_amount > 0 ? 
+                `⚠️ ${stats.overdue_amount > 100 ? 'High priority:' : 'Attention:'} $${stats.overdue_amount.toFixed(2)} in overdue payments` :
+                '✅ All payments are up to date'
+            }
+        </div>
+    `;
+    
+    document.getElementById('billing-widget-content').innerHTML = widgetHTML;
+}
+
+// Auto-load billing widget when admin dashboard loads
+if (window.location.pathname.includes('/admin/dashboard')) {
+    document.addEventListener('DOMContentLoaded', () => {
+        setTimeout(loadBillingWidget, 1000); // Load after main dashboard
+    });
+}
+</script>

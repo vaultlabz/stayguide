@@ -1,0 +1,281 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Company Login - StayGuide</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #4f46e5 0%, #7c3aed 100%);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        
+        .login-container {
+            background: white;
+            padding: 3rem;
+            border-radius: 15px;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.1);
+            width: 100%;
+            max-width: 400px;
+        }
+        
+        .logo {
+            text-align: center;
+            margin-bottom: 2rem;
+        }
+        
+        .logo h1 {
+            color: #4f46e5;
+            font-size: 2rem;
+            margin-bottom: 0.5rem;
+        }
+        
+        .logo p {
+            color: #6b7280;
+            font-size: 0.875rem;
+        }
+        
+        .company-info {
+            text-align: center;
+            margin-bottom: 2rem;
+            padding: 1rem;
+            background: #f9fafb;
+            border-radius: 8px;
+        }
+        
+        .company-name {
+            font-size: 1.25rem;
+            font-weight: 600;
+            color: #1f2937;
+            margin-bottom: 0.25rem;
+        }
+        
+        .company-slug {
+            font-family: 'Courier New', monospace;
+            color: #6b7280;
+            font-size: 0.875rem;
+        }
+        
+        .form-group {
+            margin-bottom: 1.5rem;
+        }
+        
+        .form-label {
+            display: block;
+            margin-bottom: 0.5rem;
+            font-weight: 500;
+            color: #374151;
+        }
+        
+        .form-input {
+            width: 100%;
+            padding: 0.75rem;
+            border: 1px solid #d1d5db;
+            border-radius: 8px;
+            font-size: 1rem;
+            transition: border-color 0.3s ease;
+        }
+        
+        .form-input:focus {
+            outline: none;
+            border-color: #4f46e5;
+            box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.1);
+        }
+        
+        .btn {
+            width: 100%;
+            padding: 0.75rem;
+            background: #4f46e5;
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-size: 1rem;
+            font-weight: 500;
+            cursor: pointer;
+            transition: background-color 0.3s ease;
+        }
+        
+        .btn:hover {
+            background: #4338ca;
+        }
+        
+        .btn:disabled {
+            background: #9ca3af;
+            cursor: not-allowed;
+        }
+        
+        .error {
+            background: #fee2e2;
+            color: #991b1b;
+            padding: 0.75rem;
+            border-radius: 8px;
+            margin-bottom: 1rem;
+            font-size: 0.875rem;
+        }
+        
+        .success {
+            background: #d1fae5;
+            color: #065f46;
+            padding: 0.75rem;
+            border-radius: 8px;
+            margin-bottom: 1rem;
+            font-size: 0.875rem;
+        }
+        
+        .back-link {
+            text-align: center;
+            margin-top: 2rem;
+        }
+        
+        .back-link a {
+            color: #4f46e5;
+            text-decoration: none;
+            font-size: 0.875rem;
+        }
+        
+        .back-link a:hover {
+            text-decoration: underline;
+        }
+        
+        .loading {
+            display: none;
+            text-align: center;
+            margin-top: 1rem;
+        }
+        
+        .spinner {
+            border: 2px solid #f3f4f6;
+            border-top: 2px solid #4f46e5;
+            border-radius: 50%;
+            width: 20px;
+            height: 20px;
+            animation: spin 1s linear infinite;
+            display: inline-block;
+            margin-right: 0.5rem;
+        }
+        
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+    </style>
+</head>
+<body>
+    <div class="login-container">
+        <div class="logo">
+            <h1>StayGuide</h1>
+            <p>Company Portal</p>
+        </div>
+        
+        <div class="company-info">
+            <div class="company-name" id="company-display">Loading...</div>
+            <div class="company-slug" id="company-slug-display"></div>
+        </div>
+        
+        <div id="error-message" class="error" style="display: none;"></div>
+        <div id="success-message" class="success" style="display: none;"></div>
+        
+        <form id="loginForm">
+            <div class="form-group">
+                <label class="form-label" for="email">Email Address</label>
+                <input type="email" id="email" class="form-input" required>
+            </div>
+            
+            <div class="form-group">
+                <label class="form-label" for="password">Password</label>
+                <input type="password" id="password" class="form-input" required>
+            </div>
+            
+            <button type="submit" class="btn" id="loginBtn">
+                Sign In
+            </button>
+            
+            <div class="loading" id="loading">
+                <span class="spinner"></span>
+                Signing in...
+            </div>
+        </form>
+        
+        <div class="back-link">
+            <a href="/">&larr; Back to Home</a>
+        </div>
+    </div>
+
+    <script>
+        const API_BASE = '';
+        
+        // Get company slug from URL
+        const pathSegments = window.location.pathname.split('/');
+        const companySlug = pathSegments[2]; // /company/{slug}/login
+        
+        // Check if already logged in
+        if (localStorage.getItem('stayguide_token')) {
+            window.location.href = `/company/${companySlug}/dashboard`;
+        }
+        
+        // Display company info
+        document.getElementById('company-display').textContent = companySlug.charAt(0).toUpperCase() + companySlug.slice(1).replace('-', ' ');
+        document.getElementById('company-slug-display').textContent = `/${companySlug}`;
+        
+        // Handle form submission
+        document.getElementById('loginForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            
+            const email = document.getElementById('email').value;
+            const password = document.getElementById('password').value;
+            
+            // Show loading state
+            document.getElementById('loginBtn').disabled = true;
+            document.getElementById('loading').style.display = 'block';
+            document.getElementById('error-message').style.display = 'none';
+            
+            try {
+                const response = await fetch(API_BASE + `/company/${companySlug}/login`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ email, password })
+                });
+                
+                const data = await response.json();
+                
+                if (!response.ok) {
+                    throw new Error(data.error || 'Login failed');
+                }
+                
+                // Store token and redirect
+                localStorage.setItem('stayguide_token', data.token);
+                
+                document.getElementById('success-message').textContent = 'Login successful! Redirecting...';
+                document.getElementById('success-message').style.display = 'block';
+                
+                setTimeout(() => {
+                    window.location.href = `/company/${companySlug}/dashboard`;
+                }, 1000);
+                
+            } catch (error) {
+                document.getElementById('error-message').textContent = error.message;
+                document.getElementById('error-message').style.display = 'block';
+                
+                // Reset form state
+                document.getElementById('loginBtn').disabled = false;
+                document.getElementById('loading').style.display = 'none';
+            }
+        });
+        
+        // Auto-focus email field
+        document.getElementById('email').focus();
+    </script>
+</body>
+</html>

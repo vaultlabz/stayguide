@@ -1,0 +1,762 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>StayGuide - Property Information</title>
+    <link rel="stylesheet" href="/css/tablet-app.css">
+    <!-- 2026-10-03 11:52, PWA manifest (offline support for paired tablets) -->
+    <link rel="manifest" href="/manifest.json">
+    <meta name="theme-color" content="#667eea">
+</head>
+<body>
+    <!-- 2026-10-03 11:52, shown when content comes from the offline cache -->
+    <div id="offline-banner" class="offline-banner" style="display: none;"></div>
+    <div class="container">
+        <div id="loading" class="loading">Loading property information...</div>
+        <div id="error" class="error" style="display: none;"></div>
+
+        <!-- 2026-10-03 11:39, pairing screen for unpaired kiosk tablets (/tablet) -->
+        <div id="pairing" class="card" style="display: none; max-width: 420px; margin: 4rem auto; text-align: center;">
+            <div class="card-header" style="justify-content: center;">
+                <div class="card-icon">🔗</div>
+                <div class="card-title">Pair this tablet</div>
+            </div>
+            <p>In the StayGuide dashboard, open the property, choose <strong>Tablets → Pair new tablet</strong>, and enter the 6-digit code here.</p>
+            <form id="pairingForm" class="report-form">
+                <div class="form-group">
+                    <input type="text" id="pairing-code" inputmode="numeric" autocomplete="off" maxlength="6" pattern="\d{6}" required
+                           placeholder="123456" style="font-size: 2rem; text-align: center; letter-spacing: 0.5rem;">
+                </div>
+                <div id="pairing-error" class="error" style="display: none;"></div>
+                <button type="submit" class="pair-button">Pair Tablet</button>
+            </form>
+        </div>
+        
+        <div id="content" style="display: none;">
+            <div class="header">
+                <div class="company-logo" id="company-name">StayGuide</div>
+                <div class="property-name" id="property-name">Loading...</div>
+                <div class="property-address" id="property-address"></div>
+                <div class="property-description" id="property-description"></div>
+            </div>
+            
+            <div id="welcome-section"></div>
+
+            <!-- 2026-10-03 12:45, manager announcements (pool closed, maintenance visits, etc.) -->
+            <div id="announcements-section"></div>
+
+            <!-- 2026-10-03 12:32, Phase 5: book-direct / review QR codes -->
+            <div id="guest-links-section"></div>
+            
+            <div class="content-grid">
+                <div class="card">
+                    <div class="card-header">
+                        <div class="card-icon">📶</div>
+                        <div class="card-title">WiFi Information</div>
+                    </div>
+                    <div id="wifi-info"></div>
+                </div>
+                
+                <div class="card">
+                    <div class="card-header">
+                        <div class="card-icon">🏠</div>
+                        <div class="card-title">Property Information</div>
+                    </div>
+                    <div id="property-info"></div>
+                </div>
+                
+                <div class="card">
+                    <div class="card-header">
+                        <div class="card-icon">⭐</div>
+                        <div class="card-title">Amenities</div>
+                    </div>
+                    <div id="amenities-section"></div>
+                </div>
+                
+                <div class="card">
+                    <div class="card-header">
+                        <div class="card-icon">🎥</div>
+                        <div class="card-title">How-to Videos</div>
+                    </div>
+                    <div id="videos-section"></div>
+                </div>
+                
+                <div class="card">
+                    <div class="card-header">
+                        <div class="card-icon">🍽️</div>
+                        <div class="card-title">Local Recommendations</div>
+                    </div>
+                    <div id="recommendations-section"></div>
+                </div>
+                
+                <div class="card report-card">
+                    <div class="card-header">
+                        <div class="card-icon">🛠️</div>
+                        <div class="card-title">Report an Issue</div>
+                    </div>
+                    <div class="card-content">
+                        <p>Need assistance or have an issue to report? Let us know and we'll take care of it promptly.</p>
+                        <button class="report-button" onclick="openReportModal()">Report Issue</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 2026-10-03 11:58, in-app video player (YouTube/Vimeo embeds or uploaded files); guests never leave the kiosk page -->
+    <div id="videoModal" class="modal" style="display: none;">
+        <div class="modal-content video-modal-content">
+            <div class="modal-header">
+                <h2 id="video-modal-title">Video</h2>
+                <span class="close" onclick="closeVideoModal()">&times;</span>
+            </div>
+            <div id="video-player" class="video-player"></div>
+        </div>
+    </div>
+
+    <!-- Report Issue Modal -->
+    <div id="reportModal" class="modal" style="display: none;">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>Report an Issue</h2>
+                <span class="close" onclick="closeReportModal()">&times;</span>
+            </div>
+            <form id="reportForm" class="report-form">
+                <!-- 2026-10-03 11:58, no name/room/phone: guests are already known from the booking (stayguide vibe.txt) -->
+                <div class="form-group">
+                    <label for="category">Issue Category *</label>
+                    <select id="category" name="category" required onchange="handleCategoryChange()">
+                        <option value="">Select a category</option>
+                        <option value="maintenance">Maintenance (Repairs, Leaks, Broken Equipment)</option>
+                        <option value="supplies">Supplies (Towels, Soap, Toilet Paper)</option>
+                        <option value="housekeeping">Housekeeping (Cleaning, Laundry Service)</option>
+                        <option value="amenities">Amenities (Pool, Hot Tub, Kitchen Equipment)</option>
+                        <option value="wifi_tech">WiFi/Technology Issues</option>
+                        <option value="noise_complaint">Noise Complaint</option>
+                        <option value="other">Other</option>
+                    </select>
+                </div>
+                
+                <div class="form-group" id="amenity-group" style="display: none;">
+                    <label for="amenity_id">Specific Amenity</label>
+                    <select id="amenity_id" name="amenity_id">
+                        <option value="">Select amenity (optional)</option>
+                    </select>
+                </div>
+                
+                <div class="form-group">
+                    <label for="title">Issue Title *</label>
+                    <input type="text" id="title" name="title" required placeholder="Brief description of the issue">
+                </div>
+                
+                <div class="form-group">
+                    <label for="description">Detailed Description *</label>
+                    <textarea id="description" name="description" required rows="4" placeholder="Please provide details about the issue..."></textarea>
+                </div>
+                
+                <div class="form-group">
+                    <label for="location">Location (Optional)</label>
+                    <input type="text" id="location" name="location" placeholder="e.g., Kitchen, Bathroom, Pool Area">
+                </div>
+                
+                <div class="form-group">
+                    <label for="urgency_level">Urgency Level *</label>
+                    <select id="urgency_level" name="urgency_level" required>
+                        <option value="not_urgent">Not Urgent (Can wait)</option>
+                        <option value="same_day">Same Day (Should be addressed today)</option>
+                        <option value="immediate">Immediate (Urgent attention needed)</option>
+                    </select>
+                </div>
+                
+                <!-- 2026-10-03 11:52, in-form error (e.g. offline) instead of alert() -->
+                <div id="report-error" class="error" style="display: none;"></div>
+
+                <div class="form-actions">
+                    <button type="button" class="btn-cancel" onclick="closeReportModal()">Cancel</button>
+                    <button type="submit" class="btn-submit">Submit Report</button>
+                </div>
+            </form>
+            
+            <div id="reportSuccess" class="success-message" style="display: none;">
+                <h3>✅ Report Submitted Successfully!</h3>
+                <p>Thank you for reporting the issue. We'll address it as soon as possible.</p>
+                <button class="btn-close" onclick="closeReportModal()">Close</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // 2026-10-03 11:39, two modes:
+        //   /tablet                                -> paired kiosk device (Authorization: Device <token>)
+        //   /company/{slug}/property/{slug}        -> company-admin preview (dashboard JWT), reports disabled
+        const DEVICE_TOKEN_KEY = 'stayguide_device_token';
+        const isDeviceMode = window.location.pathname.replace(/\/$/, '') === '/tablet';
+        const pathParts = window.location.pathname.split('/');
+        const companySlug = pathParts[2];
+        const propertySlug = pathParts[4];
+        let loadedContent = null;
+
+        function storageGet(key) { try { return localStorage.getItem(key); } catch { return null; } }
+        function storageSet(key, value) { try { localStorage.setItem(key, value); } catch {} }
+        function storageRemove(key) { try { localStorage.removeItem(key); } catch {} }
+
+        function authHeaders() {
+            if (isDeviceMode) {
+                const token = storageGet(DEVICE_TOKEN_KEY);
+                return token ? { 'Authorization': `Device ${token}` } : {};
+            }
+            const adminToken = storageGet('stayguide_token');
+            return adminToken ? { 'Authorization': `Bearer ${adminToken}` } : {};
+        }
+
+        function showPairingScreen(message) {
+            document.getElementById('loading').style.display = 'none';
+            document.getElementById('content').style.display = 'none';
+            document.getElementById('pairing').style.display = 'block';
+            const errorEl = document.getElementById('pairing-error');
+            errorEl.style.display = message ? 'block' : 'none';
+            errorEl.textContent = message || '';
+            document.getElementById('pairing-code').focus();
+        }
+
+        document.getElementById('pairingForm').addEventListener('submit', async function (e) {
+            e.preventDefault();
+            const code = document.getElementById('pairing-code').value.trim();
+            try {
+                const response = await fetch('/device/pair', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ code })
+                });
+                const result = await response.json();
+                if (!response.ok) {
+                    return showPairingScreen(result.error || 'Pairing failed');
+                }
+                storageSet(DEVICE_TOKEN_KEY, result.token);
+                document.getElementById('pairing').style.display = 'none';
+                document.getElementById('loading').style.display = 'block';
+                loadPropertyContent();
+            } catch (error) {
+                showPairingScreen('Network error. Check the Wi-Fi connection and try again.');
+            }
+        });
+
+        console.log('Tablet App Loading:', { isDeviceMode, companySlug, propertySlug });
+
+        // Load property content
+        async function loadPropertyContent() {
+            try {
+                if (isDeviceMode && !storageGet(DEVICE_TOKEN_KEY)) {
+                    return showPairingScreen();
+                }
+
+                const url = isDeviceMode
+                    ? '/device/content'
+                    : `/company/${companySlug}/property/${propertySlug}/api/content`;
+                const response = await fetch(url, { headers: authHeaders() });
+                const data = await response.json();
+
+                if (response.status === 401 && isDeviceMode) {
+                    // Token revoked or unknown: forget it and ask to pair again
+                    storageRemove(DEVICE_TOKEN_KEY);
+                    return showPairingScreen('This tablet is no longer paired. Enter a new code from the dashboard.');
+                }
+
+                if (!response.ok) {
+                    throw new Error(response.status === 401
+                        ? 'Preview requires signing in to the company dashboard first.'
+                        : (data.error || 'Failed to load property content'));
+                }
+
+                loadedContent = data;
+                displayPropertyContent(data);
+                document.getElementById('error').style.display = 'none';
+
+                // 2026-10-03 11:52, service worker marks cached responses as offline
+                setOfflineBanner(response.headers.get('X-SG-Offline') === '1'
+                    ? response.headers.get('X-SG-Cached-At')
+                    : null);
+
+            } catch (error) {
+                console.error('Error loading property content:', error);
+
+                // 2026-10-03 11:52, a failed refresh keeps the content already on screen
+                if (loadedContent) {
+                    setOfflineBanner(new Date().toISOString(), true);
+                    return;
+                }
+
+                document.getElementById('loading').style.display = 'none';
+                document.getElementById('error').style.display = 'block';
+                document.getElementById('error').textContent = (isDeviceMode && error instanceof TypeError)
+                    ? 'No internet connection. This screen will retry automatically.'
+                    : `Error: ${error.message}`;
+
+                if (isDeviceMode) setTimeout(loadPropertyContent, 30 * 1000);
+            }
+        }
+
+        // 2026-10-03 11:52, offline banner + automatic refresh for paired tablets
+        function setOfflineBanner(cachedAt, keptOnScreen) {
+            const banner = document.getElementById('offline-banner');
+            if (!cachedAt) {
+                banner.style.display = 'none';
+                return;
+            }
+            const when = keptOnScreen ? '' : ` (saved ${new Date(cachedAt).toLocaleString()})`;
+            banner.textContent = `You're offline. Showing saved information${when}.`;
+            banner.style.display = 'block';
+        }
+
+        if (isDeviceMode) {
+            if ('serviceWorker' in navigator) {
+                navigator.serviceWorker.register('/sw.js').catch(err => console.error('Service worker registration failed:', err));
+            }
+            // Pick up dashboard edits and recover from outages without anyone touching the tablet
+            setInterval(() => { if (storageGet(DEVICE_TOKEN_KEY)) loadPropertyContent(); }, 15 * 60 * 1000);
+            window.addEventListener('online', () => { if (storageGet(DEVICE_TOKEN_KEY)) loadPropertyContent(); });
+            window.addEventListener('offline', () => { if (loadedContent) setOfflineBanner(new Date().toISOString(), true); });
+        }
+        
+        // 2026-10-03 11:58, HTML-escape all content (XSS fix) and only allow safe URLs in src/href
+        function escapeHtml(value) {
+            return String(value ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+        }
+
+        function safeUrl(value) {
+            const url = String(value || '').trim();
+            if (url.startsWith('/') && !url.startsWith('//')) return url;
+            try {
+                const parsed = new URL(url);
+                return (parsed.protocol === 'https:' || parsed.protocol === 'http:') ? parsed.href : '';
+            } catch {
+                return '';
+            }
+        }
+
+        function displayPropertyContent(data) {
+            const { company, property, content, restaurants, videos, local_info, announcements, amenities } = data;
+            const e = escapeHtml;
+            
+            // Update header
+            document.getElementById('company-name').textContent = company.name;
+            document.getElementById('property-name').textContent = property.name;
+            document.getElementById('property-address').textContent = property.address || '';
+            document.getElementById('property-description').textContent = property.description || '';
+            
+            // Main image: reuse one container so periodic refreshes don't stack images
+            let imageDiv = document.getElementById('main-image');
+            if (!imageDiv) {
+                imageDiv = document.createElement('div');
+                imageDiv.id = 'main-image';
+                document.querySelector('.header').appendChild(imageDiv);
+            }
+            const mainImage = safeUrl(property.main_image_url);
+            imageDiv.innerHTML = mainImage ? `
+                    <img src="${e(mainImage)}" alt="${e(property.name)}" 
+                         style="width: 100%; max-height: 300px; object-fit: cover; border-radius: 15px; margin-bottom: 1rem;">
+                ` : '';
+            
+            // Welcome message
+            document.getElementById('welcome-section').innerHTML = (content && content.welcome_message) ? `
+                    <div class="welcome-message">
+                        <h3>Welcome!</h3>
+                        <p>${e(content.welcome_message)}</p>
+                    </div>
+                ` : '';
+            
+            // WiFi information
+            if (property.wifi_name || property.wifi_password) {
+                document.getElementById('wifi-info').innerHTML = `
+                    <div class="wifi-info">
+                        ${property.wifi_name ? `
+                            <div class="wifi-detail">
+                                <span class="wifi-label">Network Name:</span>
+                                <span class="wifi-value">${e(property.wifi_name)}</span>
+                            </div>
+                        ` : ''}
+                        ${property.wifi_password ? `
+                            <div class="wifi-detail">
+                                <span class="wifi-label">Password:</span>
+                                <span class="wifi-value">${e(property.wifi_password)}</span>
+                            </div>
+                        ` : ''}
+                    </div>
+                `;
+            } else {
+                document.getElementById('wifi-info').innerHTML = '<p>WiFi information not available.</p>';
+            }
+            
+            // Property information (check-in/out, house rules, emergency)
+            const infoBlocks = [
+                ['instructions', 'Check-in Instructions', property.check_in_instructions],
+                ['instructions', 'Check-out Instructions', property.check_out_instructions],
+                ['instructions', 'House Rules', property.house_rules],
+                ['emergency-contact', '🚨 Emergency Contact', property.emergency_contact]
+            ];
+            const propertyInfoHTML = infoBlocks
+                .filter(([, , text]) => text)
+                .map(([cls, heading, text]) => `
+                    <div class="${cls}">
+                        <h4>${heading}</h4>
+                        <p>${e(text)}</p>
+                    </div>
+                `).join('');
+            document.getElementById('property-info').innerHTML = propertyInfoHTML || '<p>Property information not available.</p>';
+            
+            // Amenities section
+            if (amenities && amenities.length > 0) {
+                document.getElementById('amenities-section').innerHTML = amenities.map(amenity => {
+                    const img = safeUrl(amenity.image_url);
+                    return `
+                    <div style="display: flex; align-items: center; padding: 1rem; margin-bottom: 1rem; background: #f8fafc; border-radius: 12px; border-left: 4px solid #3b82f6;">
+                        <div style="font-size: 2rem; margin-right: 1rem;">${e(amenity.icon || '⭐')}</div>
+                        <div style="flex: 1;">
+                            <div style="font-weight: 600; color: #1f2937; margin-bottom: 0.25rem;">${e(amenity.name)}</div>
+                            <div style="color: #6b7280; font-size: 0.9rem;">${e(amenity.description)}</div>
+                        </div>
+                        ${img ? `
+                            <div style="margin-left: 1rem;">
+                                <img src="${e(img)}" alt="${e(amenity.name)}" 
+                                     style="width: 80px; height: 80px; object-fit: cover; border-radius: 8px;">
+                            </div>
+                        ` : ''}
+                    </div>`;
+                }).join('');
+            } else {
+                document.getElementById('amenities-section').innerHTML = '<p>No amenities information available.</p>';
+            }
+            
+            // Videos section: play inside the app (modal), never navigate away from the kiosk page
+            if (videos && videos.length > 0) {
+                const videosHTML = videos.map((video, index) => `
+                    <div class="video-item">
+                        <div class="video-title">${e(video.title)}</div>
+                        <div class="video-desc">${e(video.description)}</div>
+                        <button type="button" class="video-link" onclick="openVideoModal(${index})">
+                            ▶️ Watch Video
+                        </button>
+                    </div>
+                `).join('');
+                
+                document.getElementById('videos-section').innerHTML = `
+                    <div class="video-section">
+                        ${videosHTML}
+                    </div>
+                `;
+            } else {
+                document.getElementById('videos-section').innerHTML = '<p>No instructional videos available.</p>';
+            }
+            
+            // Local recommendations: restaurants and local attractions (both, when present)
+            const recommendationItems = (items, titleKey) => items.map(item => `
+                    <div class="recommendation-item">
+                        <div class="recommendation-title">${e(item[titleKey] || item.title)}</div>
+                        <div class="recommendation-desc">${e(item.description)}</div>
+                        ${item.distance ? `<div class="recommendation-phone">📍 ${e(item.distance)}</div>` : ''}
+                        ${item.phone ? `<div class="recommendation-phone">📞 ${e(item.phone)}</div>` : ''}
+                    </div>
+                `).join('');
+
+            let recommendationsHTML = '';
+            if (restaurants && restaurants.length > 0) {
+                recommendationsHTML += `
+                    <div class="recommendations">
+                        <h4 style="color: #92400e; margin-bottom: 1rem;">🍽️ Restaurants</h4>
+                        ${recommendationItems(restaurants, 'name')}
+                    </div>
+                `;
+            }
+            if (local_info && local_info.length > 0) {
+                recommendationsHTML += `
+                    <div class="recommendations">
+                        <h4 style="color: #92400e; margin-bottom: 1rem;">🏛️ Local Attractions</h4>
+                        ${recommendationItems(local_info, 'title')}
+                    </div>
+                `;
+            }
+            document.getElementById('recommendations-section').innerHTML =
+                recommendationsHTML || '<p>Local recommendations will be added soon.</p>';
+            
+            // 2026-10-03 12:45, announcements (server already filters to active + scheduled window)
+            const announcementIcons = { info: 'ℹ️', warning: '⚠️', urgent: '🚨' };
+            document.getElementById('announcements-section').innerHTML = (announcements || []).map(a => {
+                const type = ['info', 'warning', 'urgent'].includes(a.type) ? a.type : 'info';
+                return `
+                    <div class="announcement announcement-${type}">
+                        <div class="announcement-icon">${announcementIcons[type]}</div>
+                        <div>
+                            <div class="announcement-title">${e(a.title)}</div>
+                            <div class="announcement-message">${e(a.message)}</div>
+                        </div>
+                    </div>`;
+            }).join('');
+
+            // 2026-10-03 12:32, Phase 5: QR codes for booking direct / reviews (guests scan with their phone;
+            // the kiosk can't open other sites). Review prompt only on the current guest's checkout day.
+            renderGuestLinks(data.guest_links);
+
+            // Hide loading and show content
+            document.getElementById('loading').style.display = 'none';
+            document.getElementById('content').style.display = 'block';
+        }
+        
+        // Load content when page loads
+        document.addEventListener('DOMContentLoaded', loadPropertyContent);
+        
+        // Report Modal Functions
+        let availableAmenities = [];
+        
+        function openReportModal() {
+            document.getElementById('reportModal').style.display = 'block';
+            document.body.style.overflow = 'hidden'; // Prevent background scrolling
+            
+            // Load amenities for the dropdown
+            loadAmenitiesForReport();
+        }
+        
+        function closeReportModal() {
+            document.getElementById('reportModal').style.display = 'none';
+            document.body.style.overflow = 'auto'; // Restore scrolling
+            
+            // Reset form
+            document.getElementById('reportForm').reset();
+            document.getElementById('reportForm').style.display = 'block';
+            document.getElementById('reportSuccess').style.display = 'none';
+            document.getElementById('amenity-group').style.display = 'none';
+            document.getElementById('report-error').style.display = 'none'; // 2026-10-03 11:52
+        }
+        
+        function handleCategoryChange() {
+            const category = document.getElementById('category').value;
+            const amenityGroup = document.getElementById('amenity-group');
+            
+            if (category === 'amenities') {
+                amenityGroup.style.display = 'block';
+            } else {
+                amenityGroup.style.display = 'none';
+                document.getElementById('amenity_id').value = '';
+            }
+        }
+        
+        // 2026-10-03 11:39, use amenities from the already-loaded content (old fetch hit a non-existent URL)
+        function loadAmenitiesForReport() {
+            availableAmenities = (loadedContent && loadedContent.amenities) || [];
+            populateAmenitiesDropdown();
+        }
+        
+        function populateAmenitiesDropdown() {
+            const amenitySelect = document.getElementById('amenity_id');
+            amenitySelect.innerHTML = '<option value="">Select amenity (optional)</option>';
+            
+            availableAmenities.forEach(amenity => {
+                const option = document.createElement('option');
+                option.value = amenity.id;
+                option.textContent = `${amenity.icon || '⭐'} ${amenity.name}`;
+                amenitySelect.appendChild(option);
+            });
+        }
+        
+        // Handle report form submission
+        document.getElementById('reportForm').addEventListener('submit', async function(e) {
+            e.preventDefault();
+            document.getElementById('report-error').style.display = 'none'; // 2026-10-03 11:52
+            
+            // 2026-10-03 11:39, preview mode never files real reports
+            if (!isDeviceMode) {
+                alert('Preview mode: reports are only sent from paired tablets.');
+                return;
+            }
+
+            const formData = new FormData(this);
+            // Property is determined server-side from the device token
+            const reportData = {
+                category: formData.get('category'),
+                title: formData.get('title'),
+                description: formData.get('description'),
+                location: formData.get('location') || null,
+                urgency_level: formData.get('urgency_level'),
+                amenity_id: formData.get('amenity_id') || null,
+                priority: formData.get('urgency_level') === 'immediate' ? 'urgent' : 
+                         formData.get('urgency_level') === 'same_day' ? 'high' : 'medium'
+            };
+            
+            try {
+                const response = await fetch('/reports/guest', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        ...authHeaders()
+                    },
+                    body: JSON.stringify(reportData)
+                });
+
+                const result = await response.json();
+
+                // 2026-10-03 11:39, revoked device -> back to pairing
+                if (response.status === 401) {
+                    storageRemove(DEVICE_TOKEN_KEY);
+                    closeReportModal();
+                    return showPairingScreen('This tablet is no longer paired. Enter a new code from the dashboard.');
+                }
+
+                if (result.success) {
+                    // Show success message
+                    document.getElementById('reportForm').style.display = 'none';
+                    document.getElementById('reportSuccess').style.display = 'block';
+                } else {
+                    showReportError('Error submitting report: ' + (result.error || 'Unknown error'));
+                }
+            } catch (error) {
+                console.error('Error submitting report:', error);
+                // 2026-10-03 11:52, offline: point guests to the emergency contact (no queue in v1)
+                const contact = loadedContent && loadedContent.property && loadedContent.property.emergency_contact;
+                showReportError(contact
+                    ? `Can't send right now (no internet). If it's urgent, please call ${contact}.`
+                    : "Can't send right now (no internet). Please try again shortly.");
+            }
+        });
+        
+        // 2026-10-03 12:32, Phase 5 guest links (QR SVGs are generated server-side from our own /r/ URLs)
+        function renderGuestLinks(links) {
+            const section = document.getElementById('guest-links-section');
+            if (!links) { section.innerHTML = ''; return; }
+            const e = escapeHtml;
+            const today = new Date().toLocaleDateString('en-CA'); // YYYY-MM-DD in the tablet's time zone
+            const isCheckoutDay = links.checkout_date === today;
+            let html = '';
+
+            if (links.review && isCheckoutDay) {
+                html += `
+                    <div class="guest-link-card guest-link-review">
+                        <div class="guest-link-text">
+                            <h3>Thanks for staying with us! ⭐</h3>
+                            <p>Enjoyed your stay? Scan with your phone to leave a quick review.</p>
+                        </div>
+                        <div class="qr-box">${links.review.qr_svg}</div>
+                    </div>`;
+            }
+
+            if (links.book) {
+                html += `
+                    <div class="guest-link-card">
+                        <div class="guest-link-text">
+                            <h3>Book your next stay direct</h3>
+                            <p>Scan with your phone to book this home again${links.showcase && links.showcase.length ? ' or explore our other properties' : ''}.</p>
+                            ${links.book.offer ? `<p class="guest-link-offer">🎁 ${e(links.book.offer)}</p>` : ''}
+                        </div>
+                        <div class="qr-box">${links.book.qr_svg}</div>
+                    </div>`;
+            }
+
+            if (links.showcase && links.showcase.length) {
+                html += `
+                    <div class="guest-link-card guest-link-showcase">
+                        <h3>Our other properties</h3>
+                        <div class="showcase-grid">
+                            ${links.showcase.map(item => `
+                                <div class="showcase-item">
+                                    <div class="qr-box qr-small">${item.qr_svg}</div>
+                                    <div class="showcase-name">${e(item.name)}</div>
+                                </div>`).join('')}
+                        </div>
+                    </div>`;
+            }
+
+            section.innerHTML = html;
+        }
+
+        // 2026-10-03 11:58, video modal: YouTube (privacy-enhanced nocookie), Vimeo, or direct video files
+        function getVideoEmbed(rawUrl) {
+            let url;
+            try { url = new URL(String(rawUrl || ''), window.location.origin); } catch { return null; }
+            const host = url.hostname.replace(/^www\.|^m\./, '');
+            let id = null;
+
+            if (host === 'youtu.be') {
+                id = url.pathname.slice(1);
+            } else if (host === 'youtube.com' || host === 'youtube-nocookie.com') {
+                id = url.searchParams.get('v') || (url.pathname.match(/^\/(?:embed|shorts|live)\/([^/?]+)/) || [])[1];
+            }
+            if (id && /^[\w-]{6,20}$/.test(id)) {
+                return { type: 'iframe', src: `https://www.youtube-nocookie.com/embed/${id}?autoplay=1&rel=0&modestbranding=1` };
+            }
+
+            if (host === 'vimeo.com' || host === 'player.vimeo.com') {
+                const vimeoId = (url.pathname.match(/(\d{6,12})/) || [])[1];
+                if (vimeoId) return { type: 'iframe', src: `https://player.vimeo.com/video/${vimeoId}?autoplay=1` };
+            }
+
+            if (url.origin === window.location.origin && /\.(mp4|webm|mov|m4v)$/i.test(url.pathname)) {
+                return { type: 'video', src: url.pathname };
+            }
+            return null;
+        }
+
+        function openVideoModal(index) {
+            const video = loadedContent && loadedContent.videos && loadedContent.videos[index];
+            if (!video) return;
+
+            const player = document.getElementById('video-player');
+            document.getElementById('video-modal-title').textContent = video.title || 'Video';
+            player.innerHTML = '';
+
+            const embed = navigator.onLine === false ? null : getVideoEmbed(video.video_url);
+            if (!embed) {
+                const message = document.createElement('p');
+                message.className = 'video-unavailable';
+                message.textContent = navigator.onLine === false
+                    ? 'Videos need an internet connection. Please try again when the Wi-Fi is back.'
+                    : 'This video can’t be played on this tablet.';
+                player.appendChild(message);
+            } else if (embed.type === 'iframe') {
+                const iframe = document.createElement('iframe');
+                iframe.src = embed.src;
+                iframe.allow = 'autoplay; encrypted-media; fullscreen; picture-in-picture';
+                iframe.allowFullscreen = true;
+                iframe.referrerPolicy = 'strict-origin-when-cross-origin';
+                iframe.title = video.title || 'Video';
+                // No popups or top-level navigation: the player's logo/"More videos" links can't pull guests out of the kiosk page
+                iframe.setAttribute('sandbox', 'allow-scripts allow-same-origin allow-presentation');
+                player.appendChild(iframe);
+            } else {
+                const el = document.createElement('video');
+                el.src = embed.src;
+                el.controls = true;
+                el.autoplay = true;
+                el.playsInline = true;
+                player.appendChild(el);
+            }
+
+            document.getElementById('videoModal').style.display = 'block';
+            document.body.style.overflow = 'hidden';
+        }
+
+        function closeVideoModal() {
+            document.getElementById('videoModal').style.display = 'none';
+            document.getElementById('video-player').innerHTML = ''; // stops playback
+            document.body.style.overflow = 'auto';
+        }
+
+        // 2026-10-03 11:52
+        function showReportError(message) {
+            const el = document.getElementById('report-error');
+            el.textContent = message;
+            el.style.display = 'block';
+        }
+
+        // Close modal when clicking outside of it
+        window.onclick = function(event) {
+            const modal = document.getElementById('reportModal');
+            if (event.target === modal) {
+                closeReportModal();
+            }
+            // 2026-10-03 11:58
+            if (event.target === document.getElementById('videoModal')) {
+                closeVideoModal();
+            }
+        }
+    </script>
+</body>
+</html>

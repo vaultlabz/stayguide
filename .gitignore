@@ -1,0 +1,19 @@
+# Dependencies & build output
+node_modules/
+dist/
+
+# Secrets: only commit the *.example templates
+.env
+.env.*
+!.env.example
+!.env.production.example
+
+# User-uploaded content (keep folder structure only)
+public/uploads/**
+!public/uploads/**/
+!public/uploads/**/.gitkeep
+
+# Local tooling / OS
+.claude/settings.local.json
+.DS_Store
+*.log

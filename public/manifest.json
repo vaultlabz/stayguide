@@ -1,0 +1,13 @@
+{
+  "name": "StayGuide",
+  "short_name": "StayGuide",
+  "start_url": "/tablet",
+  "scope": "/",
+  "display": "fullscreen",
+  "orientation": "any",
+  "background_color": "#667eea",
+  "theme_color": "#667eea",
+  "icons": [
+    { "src": "/icons/stayguide.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any" }
+  ]
+}

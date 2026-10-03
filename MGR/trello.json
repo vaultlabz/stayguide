@@ -1,0 +1,13 @@
+{
+  "version": 1,
+  "enabled": false,
+  "board": null,
+  "bins": {
+    "pending": null,
+    "in_progress": null,
+    "done": null
+  },
+  "sync": {},
+  "links": [],
+  "list_lookup_name": null
+}

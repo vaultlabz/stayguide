@@ -1,0 +1,26 @@
+{
+  "version": 2,
+  "mgr": "0.1.0",
+  "initialized_at": "2026-10-03T10:58:07-06:00",
+  "root": "MGR",
+  "project_slug": "stayguide",
+  "layout": {
+    "tasks": "MGR/tasks.json",
+    "memory": ".mgr/memory/MEMORY.md",
+    "session_logs": "MGR/sessions/",
+    "session_handoff": "MGR/sessions/handoff.md",
+    "session_worklog": "MGR/sessions/worklog.md",
+    "todo_notes": "MGR/todo/notes.txt",
+    "rules": ".clauderules"
+  },
+  "conventions": {
+    "code_change_comment": "// YYYY-MM-DD HH:MM, description",
+    "log_entry_prefix": "YYYY-MM-DD HH:MM",
+    "append_only": [
+      "MGR/todo/notes.txt",
+      "MGR/sessions/latest.md",
+      "MGR/sessions/worklog.md",
+      "MGR/sessions/worklog.jsonl"
+    ]
+  }
+}

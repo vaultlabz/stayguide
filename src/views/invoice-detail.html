@@ -1,0 +1,628 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Invoice Details - StayGuide Admin</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: #f5f7fa;
+            color: #333;
+        }
+        
+        .header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 1rem 2rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        
+        .logo {
+            font-size: 1.5rem;
+            font-weight: bold;
+        }
+        
+        .nav-links {
+            display: flex;
+            gap: 1rem;
+        }
+        
+        .nav-links a {
+            color: white;
+            text-decoration: none;
+            padding: 0.5rem 1rem;
+            border-radius: 5px;
+            transition: background-color 0.3s;
+        }
+        
+        .nav-links a:hover {
+            background: rgba(255, 255, 255, 0.2);
+        }
+        
+        .user-info {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+        }
+        
+        .btn {
+            padding: 0.5rem 1rem;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            text-decoration: none;
+            font-weight: 500;
+            transition: all 0.3s ease;
+            display: inline-block;
+        }
+        
+        .btn-primary {
+            background: #4f46e5;
+            color: white;
+        }
+        
+        .btn-primary:hover {
+            background: #4338ca;
+        }
+        
+        .btn-secondary {
+            background: rgba(255, 255, 255, 0.2);
+            color: white;
+            border: 1px solid rgba(255, 255, 255, 0.3);
+        }
+        
+        .btn-success {
+            background: #10b981;
+            color: white;
+        }
+        
+        .btn-success:hover {
+            background: #059669;
+        }
+        
+        .btn-warning {
+            background: #f59e0b;
+            color: white;
+        }
+        
+        .btn-warning:hover {
+            background: #d97706;
+        }
+        
+        .container {
+            max-width: 1000px;
+            margin: 0 auto;
+            padding: 2rem;
+        }
+        
+        .page-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 2rem;
+        }
+        
+        .page-title {
+            font-size: 2rem;
+            color: #1f2937;
+        }
+        
+        .invoice-container {
+            background: white;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.05);
+            overflow: hidden;
+        }
+        
+        .invoice-header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 2rem;
+            text-align: center;
+        }
+        
+        .invoice-header h1 {
+            font-size: 2.5rem;
+            margin-bottom: 0.5rem;
+        }
+        
+        .invoice-header p {
+            font-size: 1.1rem;
+            opacity: 0.9;
+        }
+        
+        .invoice-body {
+            padding: 2rem;
+        }
+        
+        .invoice-info {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 2rem;
+            margin-bottom: 2rem;
+        }
+        
+        .info-section h3 {
+            color: #374151;
+            margin-bottom: 1rem;
+            font-size: 1.1rem;
+            border-bottom: 2px solid #e5e7eb;
+            padding-bottom: 0.5rem;
+        }
+        
+        .info-item {
+            display: flex;
+            justify-content: space-between;
+            padding: 0.5rem 0;
+            border-bottom: 1px solid #f3f4f6;
+        }
+        
+        .info-item:last-child {
+            border-bottom: none;
+        }
+        
+        .info-label {
+            font-weight: 500;
+            color: #6b7280;
+        }
+        
+        .info-value {
+            color: #1f2937;
+            font-weight: 500;
+        }
+        
+        .status-badge {
+            padding: 0.25rem 0.75rem;
+            border-radius: 20px;
+            font-size: 0.75rem;
+            font-weight: 500;
+            text-transform: uppercase;
+        }
+        
+        .status-paid {
+            background: #d1fae5;
+            color: #065f46;
+        }
+        
+        .status-pending {
+            background: #fef3c7;
+            color: #92400e;
+        }
+        
+        .status-overdue {
+            background: #fee2e2;
+            color: #991b1b;
+        }
+        
+        .status-cancelled {
+            background: #f3f4f6;
+            color: #4b5563;
+        }
+        
+        .billing-breakdown {
+            background: #f9fafb;
+            border-radius: 8px;
+            padding: 1.5rem;
+            margin: 2rem 0;
+        }
+        
+        .breakdown-item {
+            display: flex;
+            justify-content: space-between;
+            padding: 0.5rem 0;
+            border-bottom: 1px solid #e5e7eb;
+        }
+        
+        .breakdown-item:last-child {
+            border-bottom: none;
+            font-weight: bold;
+            font-size: 1.1rem;
+            margin-top: 0.5rem;
+            padding-top: 1rem;
+            border-top: 2px solid #d1d5db;
+        }
+        
+        .total-amount {
+            font-size: 1.5rem;
+            color: #4f46e5;
+            font-weight: bold;
+        }
+        
+        .actions {
+            display: flex;
+            gap: 1rem;
+            justify-content: center;
+            margin-top: 2rem;
+            padding: 1.5rem;
+            background: #f9fafb;
+            border-top: 1px solid #e5e7eb;
+        }
+        
+        .loading {
+            text-align: center;
+            padding: 3rem;
+            color: #6b7280;
+        }
+        
+        .error {
+            background: #fee2e2;
+            color: #991b1b;
+            padding: 1rem;
+            border-radius: 8px;
+            margin: 1rem 0;
+        }
+        
+        .success {
+            background: #d1fae5;
+            color: #065f46;
+            padding: 1rem;
+            border-radius: 8px;
+            margin: 1rem 0;
+        }
+        
+        .spinner {
+            border: 2px solid #f3f4f6;
+            border-top: 2px solid #4f46e5;
+            border-radius: 50%;
+            width: 20px;
+            height: 20px;
+            animation: spin 1s linear infinite;
+            display: inline-block;
+            margin-right: 0.5rem;
+        }
+        
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <div class="logo">StayGuide Admin</div>
+        <div class="nav-links">
+            <a href="/admin/dashboard">Dashboard</a>
+            <a href="/admin/billing">Billing</a>
+            <a href="#" id="helpdesk-link">Helpdesk</a>
+        </div>
+        <div class="user-info">
+            <span id="user-name">Admin User</span>
+            <button class="btn btn-secondary" id="logout-btn">Logout</button>
+        </div>
+    </div>
+
+    <div class="container">
+        <div class="page-header">
+            <h1 class="page-title">Invoice Details</h1>
+            <a href="/admin/billing" class="btn btn-secondary">← Back to Billing</a>
+        </div>
+
+        <div id="invoice-content">
+            <div class="loading">
+                <div class="spinner"></div>
+                Loading invoice details...
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const API_BASE = '';
+        let authToken = localStorage.getItem('stayguide_token');
+        
+        // Check authentication on page load
+        if (!authToken) {
+            window.location.href = '/admin/login';
+        }
+        
+        // Get invoice ID from URL
+        const urlParams = new URLSearchParams(window.location.search);
+        const invoiceId = urlParams.get('id');
+        
+        if (!invoiceId) {
+            document.getElementById('invoice-content').innerHTML = 
+                '<div class="error">No invoice ID provided</div>';
+        }
+        
+        // API helper function
+        async function apiCall(endpoint, options = {}) {
+            const config = {
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${authToken}`
+                },
+                ...options
+            };
+            
+            try {
+                const response = await fetch(API_BASE + endpoint, config);
+                
+                if (response.status === 401) {
+                    localStorage.removeItem('stayguide_token');
+                    window.location.href = '/admin/login';
+                    return;
+                }
+                
+                const data = await response.json();
+                
+                if (!response.ok) {
+                    throw new Error(data.error || 'API request failed');
+                }
+                
+                return data;
+            } catch (error) {
+                console.error('API call failed:', error);
+                throw error;
+            }
+        }
+        
+        // Load user profile
+        async function loadUserProfile() {
+            try {
+                const data = await apiCall('/api/auth/profile');
+                document.getElementById('user-name').textContent = 
+                    `${data.user.first_name} ${data.user.last_name}`;
+            } catch (error) {
+                console.error('Failed to load user profile:', error);
+            }
+        }
+        
+        // Load invoice details
+        async function loadInvoiceDetails() {
+            if (!invoiceId) return;
+            
+            try {
+                const data = await apiCall(`/billing/${invoiceId}`);
+                
+                if (data.success) {
+                    displayInvoiceDetails(data.invoice, data.company, data.user);
+                }
+                
+            } catch (error) {
+                console.error('Error loading invoice details:', error);
+                document.getElementById('invoice-content').innerHTML = 
+                    `<div class="error">Failed to load invoice details: ${error.message}</div>`;
+            }
+        }
+        
+        // Display invoice details
+        function displayInvoiceDetails(invoice, company, user) {
+            const dueDate = new Date(invoice.billing_period_end);
+            dueDate.setDate(dueDate.getDate() + 30); // 30 days to pay
+            
+            const invoiceHTML = `
+                <div class="invoice-container">
+                    <div class="invoice-header">
+                        <h1>Invoice</h1>
+                        <p>${invoice.invoice_number}</p>
+                    </div>
+                    
+                    <div class="invoice-body">
+                        <div class="invoice-info">
+                            <div class="info-section">
+                                <h3>Bill To</h3>
+                                <div class="info-item">
+                                    <span class="info-label">Company:</span>
+                                    <span class="info-value">${company.name}</span>
+                                </div>
+                                <div class="info-item">
+                                    <span class="info-label">Email:</span>
+                                    <span class="info-value">${company.email}</span>
+                                </div>
+                                <div class="info-item">
+                                    <span class="info-label">Company Slug:</span>
+                                    <span class="info-value">${company.slug}</span>
+                                </div>
+                                <div class="info-item">
+                                    <span class="info-label">Admin:</span>
+                                    <span class="info-value">${user.first_name} ${user.last_name}</span>
+                                </div>
+                            </div>
+                            
+                            <div class="info-section">
+                                <h3>Invoice Information</h3>
+                                <div class="info-item">
+                                    <span class="info-label">Invoice Number:</span>
+                                    <span class="info-value">${invoice.invoice_number}</span>
+                                </div>
+                                <div class="info-item">
+                                    <span class="info-label">Issue Date:</span>
+                                    <span class="info-value">${new Date(invoice.created_at).toLocaleDateString()}</span>
+                                </div>
+                                <div class="info-item">
+                                    <span class="info-label">Due Date:</span>
+                                    <span class="info-value">${dueDate.toLocaleDateString()}</span>
+                                </div>
+                                <div class="info-item">
+                                    <span class="info-label">Billing Period:</span>
+                                    <span class="info-value">
+                                        ${new Date(invoice.billing_period_start).toLocaleDateString()} - 
+                                        ${new Date(invoice.billing_period_end).toLocaleDateString()}
+                                    </span>
+                                </div>
+                                <div class="info-item">
+                                    <span class="info-label">Status:</span>
+                                    <span class="info-value">
+                                        <span class="status-badge status-${invoice.status}">${invoice.status}</span>
+                                    </span>
+                                </div>
+                                ${invoice.paid_at ? `
+                                <div class="info-item">
+                                    <span class="info-label">Paid Date:</span>
+                                    <span class="info-value">${new Date(invoice.paid_at).toLocaleDateString()}</span>
+                                </div>
+                                ` : ''}
+                            </div>
+                        </div>
+                        
+                        <div class="billing-breakdown">
+                            <h3 style="margin-bottom: 1rem; color: #374151;">Billing Breakdown</h3>
+                            
+                            ${invoice.connection_fee > 0 ? `
+                            <div class="breakdown-item">
+                                <span>Connection Fee</span>
+                                <span>$${invoice.connection_fee.toFixed(2)}</span>
+                            </div>
+                            ` : ''}
+                            
+                            <div class="breakdown-item">
+                                <span>Monthly Property Fees (${invoice.property_count} properties × $${invoice.monthly_fee_per_property})</span>
+                                <span>$${(invoice.property_count * invoice.monthly_fee_per_property).toFixed(2)}</span>
+                            </div>
+                            
+                            <div class="breakdown-item">
+                                <span>Total Amount</span>
+                                <span class="total-amount">$${invoice.total_amount.toFixed(2)}</span>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="actions">
+                        <button class="btn btn-success" id="send-email-btn" onclick="sendInvoiceEmail()">
+                            📧 Send Invoice Email
+                        </button>
+                        <button class="btn btn-warning" onclick="downloadInvoicePDF()">
+                            📄 Download PDF
+                        </button>
+                        ${invoice.status !== 'paid' ? `
+                        <button class="btn btn-primary" onclick="markAsPaid()">
+                            ✅ Mark as Paid
+                        </button>
+                        ` : ''}
+                        ${invoice.status === 'pending' ? `
+                        <button class="btn btn-warning" onclick="markAsOverdue()">
+                            ⚠️ Mark as Overdue
+                        </button>
+                        ` : ''}
+                    </div>
+                </div>
+            `;
+            
+            document.getElementById('invoice-content').innerHTML = invoiceHTML;
+        }
+        
+        // Send invoice email
+        async function sendInvoiceEmail() {
+            try {
+                const button = document.getElementById('send-email-btn');
+                const originalText = button.textContent;
+                
+                button.disabled = true;
+                button.innerHTML = '<span class="spinner"></span> Sending...';
+                
+                const data = await apiCall(`/billing/${invoiceId}/send-email`, {
+                    method: 'POST'
+                });
+                
+                if (data.success) {
+                    button.innerHTML = '✅ Email Sent!';
+                    button.className = 'btn btn-success';
+                    
+                    // Show success message
+                    const successMsg = document.createElement('div');
+                    successMsg.className = 'success';
+                    successMsg.textContent = `Invoice email sent successfully to company admin!`;
+                    document.querySelector('.invoice-container').insertBefore(successMsg, document.querySelector('.invoice-body'));
+                    
+                    // Reset button after 3 seconds
+                    setTimeout(() => {
+                        button.disabled = false;
+                        button.innerHTML = originalText;
+                        button.className = 'btn btn-success';
+                        successMsg.remove();
+                    }, 3000);
+                }
+                
+            } catch (error) {
+                console.error('Error sending email:', error);
+                
+                const button = document.getElementById('send-email-btn');
+                button.disabled = false;
+                button.innerHTML = '📧 Send Invoice Email';
+                
+                // Show error message
+                const errorMsg = document.createElement('div');
+                errorMsg.className = 'error';
+                errorMsg.textContent = `Failed to send email: ${error.message}`;
+                document.querySelector('.invoice-container').insertBefore(errorMsg, document.querySelector('.invoice-body'));
+                
+                setTimeout(() => errorMsg.remove(), 5000);
+            }
+        }
+        
+        // Download invoice PDF
+        function downloadInvoicePDF() {
+            alert('📄 PDF download feature coming soon!\\n\\nThis will generate and download a professional PDF invoice.');
+        }
+        
+        // Mark as paid
+        async function markAsPaid() {
+            try {
+                const proceed = confirm('Mark this invoice as paid?\\n\\nThis will send a payment confirmation email to the company.');
+                if (!proceed) return;
+                
+                await apiCall(`/billing/${invoiceId}/status`, {
+                    method: 'PUT',
+                    body: JSON.stringify({
+                        status: 'paid',
+                        stripe_payment_intent_id: `pi_admin_manual_${Date.now()}`
+                    })
+                });
+                
+                alert('Invoice marked as paid! Payment confirmation email sent.');
+                loadInvoiceDetails(); // Refresh the page
+                
+            } catch (error) {
+                alert(`Failed to update status: ${error.message}`);
+            }
+        }
+        
+        // Mark as overdue
+        async function markAsOverdue() {
+            try {
+                const proceed = confirm('Mark this invoice as overdue?\\n\\nThis will send an overdue notice email to the company.');
+                if (!proceed) return;
+                
+                await apiCall(`/billing/${invoiceId}/status`, {
+                    method: 'PUT',
+                    body: JSON.stringify({ status: 'overdue' })
+                });
+                
+                alert('Invoice marked as overdue! Overdue notice email sent.');
+                loadInvoiceDetails(); // Refresh the page
+                
+            } catch (error) {
+                alert(`Failed to update status: ${error.message}`);
+            }
+        }
+        
+        // Logout function
+        function logout() {
+            localStorage.removeItem('stayguide_token');
+            window.location.href = '/admin/login';
+        }
+        
+        // Initialize page
+        document.addEventListener('DOMContentLoaded', () => {
+            loadUserProfile();
+            loadInvoiceDetails();
+            
+            // Add event listeners
+            document.getElementById('logout-btn').addEventListener('click', logout);
+            document.getElementById('helpdesk-link').addEventListener('click', function(e) {
+                e.preventDefault();
+                alert('Helpdesk coming soon!');
+            });
+        });
+    </script>
+</body>
+</html>

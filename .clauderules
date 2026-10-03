@@ -1,0 +1,35 @@
+# .clauderules — Claude/Cursor project rules (repo root)
+# Seeded by mgr. Global agent guide: ~/.claude/CLAUDE.md
+# Project guidelines: CLAUDE.md (also log every change in docs/todo.md)
+
+## mgr layout
+- Tasks: `MGR/tasks.json` (v2, canonical)
+- Manifest: `MGR/protocol.json`
+- Notes: `MGR/todo/notes.txt` (append only)
+- Sessions: `MGR/sessions/` — `handoff.md` (overwrite), `latest.md` + `worklog.md` (append only)
+- Memory: `.mgr/memory/MEMORY.md`
+- Trello: `MGR/trello.json` · Git: `MGR/git.json`
+
+## Code changes
+Preface **each code change** with `// YYYY-MM-DD HH:MM, description`
+
+## Handoff (Claude ↔ Cursor)
+On session end: **overwrite** `MGR/sessions/handoff.md` using the template in that file (include closeout checklist).
+On session start: read `handoff.md` first, then `MGR/tasks.json`, tail of `worklog.md`, then `latest.md`.
+
+## Secrets
+Never ask the operator to paste API keys or tokens in chat. Use env var **names** only (`TRELLO_API_KEY`, `TRELLO_API_TOKEN`) or app Settings (⚙). Do not use Atlassian account API tokens (`ATATT…`) for Trello REST — use Power-Up admin → Token link.
+
+## Task worklog (required)
+Whenever you **create**, **start** (`in_progress` or begin work), **complete**, **reopen**, **edit**, or **delete** a task in `MGR/tasks.json`, append one block to `MGR/sessions/worklog.md` in the same pass (do not wait for `/stop`). See `docs/WORKLOG.md`.
+
+## Session logs
+On `/stop` only: append session summary to `MGR/sessions/latest.md` — never duplicate full task lists if already in `worklog.md`.
+
+## Todo notes
+Append only to `MGR/todo/notes.txt` — never overwrite.
+
+## Tasks
+Edit `MGR/tasks.json` for task state. Every **pending** task needs `context`: `{ "doing", "achieve", "according" }` (one-line blurb: *a is being done to achieve b according to c*). See `docs/TASK_CONTEXT.md`.
+
+Use Trello MCP in Cursor for board sync when `MGR/trello.json` is configured.

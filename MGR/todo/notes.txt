@@ -1,0 +1,12 @@
+# Todo notes — APPEND ONLY (mgr never overwrites this file)
+#
+# Add new blocks at the END of the file.
+# Start each block with a timestamp line, then mgr notes format:
+#
+# YYYY-MM-DD HH:MM
+# // project-name
+# # page / role
+# - pending task
+# x - completed task
+
+2026-10-03 10:58 initialized

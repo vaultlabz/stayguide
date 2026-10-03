@@ -1,0 +1,1618 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Company Dashboard - StayGuide</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: #f5f7fa;
+            color: #333;
+        }
+        
+        .header {
+            background: linear-gradient(135deg, #4f46e5 0%, #7c3aed 100%);
+            color: white;
+            padding: 1rem 2rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        
+        .logo {
+            font-size: 1.5rem;
+            font-weight: bold;
+        }
+        
+        .company-info {
+            display: flex;
+            align-items: center;
+            gap: 2rem;
+        }
+        
+        .company-name {
+            font-size: 1.1rem;
+            opacity: 0.9;
+        }
+        
+        .user-info {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+        }
+        
+        .btn {
+            padding: 0.5rem 1rem;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            text-decoration: none;
+            font-weight: 500;
+            transition: all 0.3s ease;
+        }
+        
+        .btn-primary {
+            background: #10b981;
+            color: white;
+        }
+        
+        .btn-primary:hover {
+            background: #059669;
+        }
+        
+        .btn-secondary {
+            background: rgba(255, 255, 255, 0.2);
+            color: white;
+            border: 1px solid rgba(255, 255, 255, 0.3);
+        }
+        
+        .btn-danger {
+            background: #ef4444;
+            color: white;
+        }
+        
+        .btn-danger:hover {
+            background: #dc2626;
+        }
+        
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 2rem;
+        }
+        
+        .dashboard-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 2rem;
+        }
+        
+        .dashboard-title {
+            font-size: 2rem;
+            color: #1f2937;
+        }
+        
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 1.5rem;
+            margin-bottom: 2rem;
+        }
+        
+        .stat-card {
+            background: white;
+            padding: 1.5rem;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            text-align: center;
+        }
+        
+        .stat-number {
+            font-size: 2rem;
+            font-weight: bold;
+            color: #4f46e5;
+        }
+        
+        .stat-label {
+            color: #6b7280;
+            margin-top: 0.5rem;
+        }
+        
+        .main-content {
+            display: grid;
+            grid-template-columns: 2fr 1fr;
+            gap: 2rem;
+        }
+        
+        .properties-section {
+            background: white;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            overflow: hidden;
+        }
+        
+        .section-header {
+            background: #f9fafb;
+            padding: 1.5rem;
+            border-bottom: 1px solid #e5e7eb;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        
+        .section-title {
+            font-size: 1.25rem;
+            font-weight: 600;
+            color: #1f2937;
+        }
+        
+        .property-grid {
+            padding: 1.5rem;
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+            gap: 1.5rem;
+        }
+        
+        .property-card {
+            border: 1px solid #e5e7eb;
+            border-radius: 8px;
+            padding: 1.5rem;
+            transition: all 0.3s ease;
+        }
+        
+        .property-card:hover {
+            border-color: #4f46e5;
+            box-shadow: 0 4px 12px rgba(79, 70, 229, 0.1);
+        }
+        
+        .property-name {
+            font-size: 1.1rem;
+            font-weight: 600;
+            color: #1f2937;
+            margin-bottom: 0.5rem;
+        }
+        
+        .property-slug {
+            font-family: 'Courier New', monospace;
+            background: #f3f4f6;
+            padding: 0.25rem 0.5rem;
+            border-radius: 4px;
+            font-size: 0.875rem;
+            color: #4f46e5;
+            margin-bottom: 1rem;
+        }
+        
+        .property-details {
+            font-size: 0.875rem;
+            color: #6b7280;
+            margin-bottom: 1rem;
+        }
+        
+        .property-actions {
+            display: flex;
+            gap: 0.5rem;
+            flex-wrap: wrap;
+        }
+        
+        .btn-small {
+            padding: 0.25rem 0.75rem;
+            font-size: 0.875rem;
+        }
+        
+        .sidebar {
+            display: flex;
+            flex-direction: column;
+            gap: 1.5rem;
+        }
+        
+        .quick-actions {
+            background: white;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            padding: 1.5rem;
+        }
+        
+        .quick-action {
+            display: block;
+            width: 100%;
+            margin-bottom: 0.75rem;
+            text-align: left;
+        }
+        
+        .quick-action:last-child {
+            margin-bottom: 0;
+        }
+        
+        .recent-activity {
+            background: white;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            padding: 1.5rem;
+        }
+        
+        .activity-item {
+            padding: 0.75rem 0;
+            border-bottom: 1px solid #e5e7eb;
+            font-size: 0.875rem;
+        }
+        
+        .activity-item:last-child {
+            border-bottom: none;
+        }
+        
+        .activity-time {
+            color: #6b7280;
+        }
+        
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.5);
+            z-index: 1000;
+        }
+        
+        .modal-content {
+            background: white;
+            margin: 5% auto;
+            padding: 2rem;
+            border-radius: 10px;
+            max-width: 600px;
+            max-height: 80vh;
+            overflow-y: auto;
+        }
+        
+        .modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 1rem;
+            padding-bottom: 1rem;
+            border-bottom: 1px solid #e5e7eb;
+        }
+        
+        /* Slide Panel Styles */
+        .slide-panel {
+            position: fixed;
+            top: 0;
+            right: -100%;
+            width: 60%;
+            height: 100vh;
+            background: white;
+            z-index: 1000;
+            transition: right 0.3s ease-in-out;
+            box-shadow: -4px 0 20px rgba(0,0,0,0.15);
+            overflow-y: auto;
+        }
+        
+        .slide-panel.open {
+            right: 0;
+        }
+        
+        .slide-panel-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100vh;
+            background: rgba(0,0,0,0.5);
+            z-index: 999;
+            opacity: 0;
+            visibility: hidden;
+            transition: all 0.3s ease-in-out;
+        }
+        
+        .slide-panel-overlay.open {
+            opacity: 1;
+            visibility: visible;
+        }
+        
+        .slide-panel-header {
+            background: linear-gradient(135deg, #4f46e5 0%, #7c3aed 100%);
+            color: white;
+            padding: 1.5rem 2rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            position: sticky;
+            top: 0;
+            z-index: 10;
+        }
+        
+        .slide-panel-title {
+            font-size: 1.5rem;
+            font-weight: 600;
+            margin: 0;
+        }
+        
+        .slide-panel-close {
+            background: rgba(255,255,255,0.2);
+            border: none;
+            color: white;
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            cursor: pointer;
+            font-size: 1.2rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: background 0.2s;
+        }
+        
+        .slide-panel-close:hover {
+            background: rgba(255,255,255,0.3);
+        }
+        
+        .slide-panel-content {
+            padding: 2rem;
+        }
+        
+        .property-form-section {
+            background: #f9fafb;
+            border-radius: 8px;
+            padding: 1.5rem;
+            margin-bottom: 2rem;
+        }
+        
+        .property-form-section h3 {
+            margin: 0 0 1rem 0;
+            color: #374151;
+            font-size: 1.1rem;
+        }
+        
+        .close {
+            cursor: pointer;
+            font-size: 1.5rem;
+            color: #6b7280;
+        }
+        
+        .form-group {
+            margin-bottom: 1rem;
+        }
+        
+        .form-label {
+            display: block;
+            margin-bottom: 0.5rem;
+            font-weight: 500;
+            color: #374151;
+        }
+        
+        .form-input, .form-textarea {
+            width: 100%;
+            padding: 0.75rem;
+            border: 1px solid #d1d5db;
+            border-radius: 5px;
+            font-size: 0.875rem;
+        }
+        
+        .form-textarea {
+            min-height: 80px;
+            resize: vertical;
+        }
+        
+        .form-input:focus, .form-textarea:focus {
+            outline: none;
+            border-color: #4f46e5;
+            box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.1);
+        }
+        
+        .form-row {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 1rem;
+        }
+        
+        .loading {
+            text-align: center;
+            padding: 2rem;
+            color: #6b7280;
+        }
+        
+        .error {
+            background: #fee2e2;
+            color: #991b1b;
+            padding: 0.75rem;
+            border-radius: 5px;
+            margin-bottom: 1rem;
+        }
+        
+        .success {
+            background: #d1fae5;
+            color: #065f46;
+            padding: 0.75rem;
+            border-radius: 5px;
+            margin-bottom: 1rem;
+        }
+        
+        .empty-state {
+            text-align: center;
+            padding: 3rem;
+            color: #6b7280;
+        }
+        
+        .empty-state h3 {
+            margin-bottom: 1rem;
+            color: #374151;
+        }
+        
+        .upload-area {
+            border: 2px dashed #d1d5db;
+            border-radius: 8px;
+            padding: 1rem;
+            text-align: center;
+            background: #f9fafb;
+            transition: all 0.3s ease;
+            cursor: pointer;
+        }
+        
+        .upload-area:hover {
+            border-color: #4f46e5;
+            background: #f0f9ff;
+        }
+        
+        .upload-area.dragover {
+            border-color: #4f46e5;
+            background: #e0f2fe;
+        }
+        
+        .upload-text {
+            color: #6b7280;
+            font-size: 0.875rem;
+            margin-bottom: 0.5rem;
+        }
+        
+        .upload-button {
+            background: #4f46e5;
+            color: white;
+            border: none;
+            padding: 0.5rem 1rem;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 0.875rem;
+        }
+        
+        .upload-button:hover {
+            background: #4338ca;
+        }
+        
+        @media (max-width: 768px) {
+            .container {
+                padding: 1rem;
+            }
+            
+            .main-content {
+                grid-template-columns: 1fr;
+            }
+            
+            .dashboard-header {
+                flex-direction: column;
+                gap: 1rem;
+                align-items: stretch;
+            }
+            
+            .stats-grid {
+                grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            }
+            
+            .property-grid {
+                grid-template-columns: 1fr;
+            }
+            
+            .form-row {
+                grid-template-columns: 1fr;
+            }
+            
+            .company-info {
+                flex-direction: column;
+                gap: 0.5rem;
+            }
+        }
+    </style>
+</head>
+<body>
+    <header class="header">
+        <div class="logo">StayGuide</div>
+        <div style="display: flex; gap: 1rem;">
+            <a href="#" id="dashboard-nav" style="color: white; text-decoration: none; padding: 0.5rem 1rem; background: rgba(255,255,255,0.2); border-radius: 5px;">Dashboard</a>
+            <a href="#" id="billing-nav" style="color: white; text-decoration: none; padding: 0.5rem 1rem; border-radius: 5px; transition: background 0.3s;" onmouseover="this.style.background='rgba(255,255,255,0.2)'" onmouseout="this.style.background='transparent'">Billing</a>
+        </div>
+        <div class="company-info">
+            <div class="company-name" id="company-name">Loading...</div>
+            <div class="user-info">
+                <span id="user-name">Loading...</span>
+                <button class="btn btn-secondary" onclick="logout()">Logout</button>
+            </div>
+        </div>
+    </header>
+
+    <div class="container">
+        <div class="dashboard-header">
+            <h1 class="dashboard-title">Company Dashboard</h1>
+            <div style="display: flex; gap: 1rem;">
+                <button class="btn btn-secondary" onclick="testFunction()">🧪 Test JS</button>
+                <button class="btn btn-primary" onclick="openCreatePropertyModal()">Add New Property</button>
+            </div>
+        </div>
+
+        <div class="stats-grid">
+            <div class="stat-card">
+                <div class="stat-number" id="total-properties">-</div>
+                <div class="stat-label">Total Properties</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-number" id="active-properties">-</div>
+                <div class="stat-label">Active Properties</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-number" id="monthly-cost">-</div>
+                <div class="stat-label">Monthly Cost</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-number" id="tablet-views">-</div>
+                <div class="stat-label">Tablet Views</div>
+            </div>
+        </div>
+
+        <div class="main-content">
+            <div class="properties-section">
+                <div class="section-header">
+                    <h2 class="section-title">Properties</h2>
+                    <button class="btn btn-primary btn-small" onclick="loadProperties()">Refresh</button>
+                </div>
+                
+                <div id="properties-content">
+                    <div class="loading">Loading properties...</div>
+                </div>
+            </div>
+
+            <div class="sidebar">
+                <div class="quick-actions">
+                    <h3 class="section-title" style="margin-bottom: 1rem;">Quick Actions</h3>
+                    <button class="btn btn-primary quick-action" onclick="openCreatePropertyModal()">
+                        Add New Property
+                    </button>
+                    <button class="btn btn-secondary quick-action" onclick="viewBilling()">
+                        View Billing
+                    </button>
+                    <button class="btn btn-secondary quick-action" onclick="contactSupport()">
+                        Contact Support
+                    </button>
+                    <button class="btn btn-secondary quick-action" onclick="viewHelp()">
+                        Help & Documentation
+                    </button>
+                </div>
+
+                <div class="recent-activity">
+                    <h3 class="section-title" style="margin-bottom: 1rem;">Recent Activity</h3>
+                    <div class="activity-item">
+                        <div>Property "Beach House" updated</div>
+                        <div class="activity-time">2 hours ago</div>
+                    </div>
+                    <div class="activity-item">
+                        <div>New guest accessed tablet app</div>
+                        <div class="activity-time">4 hours ago</div>
+                    </div>
+                    <div class="activity-item">
+                        <div>Restaurant list updated</div>
+                        <div class="activity-time">1 day ago</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Property Modal -->
+    <!-- Slide Panel Overlay -->
+    <div id="propertyPanelOverlay" class="slide-panel-overlay" onclick="closePropertyPanel()"></div>
+    
+    <!-- Property Detail Slide Panel -->
+    <div id="propertyPanel" class="slide-panel">
+        <div class="slide-panel-header">
+            <h2 id="panel-title" class="slide-panel-title">Add New Property</h2>
+            <button class="slide-panel-close" onclick="closePropertyPanel()">×</button>
+        </div>
+        
+        <div class="slide-panel-content">
+            
+            <div id="panel-error" class="error" style="display: none; margin-bottom: 1rem;"></div>
+            <div id="panel-success" class="success" style="display: none; margin-bottom: 1rem;"></div>
+            
+            <form id="propertyForm">
+                <!-- Basic Information Section -->
+                <div class="property-form-section">
+                    <h3>Basic Information</h3>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label class="form-label">Property Name*</label>
+                            <input type="text" id="property-name" class="form-input" required>
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">Property Slug*</label>
+                            <input type="text" id="property-slug" class="form-input" required>
+                        </div>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label class="form-label">Address</label>
+                        <input type="text" id="property-address" class="form-input">
+                    </div>
+                    
+                    <div class="form-group">
+                        <label class="form-label">Description</label>
+                        <textarea id="property-description" class="form-textarea" placeholder="Brief description of the property..."></textarea>
+                    </div>
+                </div>
+
+                <!-- Main Image Section -->
+                <div class="property-form-section">
+                    <h3>Main Property Image</h3>
+                    
+                    <div style="margin-bottom: 1rem;">
+                        <input type="text" id="main-image-url" class="form-input" placeholder="Enter image URL or use upload below"
+                               oninput="previewMainImage(this.value)">
+                    </div>
+                    
+                    <div class="upload-area" id="main-image-upload-area" onclick="document.getElementById('main-image-file').click()">
+                        <div class="upload-text">📸 Drag & drop an image here or click to browse</div>
+                        <button type="button" class="upload-button">Choose Image</button>
+                        <input type="file" id="main-image-file" accept="image/*" style="display: none;"
+                               onchange="uploadMainImage(this.files[0])">
+                    </div>
+                    
+                    <div id="main-image-preview" style="margin-top: 0.5rem;"></div>
+                    <div id="main-image-upload-status" style="margin-top: 0.5rem; font-size: 0.875rem;"></div>
+                </div>
+
+                <!-- WiFi & Access Section -->
+                <div class="property-form-section">
+                    <h3>WiFi & Access Information</h3>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label class="form-label">WiFi Name</label>
+                            <input type="text" id="wifi-name" class="form-input">
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">WiFi Password</label>
+                            <input type="text" id="wifi-password" class="form-input">
+                        </div>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label class="form-label">Emergency Contact</label>
+                        <input type="text" id="emergency-contact" class="form-input" placeholder="Emergency contact information">
+                    </div>
+                </div>
+
+                <!-- Instructions Section -->
+                <div class="property-form-section">
+                    <h3>Guest Instructions</h3>
+                    <div class="form-group">
+                        <label class="form-label">Check-in Instructions</label>
+                        <textarea id="checkin-instructions" class="form-textarea" placeholder="Instructions for guests checking in..."></textarea>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label class="form-label">Check-out Instructions</label>
+                        <textarea id="checkout-instructions" class="form-textarea" placeholder="Instructions for guests checking out..."></textarea>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label class="form-label">House Rules</label>
+                        <textarea id="house-rules" class="form-textarea" placeholder="House rules and policies..."></textarea>
+                    </div>
+                </div>
+
+                <!-- 2026-10-03 12:32, Phase 5: direct booking + review QR codes on the tablet -->
+                <div class="property-form-section">
+                    <h3>Direct Booking &amp; Reviews</h3>
+                    <p style="margin: 0 0 1rem 0; color: #6b7280; font-size: 0.9rem;">
+                        The tablet shows these as QR codes guests scan with their phone. Leave blank to hide.
+                    </p>
+                    <div class="form-group">
+                        <label class="form-label">Direct booking URL (this property)</label>
+                        <input type="url" id="direct-booking-url" class="form-input" placeholder="https://yoursite.com/stay/this-property">
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Return-guest offer</label>
+                        <input type="text" id="return-guest-offer" class="form-input" maxlength="255" placeholder="10% off your next stay with code WELCOMEBACK10">
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Review URL (Google Business Profile or your site)</label>
+                        <input type="url" id="review-url" class="form-input" placeholder="https://g.page/r/.../review">
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Current guest's checkout date (review prompt shows that day)</label>
+                        <input type="date" id="guest-checkout-date" class="form-input">
+                    </div>
+                    <div id="link-stats" style="color: #6b7280; font-size: 0.9rem;"></div>
+                </div>
+
+                <!-- Amenities Section -->
+                <div class="property-form-section">
+                    <h3>Property Amenities</h3>
+                    <div id="amenities-list" style="margin-bottom: 1rem;"></div>
+                    
+                    <div style="display: flex; gap: 1rem; margin-bottom: 1rem;">
+                        <button type="button" class="btn btn-secondary" onclick="addAmenity()">+ Add Amenity</button>
+                        <button type="button" class="btn btn-secondary" onclick="loadAmenities()" id="load-amenities-btn" style="display: none;">Load Existing Amenities</button>
+                    </div>
+                </div>
+                
+                <!-- 2026-10-03 11:39, paired tablets (only for saved properties) -->
+                <div class="property-form-section" id="tablets-section" style="display: none;">
+                    <h3>Tablets</h3>
+                    <p style="margin: 0 0 1rem 0; color: #6b7280; font-size: 0.9rem;">
+                        Open <strong>/tablet</strong> on the device (the kiosk start URL), then enter the code below. Codes expire after 15 minutes and work once.
+                    </p>
+                    <div id="pairing-code-display" style="display: none; margin-bottom: 1rem; padding: 1rem; background: #eef2ff; border-radius: 8px; text-align: center;">
+                        <div style="font-size: 2rem; font-weight: 700; letter-spacing: 0.4rem;" id="pairing-code-value"></div>
+                        <div style="color: #6b7280; font-size: 0.85rem;" id="pairing-code-expiry"></div>
+                    </div>
+                    <div id="devices-list" style="margin-bottom: 1rem;"></div>
+                    <div style="display: flex; gap: 0.5rem;">
+                        <input type="text" id="new-device-name" placeholder="Tablet name (e.g. Living room)" maxlength="100" style="flex: 1;">
+                        <button type="button" class="btn btn-secondary" onclick="createPairingCode()">Pair new tablet</button>
+                    </div>
+                </div>
+
+                <!-- Action Buttons -->
+                <div style="display: flex; gap: 1rem; margin-top: 2rem; padding: 1rem 0; border-top: 1px solid #e5e7eb;">
+                    <button type="submit" id="property-submit-btn" class="btn btn-primary" style="flex: 1;">Create Property</button>
+                    <button type="button" class="btn btn-secondary" onclick="closePropertyPanel()">Cancel</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <script>
+        // Test function to verify JavaScript is working
+        function testFunction() {
+            alert('JavaScript is working!');
+            console.log('Test function called successfully');
+        }
+        
+        // Make test function global for debugging
+        window.testFunction = testFunction;
+        
+        const API_BASE = '';
+        let authToken = localStorage.getItem('stayguide_token');
+        let currentCompany = null;
+        
+        // Get company slug from URL
+        const pathSegments = window.location.pathname.split('/');
+        const companySlug = pathSegments[2]; // /company/{slug}/dashboard
+        
+        // Debug logging
+        console.log('Company Dashboard Loaded');
+        console.log('Company Slug:', companySlug);
+        console.log('Auth Token:', authToken ? 'Present' : 'Missing');
+        console.log('URL Path:', window.location.pathname);
+        
+        // Check authentication on page load
+        if (!authToken) {
+            console.log('No auth token, redirecting to login');
+            window.location.href = `/company/${companySlug}/login`;
+        }
+        
+        // Set navigation URLs
+        try {
+            const dashboardNav = document.getElementById('dashboard-nav');
+            const billingNav = document.getElementById('billing-nav');
+            
+            if (dashboardNav) {
+                dashboardNav.href = `/company/${companySlug}/dashboard`;
+                console.log('Dashboard nav URL set');
+            } else {
+                console.error('Dashboard nav element not found');
+            }
+            
+            if (billingNav) {
+                billingNav.href = `/company/${companySlug}/billing`;
+                console.log('Billing nav URL set');
+            } else {
+                console.error('Billing nav element not found');
+            }
+        } catch (error) {
+            console.error('Error setting navigation URLs:', error);
+        }
+        
+        // API helper function
+        async function apiCall(endpoint, options = {}) {
+            const config = {
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${authToken}`
+                },
+                ...options
+            };
+            
+            try {
+                const response = await fetch(API_BASE + endpoint, config);
+                
+                if (response.status === 401) {
+                    localStorage.removeItem('stayguide_token');
+                    window.location.href = `/company/${companySlug}/login`;
+                    return;
+                }
+                
+                const data = await response.json();
+                
+                if (!response.ok) {
+                    throw new Error(data.error || 'API request failed');
+                }
+                
+                return data;
+            } catch (error) {
+                console.error('API call failed:', error);
+                throw error;
+            }
+        }
+        
+        // Load user profile and company info
+        async function loadUserProfile() {
+            try {
+                const data = await apiCall('/api/auth/profile');
+                document.getElementById('user-name').textContent = 
+                    `${data.user.first_name} ${data.user.last_name}`;
+                
+                if (data.company) {
+                    document.getElementById('company-name').textContent = data.company.name;
+                    currentCompany = data.company;
+                }
+            } catch (error) {
+                console.error('Failed to load user profile:', error);
+            }
+        }
+        
+        // Load properties
+        async function loadProperties() {
+            console.log('Loading properties...');
+            try {
+                console.log(`Making API call to: /company/${companySlug}/properties`);
+                const data = await apiCall(`/company/${companySlug}/properties`);
+                console.log('Properties data received:', data);
+                displayProperties(data.properties);
+                updateStats(data.properties, data.company);
+            } catch (error) {
+                console.error('Error loading properties:', error);
+                document.getElementById('properties-content').innerHTML = 
+                    `<div class="error">Failed to load properties: ${error.message}</div>`;
+            }
+        }
+        
+        // Display properties
+        function displayProperties(properties) {
+            if (properties.length === 0) {
+                document.getElementById('properties-content').innerHTML = `
+                    <div class="empty-state">
+                        <h3>No Properties Yet</h3>
+                        <p>Add your first property to get started with StayGuide.</p>
+                        <button class="btn btn-primary" onclick="openCreatePropertyModal()">
+                            Add Your First Property
+                        </button>
+                    </div>
+                `;
+                return;
+            }
+            
+            const gridHTML = `
+                <div class="property-grid">
+                    ${properties.map(property => `
+                        <div class="property-card">
+                            ${property.main_image_url ? `
+                                <div style="margin-bottom: 1rem;">
+                                    <img src="${property.main_image_url}" alt="${property.name}" 
+                                         style="width: 100%; height: 150px; object-fit: cover; border-radius: 8px;">
+                                </div>
+                            ` : ''}
+                            <div class="property-name">${property.name}</div>
+                            <div class="property-slug">${property.slug}</div>
+                            <div class="property-details">
+                                ${property.address ? `📍 ${property.address}` : ''}
+                                ${property.wifi_name ? `<br>📶 ${property.wifi_name}` : ''}
+                            </div>
+                            <div class="property-actions">
+                                <button class="btn btn-primary btn-small" 
+                                        onclick="editProperty('${property.slug}')">Edit</button>
+                                <button class="btn btn-secondary btn-small" 
+                                        onclick="viewTabletApp('${property.slug}')">View Tablet</button>
+                                <button class="btn btn-danger btn-small" 
+                                        onclick="deleteProperty('${property.slug}', '${property.name}')">Delete</button>
+                            </div>
+                        </div>
+                    `).join('')}
+                </div>
+            `;
+            
+            document.getElementById('properties-content').innerHTML = gridHTML;
+        }
+        
+        // Update dashboard stats
+        function updateStats(properties, company) {
+            const totalProperties = properties.length;
+            const activeProperties = properties.filter(p => p.status === 'active').length;
+            const monthlyCost = company ? (company.monthly_fee_per_property * activeProperties).toFixed(2) : '0.00';
+            
+            document.getElementById('total-properties').textContent = totalProperties;
+            document.getElementById('active-properties').textContent = activeProperties;
+            document.getElementById('monthly-cost').textContent = `$${monthlyCost}`;
+            document.getElementById('tablet-views').textContent = '-'; // TODO: Implement analytics
+        }
+        
+        // Slide Panel functions
+        function openCreatePropertyModal() {
+            document.getElementById('panel-title').textContent = 'Add New Property';
+            document.getElementById('property-submit-btn').textContent = 'Create Property';
+            document.getElementById('propertyForm').reset();
+            
+            // Clear editing flags
+            document.getElementById('propertyForm').dataset.isEditing = 'false';
+            document.getElementById('propertyForm').dataset.editingSlug = '';
+            
+            // Clear amenities and image previews
+            document.getElementById('amenities-list').innerHTML = '';
+            document.getElementById('main-image-preview').innerHTML = '';
+            document.getElementById('load-amenities-btn').style.display = 'none';
+
+            document.getElementById('link-stats').textContent = ''; // 2026-10-03 12:32
+
+            // 2026-10-03 11:39, tablets can only be paired to a saved property
+            document.getElementById('tablets-section').style.display = 'none';
+
+            // Open slide panel
+            document.getElementById('propertyPanel').classList.add('open');
+            document.getElementById('propertyPanelOverlay').classList.add('open');
+        }
+        
+        function closePropertyPanel() {
+            document.getElementById('propertyPanel').classList.remove('open');
+            document.getElementById('propertyPanelOverlay').classList.remove('open');
+            document.getElementById('panel-error').style.display = 'none';
+            document.getElementById('panel-success').style.display = 'none';
+        }
+        
+        // Keep the old function name for compatibility
+        function closeModal() {
+            closePropertyPanel();
+        }
+        
+        // Handle form submission
+        document.getElementById('propertyForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            console.log('Property form submitted');
+            
+            const form = e.target;
+            const isEditing = form.dataset.isEditing === 'true';
+            const editingSlug = form.dataset.editingSlug;
+            
+            const formData = {
+                name: document.getElementById('property-name').value,
+                slug: document.getElementById('property-slug').value,
+                address: document.getElementById('property-address').value,
+                description: document.getElementById('property-description').value,
+                main_image_url: document.getElementById('main-image-url').value,
+                wifi_name: document.getElementById('wifi-name').value,
+                wifi_password: document.getElementById('wifi-password').value,
+                check_in_instructions: document.getElementById('checkin-instructions').value,
+                check_out_instructions: document.getElementById('checkout-instructions').value,
+                house_rules: document.getElementById('house-rules').value,
+                emergency_contact: document.getElementById('emergency-contact').value,
+                // 2026-10-03 12:32, Phase 5 guest links
+                direct_booking_url: document.getElementById('direct-booking-url').value,
+                return_guest_offer: document.getElementById('return-guest-offer').value,
+                review_url: document.getElementById('review-url').value,
+                guest_checkout_date: document.getElementById('guest-checkout-date').value
+            };
+            
+            console.log('Form data:', formData);
+            console.log('Is editing:', isEditing);
+            
+            try {
+                document.getElementById('panel-error').style.display = 'none';
+                
+                if (isEditing) {
+                    // Update existing property
+                    console.log(`Updating property via: /company/${companySlug}/properties/${editingSlug}`);
+                    await apiCall(`/company/${companySlug}/properties/${editingSlug}`, {
+                        method: 'PUT',
+                        body: JSON.stringify(formData)
+                    });
+                    
+                    console.log('Property updated successfully');
+                    document.getElementById('panel-success').textContent = 'Property updated successfully!';
+                } else {
+                    // Create new property
+                    console.log(`Creating property via: /company/${companySlug}/properties`);
+                    await apiCall(`/company/${companySlug}/properties`, {
+                        method: 'POST',
+                        body: JSON.stringify(formData)
+                    });
+                    
+                    console.log('Property created successfully');
+                    document.getElementById('panel-success').textContent = 'Property created successfully!';
+                }
+                
+                document.getElementById('panel-success').style.display = 'block';
+                
+                // Save amenities after property is saved
+                const finalPropertySlug = isEditing ? editingSlug : formData.slug;
+                await saveAmenities(finalPropertySlug);
+                
+                setTimeout(() => {
+                    closePropertyPanel();
+                    loadProperties();
+                }, 1500);
+                
+            } catch (error) {
+                console.error('Error with property operation:', error);
+                document.getElementById('panel-error').textContent = error.message;
+                document.getElementById('panel-error').style.display = 'block';
+            }
+        });
+        
+        // Auto-generate slug from property name
+        document.getElementById('property-name').addEventListener('input', (e) => {
+            const slug = e.target.value
+                .toLowerCase()
+                .replace(/[^a-z0-9]+/g, '-')
+                .replace(/^-|-$/g, '');
+            document.getElementById('property-slug').value = slug;
+        });
+        
+        // Quick actions
+        function viewTabletApp(propertySlug) {
+            window.open(`/company/${companySlug}/property/${propertySlug}`, '_blank');
+        }
+        
+        function deleteProperty(propertySlug, name) {
+            if (!confirm(`Are you sure you want to delete "${name}"?`)) {
+                return;
+            }
+            
+            // TODO: Implement delete functionality
+            alert('Delete functionality will be implemented with database');
+        }
+        
+        function viewBilling() {
+            window.location.href = `/company/${companySlug}/billing`;
+        }
+        
+        function contactSupport() {
+            window.location.href = `/company/${companySlug}/helpdesk`;
+        }
+        
+        function viewHelp() {
+            alert('Help documentation coming soon!');
+        }
+        
+        // Edit property function
+        async function editProperty(propertySlug) {
+            console.log(`Edit property: ${propertySlug}`);
+            try {
+                // Get property details first
+                const response = await apiCall(`/company/${companySlug}/properties/${propertySlug}`);
+                const property = response.property;
+                
+                // Fill the form with existing data
+                document.getElementById('panel-title').textContent = 'Edit Property';
+                document.getElementById('property-submit-btn').textContent = 'Update Property';
+                document.getElementById('property-name').value = property.name || '';
+                document.getElementById('property-slug').value = property.slug || '';
+                document.getElementById('property-address').value = property.address || '';
+                document.getElementById('property-description').value = property.description || '';
+                document.getElementById('wifi-name').value = property.wifi_name || '';
+                document.getElementById('wifi-password').value = property.wifi_password || '';
+                document.getElementById('main-image-url').value = property.main_image_url || '';
+                document.getElementById('checkin-instructions').value = property.check_in_instructions || '';
+                document.getElementById('checkout-instructions').value = property.check_out_instructions || '';
+                document.getElementById('house-rules').value = property.house_rules || '';
+                document.getElementById('emergency-contact').value = property.emergency_contact || '';
+                // 2026-10-03 12:32, Phase 5 guest links
+                document.getElementById('direct-booking-url').value = property.direct_booking_url || '';
+                document.getElementById('return-guest-offer').value = property.return_guest_offer || '';
+                document.getElementById('review-url').value = property.review_url || '';
+                document.getElementById('guest-checkout-date').value = property.guest_checkout_date ? String(property.guest_checkout_date).slice(0, 10) : '';
+                loadLinkStats(propertySlug);
+                
+                // Preview main image if it exists
+                if (property.main_image_url) {
+                    previewMainImage(property.main_image_url);
+                }
+                
+                // Load amenities for editing
+                document.getElementById('load-amenities-btn').style.display = 'inline-block';
+                loadAmenities();
+                
+                // Store the original slug for editing
+                document.getElementById('propertyForm').dataset.editingSlug = propertySlug;
+                document.getElementById('propertyForm').dataset.isEditing = 'true';
+
+                // 2026-10-03 11:39, show paired tablets for this property
+                document.getElementById('tablets-section').style.display = 'block';
+                document.getElementById('pairing-code-display').style.display = 'none';
+                loadDevices();
+                
+                // Show slide panel
+                document.getElementById('propertyPanel').classList.add('open');
+                document.getElementById('propertyPanelOverlay').classList.add('open');
+                
+            } catch (error) {
+                console.error('Error loading property for editing:', error);
+                alert(`Failed to load property: ${error.message}`);
+            }
+        }
+        
+        // 2026-10-03 12:32, Phase 5: QR scan counts
+        async function loadLinkStats(propertySlug) {
+            const el = document.getElementById('link-stats');
+            el.textContent = '';
+            try {
+                const { days, stats } = await apiCall(`/company/${companySlug}/properties/${encodeURIComponent(propertySlug)}/link-stats`);
+                el.textContent = `Last ${days} days: ${stats.book} booking scans · ${stats.showcase} other-property scans · ${stats.review} review scans`;
+            } catch (error) {
+                el.textContent = '';
+            }
+        }
+
+        // 2026-10-03 11:39, tablet pairing management
+        function escapeHtml(value) {
+            return String(value ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+        }
+
+        function devicesBasePath() {
+            const slug = document.getElementById('propertyForm').dataset.editingSlug;
+            return `/company/${companySlug}/properties/${encodeURIComponent(slug)}/devices`;
+        }
+
+        async function loadDevices() {
+            const list = document.getElementById('devices-list');
+            try {
+                const { devices } = await apiCall(devicesBasePath());
+                if (!devices.length) {
+                    list.innerHTML = '<p style="color: #6b7280; margin: 0;">No tablets paired yet.</p>';
+                    return;
+                }
+                list.innerHTML = devices.map(d => {
+                    const status = d.status === 'pending'
+                        ? `Waiting for code (expires ${new Date(d.pairing_expires_at).toLocaleTimeString()})`
+                        : `Last seen ${d.last_seen_at ? new Date(d.last_seen_at).toLocaleString() : 'never'}`;
+                    return `
+                        <div style="display: flex; justify-content: space-between; align-items: center; padding: 0.5rem 0; border-bottom: 1px solid #e5e7eb;">
+                            <div>
+                                <strong>${escapeHtml(d.name || 'Tablet #' + d.id)}</strong>
+                                <div style="color: #6b7280; font-size: 0.85rem;">${escapeHtml(status)}</div>
+                            </div>
+                            <button type="button" class="btn btn-danger btn-small" onclick="revokeDevice(${Number(d.id)})">
+                                ${d.status === 'pending' ? 'Cancel' : 'Revoke'}
+                            </button>
+                        </div>`;
+                }).join('');
+            } catch (error) {
+                list.innerHTML = `<p style="color: #dc2626; margin: 0;">Failed to load tablets: ${escapeHtml(error.message)}</p>`;
+            }
+        }
+
+        async function createPairingCode() {
+            try {
+                const name = document.getElementById('new-device-name').value.trim();
+                const result = await apiCall(`${devicesBasePath()}/pairing-code`, {
+                    method: 'POST',
+                    body: JSON.stringify({ name })
+                });
+                document.getElementById('pairing-code-value').textContent = result.code;
+                document.getElementById('pairing-code-expiry').textContent =
+                    `Enter this on the tablet before ${new Date(result.expires_at).toLocaleTimeString()}`;
+                document.getElementById('pairing-code-display').style.display = 'block';
+                document.getElementById('new-device-name').value = '';
+                loadDevices();
+            } catch (error) {
+                alert(`Failed to create pairing code: ${error.message}`);
+            }
+        }
+
+        async function revokeDevice(deviceId) {
+            if (!confirm('Unpair this tablet? It will show the pairing screen until paired again.')) return;
+            try {
+                await apiCall(`${devicesBasePath()}/${deviceId}`, { method: 'DELETE' });
+                document.getElementById('pairing-code-display').style.display = 'none';
+                loadDevices();
+            } catch (error) {
+                alert(`Failed to revoke tablet: ${error.message}`);
+            }
+        }
+
+        // Delete property function
+        async function deleteProperty(propertySlug, propertyName) {
+            console.log(`Delete property: ${propertySlug}`);
+            if (!confirm(`Are you sure you want to delete "${propertyName}"? This will deactivate the property.`)) {
+                return;
+            }
+            
+            try {
+                await apiCall(`/company/${companySlug}/properties/${propertySlug}`, {
+                    method: 'DELETE'
+                });
+                
+                console.log('Property deleted successfully');
+                alert('Property deactivated successfully!');
+                loadProperties(); // Refresh the list
+                
+            } catch (error) {
+                console.error('Error deleting property:', error);
+                alert(`Failed to delete property: ${error.message}`);
+            }
+        }
+        
+        // View tablet app function
+        function viewTabletApp(propertySlug) {
+            console.log(`View tablet app: ${propertySlug}`);
+            const tabletUrl = `/company/${companySlug}/property/${propertySlug}`;
+            window.open(tabletUrl, '_blank');
+        }
+        
+        // Logout function
+        function logout() {
+            console.log('Company logout function called');
+            try {
+                // Clear all possible tokens
+                localStorage.removeItem('stayguide_token');
+                localStorage.removeItem('authToken');
+                localStorage.clear(); // Clear all localStorage
+                sessionStorage.clear(); // Clear sessionStorage too
+                
+                console.log('Storage cleared, redirecting to company login...');
+                
+                // Force redirect
+                window.location.replace(`/company/${companySlug}/login`);
+            } catch (error) {
+                console.error('Logout error:', error);
+                // Fallback redirect
+                window.location.href = `/company/${companySlug}/login`;
+            }
+        }
+        
+        // Initialize dashboard
+        document.addEventListener('DOMContentLoaded', () => {
+            console.log('DOM Content Loaded - Initializing dashboard');
+            console.log('Current authToken:', authToken);
+            console.log('Current companySlug:', companySlug);
+            
+            if (!authToken) {
+                console.log('No auth token found, should redirect to login');
+                return;
+            }
+            
+            if (!companySlug) {
+                console.log('No company slug found in URL');
+                return;
+            }
+            
+            console.log('Loading user profile and properties...');
+            loadUserProfile();
+            loadProperties();
+            
+            // Initialize drag and drop
+            setupDragAndDrop();
+        });
+        
+        // Setup drag and drop functionality
+        function setupDragAndDrop() {
+            const uploadArea = document.getElementById('main-image-upload-area');
+            
+            if (!uploadArea) return;
+            
+            uploadArea.addEventListener('dragover', (e) => {
+                e.preventDefault();
+                uploadArea.classList.add('dragover');
+            });
+            
+            uploadArea.addEventListener('dragleave', (e) => {
+                e.preventDefault();
+                uploadArea.classList.remove('dragover');
+            });
+            
+            uploadArea.addEventListener('drop', (e) => {
+                e.preventDefault();
+                uploadArea.classList.remove('dragover');
+                
+                const files = e.dataTransfer.files;
+                if (files.length > 0) {
+                    const file = files[0];
+                    if (file.type.startsWith('image/')) {
+                        uploadMainImage(file);
+                    } else {
+                        alert('Please drop an image file');
+                    }
+                }
+            });
+        }
+        
+        // Close modal when clicking outside
+        window.addEventListener('click', (e) => {
+            if (e.target === document.getElementById('propertyModal')) {
+                closeModal();
+            }
+        });
+        
+        // Image preview function
+        function previewMainImage(url) {
+            const preview = document.getElementById('main-image-preview');
+            if (url && url.trim()) {
+                preview.innerHTML = `<img src="${url}" alt="Main property image" style="max-width: 200px; max-height: 150px; border-radius: 8px; object-fit: cover;">`;
+            } else {
+                preview.innerHTML = '';
+            }
+        }
+        
+        // File upload function for main property image
+        async function uploadMainImage(file) {
+            if (!file) return;
+            
+            const statusDiv = document.getElementById('main-image-upload-status');
+            const urlInput = document.getElementById('main-image-url');
+            
+            statusDiv.innerHTML = '<span style="color: #3b82f6;">Uploading...</span>';
+            
+            try {
+                const formData = new FormData();
+                formData.append('property_image', file);
+                
+                const response = await fetch(`/company/${companySlug}/upload/property-image`, {
+                    method: 'POST',
+                    headers: {
+                        'Authorization': `Bearer ${authToken}`
+                    },
+                    body: formData
+                });
+                
+                const data = await response.json();
+                
+                if (response.ok) {
+                    // Update the URL input with the uploaded image URL
+                    urlInput.value = data.imageUrl;
+                    
+                    // Preview the uploaded image
+                    previewMainImage(data.imageUrl);
+                    
+                    // Calculate size reduction
+                    const originalSizeMB = (data.originalSize / (1024 * 1024)).toFixed(2);
+                    
+                    const largeSizeKB = (data.processedSizes.large / 1024).toFixed(1);
+                    const mediumSizeKB = (data.processedSizes.medium / 1024).toFixed(1);
+                    const smallSizeKB = (data.processedSizes.small / 1024).toFixed(1);
+                    
+                    statusDiv.innerHTML = `<span style="color: #10b981;">✓ Optimized & uploaded: ${data.originalName}</span><br>
+                                          <span style="color: #6b7280; font-size: 0.75rem;">Original: ${originalSizeMB}MB → Large: ${largeSizeKB}KB • Medium: ${mediumSizeKB}KB • Small: ${smallSizeKB}KB</span><br>
+                                          <span style="color: #6b7280; font-size: 0.7rem;">Processed to JPEG with Sharp optimization • Multiple sizes available</span>`;
+                } else {
+                    throw new Error(data.error || 'Upload failed');
+                }
+            } catch (error) {
+                console.error('Error uploading image:', error);
+                statusDiv.innerHTML = `<span style="color: #ef4444;">✗ Upload failed: ${error.message}</span>`;
+            }
+        }
+        
+        // Amenities management
+        let amenitiesCount = 0;
+        const amenityCategories = ['recreation', 'comfort', 'kitchen', 'location', 'technology', 'safety', 'general'];
+        
+        function addAmenity(amenityData = null) {
+            console.log('addAmenity called with:', amenityData);
+            const amenitiesList = document.getElementById('amenities-list');
+            if (!amenitiesList) {
+                console.error('amenities-list element not found!');
+                return;
+            }
+            const amenityId = amenityData ? amenityData.id : `new-${amenitiesCount++}`;
+            console.log('Creating amenity with ID:', amenityId);
+            
+            const amenityDiv = document.createElement('div');
+            amenityDiv.className = 'amenity-item';
+            amenityDiv.style.cssText = 'border: 1px solid #e5e7eb; border-radius: 8px; padding: 1rem; margin-bottom: 1rem; background: #f9fafb;';
+            amenityDiv.dataset.amenityId = amenityId;
+            
+            amenityDiv.innerHTML = `
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.5rem;">
+                    <h5 style="margin: 0; color: #374151;">Amenity ${amenityData ? '#' + amenityData.id : '(New)'}</h5>
+                    <button type="button" class="btn btn-danger" style="padding: 0.25rem 0.5rem; font-size: 0.75rem;" onclick="removeAmenity('${amenityId}')">Remove</button>
+                </div>
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.5rem;">
+                    <div>
+                        <label style="display: block; margin-bottom: 0.25rem; font-size: 0.875rem; color: #374151;">Name*</label>
+                        <input type="text" class="form-input" value="${amenityData ? amenityData.name : ''}" data-field="name" required style="padding: 0.5rem; font-size: 0.875rem;">
+                    </div>
+                    <div>
+                        <label style="display: block; margin-bottom: 0.25rem; font-size: 0.875rem; color: #374151;">Icon</label>
+                        <input type="text" class="form-input" value="${amenityData ? amenityData.icon : ''}" data-field="icon" placeholder="🏊‍♂️" style="padding: 0.5rem; font-size: 0.875rem;">
+                    </div>
+                    <div>
+                        <label style="display: block; margin-bottom: 0.25rem; font-size: 0.875rem; color: #374151;">Category</label>
+                        <select class="form-input" data-field="category" style="padding: 0.5rem; font-size: 0.875rem;">
+                            ${amenityCategories.map(cat => `<option value="${cat}" ${amenityData && amenityData.category === cat ? 'selected' : ''}>${cat}</option>`).join('')}
+                        </select>
+                    </div>
+                    <div>
+                        <label style="display: block; margin-bottom: 0.25rem; font-size: 0.875rem; color: #374151;">Display Order</label>
+                        <input type="number" class="form-input" value="${amenityData ? amenityData.display_order : 0}" data-field="display_order" style="padding: 0.5rem; font-size: 0.875rem;">
+                    </div>
+                </div>
+                <div style="margin-top: 0.5rem;">
+                    <label style="display: block; margin-bottom: 0.25rem; font-size: 0.875rem; color: #374151;">Description</label>
+                    <textarea class="form-input" data-field="description" placeholder="Brief description of the amenity..." style="padding: 0.5rem; font-size: 0.875rem; min-height: 60px; resize: vertical;">${amenityData ? amenityData.description : ''}</textarea>
+                </div>
+                <div style="margin-top: 0.5rem;">
+                    <label style="display: block; margin-bottom: 0.25rem; font-size: 0.875rem; color: #374151;">Amenity Image</label>
+                    <div style="display: flex; gap: 0.5rem; align-items: center; margin-bottom: 0.5rem;">
+                        <input type="text" class="form-input" value="${amenityData ? amenityData.image_url : ''}" data-field="image_url" placeholder="Image URL or upload below" style="flex: 1; padding: 0.5rem; font-size: 0.875rem;" oninput="previewAmenityImage(this.value, '${amenityId}')">
+                        <span style="color: #6b7280; font-size: 0.75rem;">OR</span>
+                        <input type="file" class="form-input" accept="image/*" onchange="uploadAmenityImage(this.files[0], '${amenityId}')" style="flex: 1; padding: 0.5rem; font-size: 0.875rem;">
+                    </div>
+                    <div id="amenity-image-preview-${amenityId}" style="margin-top: 0.5rem;"></div>
+                    <div id="amenity-image-upload-status-${amenityId}" style="margin-top: 0.5rem; font-size: 0.75rem;"></div>
+                </div>
+            `;
+            
+            amenitiesList.appendChild(amenityDiv);
+            console.log('Amenity added successfully:', amenityId);
+            
+            // Preview existing image
+            if (amenityData && amenityData.image_url) {
+                previewAmenityImage(amenityData.image_url, amenityId);
+            }
+        }
+        
+        function removeAmenity(amenityId) {
+            const amenityElement = document.querySelector(`[data-amenity-id="${amenityId}"]`);
+            if (amenityElement) {
+                amenityElement.remove();
+            }
+        }
+        
+        function previewAmenityImage(url, amenityId) {
+            const preview = document.getElementById(`amenity-image-preview-${amenityId}`);
+            if (url && url.trim()) {
+                preview.innerHTML = `<img src="${url}" alt="Amenity image" style="max-width: 150px; max-height: 100px; border-radius: 6px; object-fit: cover;">`;
+            } else {
+                preview.innerHTML = '';
+            }
+        }
+        
+        // File upload function for amenity images
+        async function uploadAmenityImage(file, amenityId) {
+            if (!file) return;
+            
+            const statusDiv = document.getElementById(`amenity-image-upload-status-${amenityId}`);
+            const urlInput = document.querySelector(`[data-amenity-id="${amenityId}"] [data-field="image_url"]`);
+            
+            statusDiv.innerHTML = '<span style="color: #3b82f6;">Uploading...</span>';
+            
+            try {
+                const formData = new FormData();
+                formData.append('amenity_image', file);
+                
+                const response = await fetch(`/company/${companySlug}/upload/amenity-image`, {
+                    method: 'POST',
+                    headers: {
+                        'Authorization': `Bearer ${authToken}`
+                    },
+                    body: formData
+                });
+                
+                const data = await response.json();
+                
+                if (response.ok) {
+                    // Update the URL input with the uploaded image URL
+                    urlInput.value = data.imageUrl;
+                    
+                    // Preview the uploaded image
+                    previewAmenityImage(data.imageUrl, amenityId);
+                    
+                    // Calculate size reduction
+                    const originalSizeMB = (data.originalSize / (1024 * 1024)).toFixed(2);
+                    
+                    const largeSizeKB = (data.processedSizes.large / 1024).toFixed(1);
+                    const mediumSizeKB = (data.processedSizes.medium / 1024).toFixed(1);
+                    const smallSizeKB = (data.processedSizes.small / 1024).toFixed(1);
+                    
+                    statusDiv.innerHTML = `<span style="color: #10b981;">✓ Optimized: ${data.originalName}</span><br>
+                                          <span style="color: #6b7280; font-size: 0.7rem;">Original: ${originalSizeMB}MB → Large: ${largeSizeKB}KB • Medium: ${mediumSizeKB}KB • Small: ${smallSizeKB}KB</span><br>
+                                          <span style="color: #6b7280; font-size: 0.65rem;">Sharp-optimized JPEG • Multiple sizes for responsive display</span>`;
+                } else {
+                    throw new Error(data.error || 'Upload failed');
+                }
+            } catch (error) {
+                console.error('Error uploading amenity image:', error);
+                statusDiv.innerHTML = `<span style="color: #ef4444;">✗ Upload failed: ${error.message}</span>`;
+            }
+        }
+        
+        async function loadAmenities() {
+            const form = document.getElementById('propertyForm');
+            const isEditing = form.dataset.isEditing === 'true';
+            const editingSlug = form.dataset.editingSlug;
+            
+            if (!isEditing || !editingSlug) return;
+            
+            try {
+                const response = await apiCall(`/company/${companySlug}/properties/${editingSlug}/amenities`);
+                const amenities = response.amenities || [];
+                
+                // Clear existing amenities
+                document.getElementById('amenities-list').innerHTML = '';
+                
+                // Add each amenity
+                amenities.forEach(amenity => {
+                    addAmenity(amenity);
+                });
+                
+                console.log(`Loaded ${amenities.length} amenities`);
+            } catch (error) {
+                console.error('Error loading amenities:', error);
+            }
+        }
+        
+        function collectAmenityData() {
+            const amenities = [];
+            const amenityElements = document.querySelectorAll('.amenity-item');
+            
+            amenityElements.forEach(element => {
+                const amenityId = element.dataset.amenityId;
+                const amenityData = {
+                    id: amenityId.startsWith('new-') ? null : parseInt(amenityId),
+                    name: element.querySelector('[data-field="name"]').value,
+                    description: element.querySelector('[data-field="description"]').value,
+                    icon: element.querySelector('[data-field="icon"]').value,
+                    image_url: element.querySelector('[data-field="image_url"]').value,
+                    category: element.querySelector('[data-field="category"]').value,
+                    display_order: parseInt(element.querySelector('[data-field="display_order"]').value) || 0
+                };
+                
+                if (amenityData.name.trim()) {
+                    amenities.push(amenityData);
+                }
+            });
+            
+            return amenities;
+        }
+        
+        async function saveAmenities(propertySlug) {
+            const amenities = collectAmenityData();
+            
+            for (const amenity of amenities) {
+                try {
+                    if (amenity.id) {
+                        // Update existing amenity
+                        await apiCall(`/company/${companySlug}/properties/${propertySlug}/amenities/${amenity.id}`, {
+                            method: 'PUT',
+                            body: JSON.stringify(amenity)
+                        });
+                    } else {
+                        // Create new amenity
+                        await apiCall(`/company/${companySlug}/properties/${propertySlug}/amenities`, {
+                            method: 'POST',
+                            body: JSON.stringify(amenity)
+                        });
+                    }
+                } catch (error) {
+                    console.error('Error saving amenity:', error);
+                }
+            }
+        }
+    </script>
+</body>
+</html>

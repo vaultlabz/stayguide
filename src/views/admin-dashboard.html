@@ -1,0 +1,674 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>StayGuide Admin Dashboard</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: #f5f7fa;
+            color: #333;
+        }
+        
+        .header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 1rem 2rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        
+        .logo {
+            font-size: 1.5rem;
+            font-weight: bold;
+        }
+        
+        .user-info {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+        }
+        
+        .btn {
+            padding: 0.5rem 1rem;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            text-decoration: none;
+            font-weight: 500;
+            transition: all 0.3s ease;
+        }
+        
+        .btn-primary {
+            background: #4f46e5;
+            color: white;
+        }
+        
+        .btn-primary:hover {
+            background: #4338ca;
+        }
+        
+        .btn-secondary {
+            background: rgba(255, 255, 255, 0.2);
+            color: white;
+            border: 1px solid rgba(255, 255, 255, 0.3);
+        }
+        
+        .btn-danger {
+            background: #ef4444;
+            color: white;
+        }
+        
+        .btn-danger:hover {
+            background: #dc2626;
+        }
+        
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 2rem;
+        }
+        
+        .dashboard-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 2rem;
+        }
+        
+        .dashboard-title {
+            font-size: 2rem;
+            color: #1f2937;
+        }
+        
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 1.5rem;
+            margin-bottom: 2rem;
+        }
+        
+        .stat-card {
+            background: white;
+            padding: 1.5rem;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            text-align: center;
+        }
+        
+        .stat-number {
+            font-size: 2rem;
+            font-weight: bold;
+            color: #4f46e5;
+        }
+        
+        .stat-label {
+            color: #6b7280;
+            margin-top: 0.5rem;
+        }
+        
+        .companies-section {
+            background: white;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            overflow: hidden;
+        }
+        
+        .section-header {
+            background: #f9fafb;
+            padding: 1.5rem;
+            border-bottom: 1px solid #e5e7eb;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        
+        .section-title {
+            font-size: 1.25rem;
+            font-weight: 600;
+            color: #1f2937;
+        }
+        
+        .companies-table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+        
+        .companies-table th,
+        .companies-table td {
+            padding: 1rem;
+            text-align: left;
+            border-bottom: 1px solid #e5e7eb;
+        }
+        
+        .companies-table th {
+            background: #f9fafb;
+            font-weight: 600;
+            color: #374151;
+        }
+        
+        .companies-table tr:hover {
+            background: #f9fafb;
+        }
+        
+        .status-badge {
+            padding: 0.25rem 0.75rem;
+            border-radius: 15px;
+            font-size: 0.875rem;
+            font-weight: 500;
+        }
+        
+        .status-active {
+            background: #d1fae5;
+            color: #065f46;
+        }
+        
+        .status-inactive {
+            background: #fee2e2;
+            color: #991b1b;
+        }
+        
+        .actions {
+            display: flex;
+            gap: 0.5rem;
+        }
+        
+        .btn-small {
+            padding: 0.25rem 0.5rem;
+            font-size: 0.875rem;
+        }
+        
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.5);
+            z-index: 1000;
+        }
+        
+        .modal-content {
+            background: white;
+            margin: 5% auto;
+            padding: 2rem;
+            border-radius: 10px;
+            max-width: 600px;
+            max-height: 80vh;
+            overflow-y: auto;
+        }
+        
+        .modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 1rem;
+            padding-bottom: 1rem;
+            border-bottom: 1px solid #e5e7eb;
+        }
+        
+        .close {
+            cursor: pointer;
+            font-size: 1.5rem;
+            color: #6b7280;
+        }
+        
+        .form-group {
+            margin-bottom: 1rem;
+        }
+        
+        .form-label {
+            display: block;
+            margin-bottom: 0.5rem;
+            font-weight: 500;
+            color: #374151;
+        }
+        
+        .form-input {
+            width: 100%;
+            padding: 0.75rem;
+            border: 1px solid #d1d5db;
+            border-radius: 5px;
+            font-size: 0.875rem;
+        }
+        
+        .form-input:focus {
+            outline: none;
+            border-color: #4f46e5;
+            box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.1);
+        }
+        
+        .form-row {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 1rem;
+        }
+        
+        .loading {
+            text-align: center;
+            padding: 2rem;
+            color: #6b7280;
+        }
+        
+        .error {
+            background: #fee2e2;
+            color: #991b1b;
+            padding: 0.75rem;
+            border-radius: 5px;
+            margin-bottom: 1rem;
+        }
+        
+        .success {
+            background: #d1fae5;
+            color: #065f46;
+            padding: 0.75rem;
+            border-radius: 5px;
+            margin-bottom: 1rem;
+        }
+        
+        @media (max-width: 768px) {
+            .container {
+                padding: 1rem;
+            }
+            
+            .dashboard-header {
+                flex-direction: column;
+                gap: 1rem;
+                align-items: stretch;
+            }
+            
+            .stats-grid {
+                grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            }
+            
+            .companies-table {
+                font-size: 0.875rem;
+            }
+            
+            .form-row {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+    <header class="header">
+        <div class="logo">StayGuide Admin</div>
+        <div style="display: flex; gap: 1rem;">
+            <a href="/admin/dashboard" style="color: white; text-decoration: none; padding: 0.5rem 1rem; background: rgba(255,255,255,0.2); border-radius: 5px;">Dashboard</a>
+            <a href="/admin/billing" style="color: white; text-decoration: none; padding: 0.5rem 1rem; border-radius: 5px; transition: background 0.3s;" onmouseover="this.style.background='rgba(255,255,255,0.2)'" onmouseout="this.style.background='transparent'">Billing</a>
+        </div>
+        <div class="user-info">
+            <span id="user-name">Loading...</span>
+            <button class="btn btn-secondary" onclick="logout()">Logout</button>
+        </div>
+    </header>
+
+    <div class="container">
+        <div class="dashboard-header">
+            <h1 class="dashboard-title">Admin Dashboard</h1>
+            <button class="btn btn-primary" onclick="openCreateModal()">Add New Company</button>
+        </div>
+
+        <div class="stats-grid">
+            <div class="stat-card">
+                <div class="stat-number" id="total-companies">-</div>
+                <div class="stat-label">Total Companies</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-number" id="active-companies">-</div>
+                <div class="stat-label">Active Companies</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-number" id="total-properties">-</div>
+                <div class="stat-label">Total Properties</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-number" id="monthly-revenue">-</div>
+                <div class="stat-label">Monthly Revenue</div>
+            </div>
+        </div>
+
+        <div class="companies-section">
+            <div class="section-header">
+                <h2 class="section-title">Companies</h2>
+                <button class="btn btn-primary btn-small" onclick="loadCompanies()">Refresh</button>
+            </div>
+            
+            <div id="companies-content">
+                <div class="loading">Loading companies...</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Company Modal -->
+    <div id="companyModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3 id="modal-title">Add New Company</h3>
+                <span class="close" onclick="closeModal()">&times;</span>
+            </div>
+            
+            <div id="modal-error" class="error" style="display: none;"></div>
+            <div id="modal-success" class="success" style="display: none;"></div>
+            
+            <form id="companyForm">
+                <div class="form-row">
+                    <div class="form-group">
+                        <label class="form-label">Company Name*</label>
+                        <input type="text" id="company-name" class="form-input" required>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Company Slug*</label>
+                        <input type="text" id="company-slug" class="form-input" required>
+                    </div>
+                </div>
+                
+                <div class="form-row">
+                    <div class="form-group">
+                        <label class="form-label">Email*</label>
+                        <input type="email" id="company-email" class="form-input" required>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Phone</label>
+                        <input type="text" id="company-phone" class="form-input">
+                    </div>
+                </div>
+                
+                <div class="form-group">
+                    <label class="form-label">Address</label>
+                    <input type="text" id="company-address" class="form-input">
+                </div>
+                
+                <div class="form-row">
+                    <div class="form-group">
+                        <label class="form-label">Connection Fee ($)</label>
+                        <input type="number" id="connection-fee" class="form-input" step="0.01" min="0" value="0">
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Monthly Fee per Property ($)</label>
+                        <input type="number" id="monthly-fee" class="form-input" step="0.01" min="0" value="0">
+                    </div>
+                </div>
+                
+                <hr style="margin: 1.5rem 0;">
+                <h4 style="margin-bottom: 1rem; color: #374151;">Company Admin User</h4>
+                
+                <div class="form-row">
+                    <div class="form-group">
+                        <label class="form-label">Admin First Name*</label>
+                        <input type="text" id="admin-first-name" class="form-input" required>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Admin Last Name*</label>
+                        <input type="text" id="admin-last-name" class="form-input" required>
+                    </div>
+                </div>
+                
+                <div class="form-row">
+                    <div class="form-group">
+                        <label class="form-label">Admin Email*</label>
+                        <input type="email" id="admin-email" class="form-input" required>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Admin Password*</label>
+                        <input type="password" id="admin-password" class="form-input" required>
+                    </div>
+                </div>
+                
+                <div style="display: flex; gap: 1rem; margin-top: 2rem;">
+                    <button type="submit" class="btn btn-primary">Create Company</button>
+                    <button type="button" class="btn btn-secondary" onclick="closeModal()">Cancel</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <script>
+        const API_BASE = '';
+        let authToken = localStorage.getItem('stayguide_token');
+        
+        // Check authentication on page load
+        if (!authToken) {
+            window.location.href = '/admin/login';
+        }
+        
+        // API helper function
+        async function apiCall(endpoint, options = {}) {
+            const config = {
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${authToken}`
+                },
+                ...options
+            };
+            
+            try {
+                const response = await fetch(API_BASE + endpoint, config);
+                
+                if (response.status === 401) {
+                    localStorage.removeItem('stayguide_token');
+                    window.location.href = '/admin/login';
+                    return;
+                }
+                
+                const data = await response.json();
+                
+                if (!response.ok) {
+                    throw new Error(data.error || 'API request failed');
+                }
+                
+                return data;
+            } catch (error) {
+                console.error('API call failed:', error);
+                throw error;
+            }
+        }
+        
+        // Load user profile
+        async function loadUserProfile() {
+            try {
+                const data = await apiCall('/api/auth/profile');
+                document.getElementById('user-name').textContent = 
+                    `${data.user.first_name} ${data.user.last_name}`;
+            } catch (error) {
+                console.error('Failed to load user profile:', error);
+            }
+        }
+        
+        // Load companies
+        async function loadCompanies() {
+            try {
+                const data = await apiCall('/admin/companies');
+                displayCompanies(data.companies);
+                updateStats(data.companies);
+            } catch (error) {
+                document.getElementById('companies-content').innerHTML = 
+                    `<div class="error">Failed to load companies: ${error.message}</div>`;
+            }
+        }
+        
+        // Display companies in table
+        function displayCompanies(companies) {
+            if (companies.length === 0) {
+                document.getElementById('companies-content').innerHTML = 
+                    '<div class="loading">No companies found. Create your first company!</div>';
+                return;
+            }
+            
+            const tableHTML = `
+                <table class="companies-table">
+                    <thead>
+                        <tr>
+                            <th>Company</th>
+                            <th>Slug</th>
+                            <th>Email</th>
+                            <th>Status</th>
+                            <th>Connection Fee</th>
+                            <th>Monthly Fee</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        ${companies.map(company => `
+                            <tr>
+                                <td><strong>${company.name}</strong></td>
+                                <td><code>${company.slug}</code></td>
+                                <td>${company.email}</td>
+                                <td>
+                                    <span class="status-badge status-${company.status}">
+                                        ${company.status}
+                                    </span>
+                                </td>
+                                <td>$${parseFloat(company.connection_fee).toFixed(2)}</td>
+                                <td>$${parseFloat(company.monthly_fee_per_property).toFixed(2)}</td>
+                                <td>
+                                    <div class="actions">
+                                        <button class="btn btn-primary btn-small" 
+                                                onclick="editCompany(${company.id})">Edit</button>
+                                        <button class="btn btn-danger btn-small" 
+                                                onclick="deleteCompany(${company.id}, '${company.name}')">Delete</button>
+                                    </div>
+                                </td>
+                            </tr>
+                        `).join('')}
+                    </tbody>
+                </table>
+            `;
+            
+            document.getElementById('companies-content').innerHTML = tableHTML;
+        }
+        
+        // Update dashboard stats
+        function updateStats(companies) {
+            const totalCompanies = companies.length;
+            const activeCompanies = companies.filter(c => c.status === 'active').length;
+            
+            document.getElementById('total-companies').textContent = totalCompanies;
+            document.getElementById('active-companies').textContent = activeCompanies;
+            document.getElementById('total-properties').textContent = '-'; // TODO: Calculate from properties
+            document.getElementById('monthly-revenue').textContent = '-'; // TODO: Calculate from billing
+        }
+        
+        // Modal functions
+        function openCreateModal() {
+            document.getElementById('modal-title').textContent = 'Add New Company';
+            document.getElementById('companyForm').reset();
+            document.getElementById('companyModal').style.display = 'block';
+        }
+        
+        function closeModal() {
+            document.getElementById('companyModal').style.display = 'none';
+            document.getElementById('modal-error').style.display = 'none';
+            document.getElementById('modal-success').style.display = 'none';
+        }
+        
+        // Handle form submission
+        document.getElementById('companyForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            
+            const formData = {
+                name: document.getElementById('company-name').value,
+                slug: document.getElementById('company-slug').value,
+                email: document.getElementById('company-email').value,
+                phone: document.getElementById('company-phone').value,
+                address: document.getElementById('company-address').value,
+                connection_fee: document.getElementById('connection-fee').value,
+                monthly_fee_per_property: document.getElementById('monthly-fee').value,
+                admin_first_name: document.getElementById('admin-first-name').value,
+                admin_last_name: document.getElementById('admin-last-name').value,
+                admin_email: document.getElementById('admin-email').value,
+                admin_password: document.getElementById('admin-password').value
+            };
+            
+            try {
+                document.getElementById('modal-error').style.display = 'none';
+                
+                await apiCall('/admin/companies', {
+                    method: 'POST',
+                    body: JSON.stringify(formData)
+                });
+                
+                document.getElementById('modal-success').textContent = 'Company created successfully!';
+                document.getElementById('modal-success').style.display = 'block';
+                
+                setTimeout(() => {
+                    closeModal();
+                    loadCompanies();
+                }, 1500);
+                
+            } catch (error) {
+                document.getElementById('modal-error').textContent = error.message;
+                document.getElementById('modal-error').style.display = 'block';
+            }
+        });
+        
+        // Auto-generate slug from company name
+        document.getElementById('company-name').addEventListener('input', (e) => {
+            const slug = e.target.value
+                .toLowerCase()
+                .replace(/[^a-z0-9]+/g, '-')
+                .replace(/^-|-$/g, '');
+            document.getElementById('company-slug').value = slug;
+        });
+        
+        // Delete company
+        async function deleteCompany(id, name) {
+            if (!confirm(`Are you sure you want to delete "${name}"? This will deactivate the company and all its data.`)) {
+                return;
+            }
+            
+            try {
+                await apiCall(`/admin/companies/${id}`, { method: 'DELETE' });
+                loadCompanies();
+            } catch (error) {
+                alert(`Failed to delete company: ${error.message}`);
+            }
+        }
+        
+        // Logout function
+        function logout() {
+            console.log('Logout function called');
+            try {
+                // Clear all possible tokens
+                localStorage.removeItem('stayguide_token');
+                localStorage.removeItem('authToken');
+                localStorage.clear(); // Clear all localStorage
+                sessionStorage.clear(); // Clear sessionStorage too
+                
+                console.log('Storage cleared, redirecting...');
+                
+                // Force redirect
+                window.location.replace('/admin/login');
+            } catch (error) {
+                console.error('Logout error:', error);
+                // Fallback redirect
+                window.location.href = '/admin/login';
+            }
+        }
+        
+        // Initialize dashboard
+        document.addEventListener('DOMContentLoaded', () => {
+            loadUserProfile();
+            loadCompanies();
+        });
+        
+        // Close modal when clicking outside
+        window.addEventListener('click', (e) => {
+            if (e.target === document.getElementById('companyModal')) {
+                closeModal();
+            }
+        });
+    </script>
+</body>
+</html>

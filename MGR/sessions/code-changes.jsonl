@@ -1,0 +1,8 @@
+{"at":"2026-10-03 11:37","tool":"claude-code","description":"Phase 0 security fixes: SQL field whitelist, amenity/report ownership, tenant middleware"}
+{"at":"2026-10-03 11:43","tool":"claude-code","description":"Phase 1 tablet device pairing: devices table, /tablet, pairing codes, device tokens, guest report lockdown"}
+{"at":"2026-10-03 11:57","tool":"claude-code","description":"Phase 2 offline tablet: service worker, manifest, offline banner, auto-refresh, offline report message"}
+{"at":"2026-10-03 12:00","tool":"claude-code","description":"Phase 3 tablet fixes: XSS escaping, in-app video modal (sandboxed), report form trimmed, restaurant names"}
+{"at":"2026-10-03 12:01","tool":"claude-code","description":"Phase 4 docs/KIOSK_SETUP.md (Fully Kiosk provisioning)"}
+{"at":"2026-10-03 12:36","tool":"claude-code","description":"Phase 5 direct-booking/review QR codes, /r scan redirects, link stats, integration guide v0.2"}
+{"at":"2026-10-03 12:50","tool":"claude-code","description":"Dependency security updates (prod audit 0), sharp 0.35 + Node>=20.9, undefined-bind fixes, tablet announcements"}
+{"at":"2026-10-03 13:34","tool":"claude-code","description":"Follow-ups: deps update, announcements, undefined-bind fixes; package.json, src/services/*, src/views/tablet-app.html"}

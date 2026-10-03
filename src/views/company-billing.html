@@ -1,0 +1,614 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Billing Dashboard - StayGuide</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: #f5f7fa;
+            color: #333;
+        }
+        
+        .header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 1rem 2rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        
+        .logo {
+            font-size: 1.5rem;
+            font-weight: bold;
+        }
+        
+        .nav-links {
+            display: flex;
+            gap: 1rem;
+        }
+        
+        .nav-links a {
+            color: white;
+            text-decoration: none;
+            padding: 0.5rem 1rem;
+            border-radius: 5px;
+            transition: background-color 0.3s;
+        }
+        
+        .nav-links a:hover, .nav-links a.active {
+            background: rgba(255, 255, 255, 0.2);
+        }
+        
+        .user-info {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+        }
+        
+        .btn {
+            padding: 0.5rem 1rem;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            text-decoration: none;
+            font-weight: 500;
+            transition: all 0.3s ease;
+        }
+        
+        .btn-primary {
+            background: #4f46e5;
+            color: white;
+        }
+        
+        .btn-primary:hover {
+            background: #4338ca;
+        }
+        
+        .btn-secondary {
+            background: rgba(255, 255, 255, 0.2);
+            color: white;
+            border: 1px solid rgba(255, 255, 255, 0.3);
+        }
+        
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 2rem;
+        }
+        
+        .page-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 2rem;
+        }
+        
+        .page-title {
+            font-size: 2rem;
+            color: #1f2937;
+        }
+        
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 1.5rem;
+            margin-bottom: 2rem;
+        }
+        
+        .stat-card {
+            background: white;
+            padding: 1.5rem;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.05);
+            border-left: 4px solid #4f46e5;
+        }
+        
+        .stat-card.revenue {
+            border-left-color: #10b981;
+        }
+        
+        .stat-card.pending {
+            border-left-color: #f59e0b;
+        }
+        
+        .stat-card.overdue {
+            border-left-color: #ef4444;
+        }
+        
+        .stat-number {
+            font-size: 2rem;
+            font-weight: bold;
+            margin-bottom: 0.5rem;
+        }
+        
+        .stat-label {
+            color: #6b7280;
+            font-size: 0.875rem;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+        
+        .content-section {
+            background: white;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.05);
+            margin-bottom: 2rem;
+        }
+        
+        .section-header {
+            padding: 1.5rem;
+            border-bottom: 1px solid #e5e7eb;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        
+        .section-title {
+            font-size: 1.25rem;
+            font-weight: 600;
+            color: #1f2937;
+        }
+        
+        .section-content {
+            padding: 1.5rem;
+        }
+        
+        .loading {
+            text-align: center;
+            padding: 2rem;
+            color: #6b7280;
+        }
+        
+        .error {
+            background: #fee2e2;
+            color: #991b1b;
+            padding: 1rem;
+            border-radius: 8px;
+            margin-bottom: 1rem;
+        }
+        
+        .billing-table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+        
+        .billing-table th,
+        .billing-table td {
+            padding: 0.75rem;
+            text-align: left;
+            border-bottom: 1px solid #e5e7eb;
+        }
+        
+        .billing-table th {
+            background: #f9fafb;
+            font-weight: 600;
+            color: #374151;
+        }
+        
+        .status-badge {
+            padding: 0.25rem 0.75rem;
+            border-radius: 20px;
+            font-size: 0.75rem;
+            font-weight: 500;
+            text-transform: uppercase;
+        }
+        
+        .status-paid {
+            background: #d1fae5;
+            color: #065f46;
+        }
+        
+        .status-pending {
+            background: #fef3c7;
+            color: #92400e;
+        }
+        
+        .status-overdue {
+            background: #fee2e2;
+            color: #991b1b;
+        }
+        
+        .amount {
+            font-weight: 600;
+            font-family: 'Courier New', monospace;
+        }
+        
+        .invoice-number {
+            font-family: 'Courier New', monospace;
+            font-size: 0.875rem;
+            color: #6b7280;
+        }
+        
+        .pay-btn {
+            background: #10b981;
+            color: white;
+            border: none;
+            padding: 0.375rem 0.75rem;
+            border-radius: 4px;
+            font-size: 0.75rem;
+            cursor: pointer;
+            transition: background-color 0.3s;
+        }
+        
+        .pay-btn:hover {
+            background: #059669;
+        }
+        
+        .pay-btn:disabled {
+            background: #9ca3af;
+            cursor: not-allowed;
+        }
+        
+        .empty-state {
+            text-align: center;
+            padding: 3rem;
+            color: #6b7280;
+        }
+        
+        .empty-state-icon {
+            font-size: 3rem;
+            margin-bottom: 1rem;
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <div class="logo">StayGuide</div>
+        <div class="nav-links">
+            <a href="#" id="dashboard-link">Dashboard</a>
+            <a href="#" id="billing-link" class="active">Billing</a>
+            <a href="#" onclick="alert('Helpdesk coming soon!')">Support</a>
+        </div>
+        <div class="user-info">
+            <span id="user-name">Company Admin</span>
+            <button class="btn btn-secondary" onclick="logout()">Logout</button>
+        </div>
+    </div>
+
+    <div class="container">
+        <div class="page-header">
+            <h1 class="page-title">Billing Dashboard</h1>
+            <div style="display: flex; gap: 1rem;">
+                <button class="btn btn-primary" onclick="downloadInvoices()">📄 Download Invoices</button>
+                <button class="btn btn-primary" onclick="contactBilling()">💬 Contact Support</button>
+            </div>
+        </div>
+
+        <!-- Billing Statistics -->
+        <div class="stats-grid">
+            <div class="stat-card revenue">
+                <div class="stat-number" id="total-revenue">$0</div>
+                <div class="stat-label">Total Billed</div>
+            </div>
+            <div class="stat-card revenue">
+                <div class="stat-number" id="paid-revenue">$0</div>
+                <div class="stat-label">Paid Amount</div>
+            </div>
+            <div class="stat-card pending">
+                <div class="stat-number" id="pending-amount">$0</div>
+                <div class="stat-label">Pending Amount</div>
+            </div>
+            <div class="stat-card overdue">
+                <div class="stat-number" id="overdue-amount">$0</div>
+                <div class="stat-label">Overdue Amount</div>
+            </div>
+        </div>
+
+        <!-- Billing History -->
+        <div class="content-section">
+            <div class="section-header">
+                <h2 class="section-title">Billing History</h2>
+            </div>
+            <div class="section-content">
+                <div id="billing-content">
+                    <div class="loading">Loading billing history...</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const API_BASE = '';
+        let authToken = localStorage.getItem('stayguide_token');
+        let companySlug = '';
+        let companyId = null;
+        
+        // Extract company slug from URL
+        const pathParts = window.location.pathname.split('/');
+        if (pathParts[1] === 'company' && pathParts[2]) {
+            companySlug = pathParts[2];
+        }
+        
+        // Check authentication on page load
+        if (!authToken) {
+            window.location.href = `/company/${companySlug}/login`;
+        }
+        
+        // Update navigation links with company slug
+        document.getElementById('dashboard-link').href = `/company/${companySlug}/dashboard`;
+        document.getElementById('billing-link').href = `/company/${companySlug}/billing`;
+        
+        // API helper function
+        async function apiCall(endpoint, options = {}) {
+            const config = {
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${authToken}`
+                },
+                ...options
+            };
+            
+            try {
+                const response = await fetch(API_BASE + endpoint, config);
+                
+                if (response.status === 401) {
+                    localStorage.removeItem('stayguide_token');
+                    window.location.href = `/company/${companySlug}/login`;
+                    return;
+                }
+                
+                const data = await response.json();
+                
+                if (!response.ok) {
+                    throw new Error(data.error || 'API request failed');
+                }
+                
+                return data;
+            } catch (error) {
+                console.error('API call failed:', error);
+                throw error;
+            }
+        }
+        
+        // Load user profile
+        async function loadUserProfile() {
+            try {
+                const data = await apiCall('/api/auth/profile');
+                document.getElementById('user-name').textContent = 
+                    `${data.user.first_name} ${data.user.last_name}`;
+                
+                // Store company ID for billing API calls
+                companyId = data.user.company_id;
+            } catch (error) {
+                console.error('Failed to load user profile:', error);
+            }
+        }
+        
+        // Load billing data
+        async function loadBillingData() {
+            if (!companyId) {
+                console.error('Company ID not available');
+                return;
+            }
+            
+            try {
+                console.log(`Loading billing data for company ${companyId}...`);
+                const data = await apiCall(`/billing/company/${companyId}`);
+                
+                if (data.success) {
+                    updateBillingStats(data.stats);
+                    displayBillingHistory(data.billings);
+                }
+                
+            } catch (error) {
+                console.error('Error loading billing data:', error);
+                document.getElementById('billing-content').innerHTML = 
+                    `<div class="error">Failed to load billing data: ${error.message}</div>`;
+            }
+        }
+        
+        // Update billing statistics
+        function updateBillingStats(stats) {
+            document.getElementById('total-revenue').textContent = `$${stats.total_revenue.toFixed(2)}`;
+            document.getElementById('paid-revenue').textContent = `$${stats.monthly_revenue.toFixed(2)}`;
+            document.getElementById('pending-amount').textContent = `$${stats.pending_amount.toFixed(2)}`;
+            document.getElementById('overdue-amount').textContent = `$${stats.overdue_amount.toFixed(2)}`;
+        }
+        
+        // Display billing history
+        function displayBillingHistory(billings) {
+            if (billings.length === 0) {
+                document.getElementById('billing-content').innerHTML = `
+                    <div class="empty-state">
+                        <div class="empty-state-icon">📄</div>
+                        <h3>No Billing Records</h3>
+                        <p>No billing records found for your company yet.</p>
+                    </div>
+                `;
+                return;
+            }
+            
+            const tableHTML = `
+                <table class="billing-table">
+                    <thead>
+                        <tr>
+                            <th>Invoice</th>
+                            <th>Billing Period</th>
+                            <th>Properties</th>
+                            <th>Amount</th>
+                            <th>Status</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        ${billings.map(billing => `
+                            <tr>
+                                <td>
+                                    <div class="invoice-number">${billing.invoice_number}</div>
+                                </td>
+                                <td>
+                                    ${new Date(billing.billing_period_start).toLocaleDateString()} - 
+                                    ${new Date(billing.billing_period_end).toLocaleDateString()}
+                                </td>
+                                <td>${billing.property_count} properties</td>
+                                <td>
+                                    <div class="amount">$${billing.total_amount.toFixed(2)}</div>
+                                    ${billing.connection_fee > 0 ? 
+                                        `<small>($${billing.connection_fee.toFixed(2)} connection + $${(billing.property_count * billing.monthly_fee_per_property).toFixed(2)} monthly)</small>` : 
+                                        `<small>($${(billing.property_count * billing.monthly_fee_per_property).toFixed(2)} monthly)</small>`
+                                    }
+                                </td>
+                                <td>
+                                    <span class="status-badge status-${billing.status}">
+                                        ${billing.status}
+                                    </span>
+                                </td>
+                                <td>
+                                    <div style="display: flex; gap: 0.5rem; flex-wrap: wrap;">
+                                        ${billing.status === 'pending' || billing.status === 'overdue' ? 
+                                            `<button class="pay-btn" onclick="payInvoice(${billing.id})">Pay Now</button>` : 
+                                            billing.status === 'paid' ? 
+                                                `<small>Paid ${billing.paid_at ? new Date(billing.paid_at).toLocaleDateString() : ''}</small>` :
+                                                '<small>-</small>'
+                                        }
+                                        <button class="btn" style="background: #6366f1; color: white; padding: 0.25rem 0.5rem; font-size: 0.75rem;" onclick="downloadInvoice(${billing.id}, '${billing.invoice_number}')">
+                                            📄 PDF
+                                        </button>
+                                        ${billing.status === 'pending' || billing.status === 'overdue' ? 
+                                            `<button class="btn" style="background: #f59e0b; color: white; padding: 0.25rem 0.5rem; font-size: 0.75rem;" onclick="requestExtension(${billing.id})">
+                                                ⏰ Extend
+                                            </button>` : ''
+                                        }
+                                    </div>
+                                </td>
+                            </tr>
+                        `).join('')}
+                    </tbody>
+                </table>
+            `;
+            
+            document.getElementById('billing-content').innerHTML = tableHTML;
+        }
+        
+        // Pay invoice function
+        async function payInvoice(billingId) {
+            try {
+                // Create payment intent
+                const paymentData = await apiCall(`/billing/${billingId}/payment-intent`, {
+                    method: 'POST'
+                });
+                
+                if (paymentData.success) {
+                    // Enhanced mock payment process
+                    const billing = paymentData.billing;
+                    const breakdown = billing.connection_fee > 0 ? 
+                        `Connection Fee: $${billing.connection_fee.toFixed(2)}\nMonthly Fees: $${(billing.property_count * billing.monthly_fee_per_property).toFixed(2)} (${billing.property_count} properties × $${billing.monthly_fee_per_property})\n\nTotal: $${billing.total_amount.toFixed(2)}` :
+                        `Monthly Fees: $${(billing.property_count * billing.monthly_fee_per_property).toFixed(2)} (${billing.property_count} properties × $${billing.monthly_fee_per_property})\n\nTotal: $${billing.total_amount.toFixed(2)}`;
+                    
+                    const proceed = confirm(`Process payment for Invoice ${billing.invoice_number}?\n\n${breakdown}\n\n(Mock payment - in production this would redirect to Stripe)`);
+                    
+                    if (proceed) {
+                        // Mock payment success with loading
+                        const originalButton = event.target;
+                        originalButton.disabled = true;
+                        originalButton.textContent = 'Processing...';
+                        
+                        // Simulate payment processing delay
+                        setTimeout(async () => {
+                            try {
+                                await apiCall(`/billing/${billingId}/status`, {
+                                    method: 'PUT',
+                                    body: JSON.stringify({
+                                        status: 'paid',
+                                        stripe_payment_intent_id: paymentData.payment_intent.id
+                                    })
+                                });
+                                
+                                alert('✅ Payment processed successfully!\n\nThank you for your payment. Your invoice has been marked as paid.');
+                                loadBillingData(); // Refresh data
+                            } catch (error) {
+                                alert(`Payment processing failed: ${error.message}`);
+                                originalButton.disabled = false;
+                                originalButton.textContent = 'Pay Now';
+                            }
+                        }, 1500);
+                    }
+                }
+                
+            } catch (error) {
+                console.error('Error processing payment:', error);
+                alert(`Payment failed: ${error.message}`);
+            }
+        }
+        
+        // Download single invoice
+        function downloadInvoice(billingId, invoiceNumber) {
+            // Mock PDF generation
+            alert(`📄 Downloading invoice ${invoiceNumber}...\n\nIn production, this would generate and download a PDF invoice.`);
+        }
+        
+        // Request payment extension
+        async function requestExtension(billingId) {
+            const reason = prompt('Please provide a reason for the payment extension request:');
+            if (!reason || reason.trim() === '') return;
+            
+            try {
+                // Mock extension request
+                const proceed = confirm(`Submit extension request?\n\nReason: ${reason}\n\nThis will notify billing support for review.`);
+                
+                if (proceed) {
+                    // In a real app, this would create a support ticket
+                    alert('✅ Extension request submitted!\n\nOur billing team will review your request and contact you within 1-2 business days.');
+                }
+                
+            } catch (error) {
+                alert(`Failed to submit extension request: ${error.message}`);
+            }
+        }
+        
+        // Download all invoices
+        function downloadInvoices() {
+            alert('📄 Downloading all invoices...\n\nIn production, this would generate a ZIP file with all your invoice PDFs.');
+        }
+        
+        // Contact billing support
+        function contactBilling() {
+            const message = prompt('How can our billing team help you?\n\nPlease describe your question or concern:');
+            if (!message || message.trim() === '') return;
+            
+            const proceed = confirm(`Send message to billing support?\n\n"${message}"\n\nConfirm to send this message?`);
+            
+            if (proceed) {
+                alert('✅ Message sent to billing support!\n\nWe\'ll respond to your inquiry within 24 hours.');
+            }
+        }
+        
+        // Auto-refresh billing data every 5 minutes
+        function startAutoRefresh() {
+            setInterval(() => {
+                console.log('Auto-refreshing billing data...');
+                loadBillingData();
+            }, 5 * 60 * 1000); // 5 minutes
+        }
+        
+        // Show payment history details
+        function showPaymentDetails(billingId) {
+            // This would show detailed payment information
+            alert('Payment details feature coming soon!\n\nThis will show transaction details, payment method, etc.');
+        }
+        
+        // Logout function
+        function logout() {
+            localStorage.removeItem('stayguide_token');
+            window.location.href = `/company/${companySlug}/login`;
+        }
+        
+        // Initialize dashboard
+        document.addEventListener('DOMContentLoaded', async () => {
+            await loadUserProfile();
+            await loadBillingData();
+            startAutoRefresh(); // Auto-refresh every 5 minutes
+        });
+    </script>
+</body>
+</html>

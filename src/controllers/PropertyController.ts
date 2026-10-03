@@ -1,0 +1,636 @@
+import { Request, Response } from 'express';
+import { PropertyService } from '../services/PropertyService';
+import { CompanyService } from '../services/CompanyService';
+import { AuthRequest, Property } from '../types';
+import { LinkService, isHttpUrl } from '../services/LinkService';
+import { getImageUrl, processAndSaveImage } from '../middleware/upload';
+
+interface CompanyParams {
+  companySlug: string;
+}
+
+interface PropertyParams extends CompanyParams {
+  propertySlug: string;
+}
+
+export class PropertyController {
+  private propertyService = new PropertyService();
+  private companyService = new CompanyService();
+  private linkService = new LinkService();
+
+  async getPropertiesByCompany(req: AuthRequest, res: Response) {
+    try {
+      const { companySlug } = req.params;
+      
+      // Get company by slug
+      const company = await this.companyService.findBySlug(companySlug);
+      if (!company) {
+        return res.status(404).json({ error: 'Company not found' });
+      }
+
+      // Check permissions
+      if (req.user?.role === 'company_admin' && req.user.company_id !== company.id) {
+        return res.status(403).json({ error: 'Access denied' });
+      }
+
+      const properties = await this.propertyService.getPropertiesByCompany(company.id);
+      
+      console.log(`Retrieved ${properties.length} properties for ${company.name} by ${req.user?.email}`);
+      res.json({
+        message: 'Properties retrieved successfully',
+        company: {
+          id: company.id,
+          name: company.name,
+          slug: company.slug
+        },
+        properties,
+        total: properties.length
+      });
+    } catch (error) {
+      console.error('Error getting properties:', error);
+      res.status(500).json({ error: 'Failed to retrieve properties' });
+    }
+  }
+
+  async getProperty(req: AuthRequest, res: Response) {
+    try {
+      const { companySlug, propertySlug } = req.params;
+      
+      // Get company by slug
+      const company = await this.companyService.findBySlug(companySlug);
+      if (!company) {
+        return res.status(404).json({ error: 'Company not found' });
+      }
+
+      // Check permissions
+      if (req.user?.role === 'company_admin' && req.user.company_id !== company.id) {
+        return res.status(403).json({ error: 'Access denied' });
+      }
+
+      const property = await this.propertyService.findBySlug(company.id, propertySlug);
+      if (!property) {
+        return res.status(404).json({ error: 'Property not found' });
+      }
+
+      console.log(`Property details retrieved: ${property.name} by ${req.user?.email}`);
+      res.json({
+        message: 'Property retrieved successfully',
+        company: {
+          id: company.id,
+          name: company.name,
+          slug: company.slug
+        },
+        property
+      });
+    } catch (error) {
+      console.error('Error getting property:', error);
+      res.status(500).json({ error: 'Failed to retrieve property' });
+    }
+  }
+
+  async createProperty(req: AuthRequest, res: Response) {
+    try {
+      const { companySlug } = req.params;
+      const {
+        name,
+        slug,
+        address,
+        description,
+        wifi_name,
+        wifi_password,
+        check_in_instructions,
+        check_out_instructions,
+        house_rules,
+        emergency_contact
+      } = req.body;
+
+      // Get company by slug
+      const company = await this.companyService.findBySlug(companySlug);
+      if (!company) {
+        return res.status(404).json({ error: 'Company not found' });
+      }
+
+      // Check permissions
+      if (req.user?.role === 'company_admin' && req.user.company_id !== company.id) {
+        return res.status(403).json({ error: 'Access denied' });
+      }
+
+      // Validate required fields
+      if (!name || !slug) {
+        return res.status(400).json({ 
+          error: 'Property name and slug are required' 
+        });
+      }
+
+      // Check if property slug already exists for this company
+      const existingProperty = await this.propertyService.findBySlug(company.id, slug);
+      if (existingProperty) {
+        return res.status(409).json({ error: 'Property slug already exists for this company' });
+      }
+
+      // 2026-10-03 12:32, validate optional link/image fields before creating anything
+      const optional = this.normalizeOptionalFields(req.body);
+      if (optional.error) {
+        return res.status(400).json({ error: optional.error });
+      }
+
+      // Create property
+      let property = await this.propertyService.createProperty({
+        company_id: company.id,
+        name,
+        slug: slug.toLowerCase(),
+        address,
+        description,
+        wifi_name,
+        wifi_password,
+        check_in_instructions,
+        check_out_instructions,
+        house_rules,
+        emergency_contact
+      });
+
+      // 2026-10-03 12:32, createProperty's INSERT omits these (main_image_url was silently dropped on create)
+      if (optional.fields && Object.keys(optional.fields).length > 0) {
+        property = (await this.propertyService.updateProperty(property.id, optional.fields)) || property;
+      }
+
+      console.log(`Property created: ${property.name} for ${company.name} by ${req.user?.email}`);
+      res.status(201).json({
+        message: 'Property created successfully',
+        company: {
+          id: company.id,
+          name: company.name,
+          slug: company.slug
+        },
+        property
+      });
+    } catch (error) {
+      console.error('Error creating property:', error);
+      res.status(500).json({ error: 'Failed to create property' });
+    }
+  }
+
+  async updateProperty(req: AuthRequest, res: Response) {
+    try {
+      const { companySlug, propertySlug } = req.params;
+      
+      // Get company by slug
+      const company = await this.companyService.findBySlug(companySlug);
+      if (!company) {
+        return res.status(404).json({ error: 'Company not found' });
+      }
+
+      // Check permissions
+      if (req.user?.role === 'company_admin' && req.user.company_id !== company.id) {
+        return res.status(403).json({ error: 'Access denied' });
+      }
+
+      const existingProperty = await this.propertyService.findBySlug(company.id, propertySlug);
+      if (!existingProperty) {
+        return res.status(404).json({ error: 'Property not found' });
+      }
+
+      const updates = req.body;
+      
+      // Don't allow slug changes if it would conflict
+      if (updates.slug && updates.slug !== existingProperty.slug) {
+        const slugExists = await this.propertyService.findBySlug(company.id, updates.slug);
+        if (slugExists) {
+          return res.status(409).json({ error: 'Property slug already exists for this company' });
+        }
+        updates.slug = updates.slug.toLowerCase();
+      }
+
+      // 2026-10-03 12:32, validate/normalize link, offer and checkout-date fields
+      const optional = this.normalizeOptionalFields(updates);
+      if (optional.error) {
+        return res.status(400).json({ error: optional.error });
+      }
+      Object.assign(updates, optional.fields);
+
+      const updatedProperty = await this.propertyService.updateProperty(existingProperty.id, updates);
+
+      console.log(`Property updated: ${updatedProperty?.name} by ${req.user?.email}`);
+      res.json({
+        message: 'Property updated successfully',
+        company: {
+          id: company.id,
+          name: company.name,
+          slug: company.slug
+        },
+        property: updatedProperty
+      });
+    } catch (error) {
+      console.error('Error updating property:', error);
+      res.status(500).json({ error: 'Failed to update property' });
+    }
+  }
+
+  async deleteProperty(req: AuthRequest, res: Response) {
+    try {
+      const { companySlug, propertySlug } = req.params;
+      
+      // Get company by slug
+      const company = await this.companyService.findBySlug(companySlug);
+      if (!company) {
+        return res.status(404).json({ error: 'Company not found' });
+      }
+
+      // Check permissions
+      if (req.user?.role === 'company_admin' && req.user.company_id !== company.id) {
+        return res.status(403).json({ error: 'Access denied' });
+      }
+
+      const property = await this.propertyService.findBySlug(company.id, propertySlug);
+      if (!property) {
+        return res.status(404).json({ error: 'Property not found' });
+      }
+
+      await this.propertyService.deleteProperty(property.id);
+
+      console.log(`Property deleted: ${property.name} by ${req.user?.email}`);
+      res.json({
+        message: 'Property deactivated successfully',
+        property_id: property.id
+      });
+    } catch (error) {
+      console.error('Error deleting property:', error);
+      res.status(500).json({ error: 'Failed to delete property' });
+    }
+  }
+
+  // Public endpoint for tablet app
+  // 2026-10-03 11:39, admin preview of tablet content (route now requires company-admin JWT)
+  async getPropertyContent(req: AuthRequest, res: Response) {
+    try {
+      const { companySlug, propertySlug } = req.params;
+
+      // Get company by slug
+      const company = await this.companyService.findBySlug(companySlug);
+      if (!company) {
+        return res.status(404).json({ error: 'Company not found' });
+      }
+
+      if (req.user?.role === 'company_admin' && req.user.company_id !== company.id) {
+        return res.status(403).json({ error: 'Access denied' });
+      }
+
+      const property = await this.propertyService.findBySlug(company.id, propertySlug);
+      if (!property) {
+        return res.status(404).json({ error: 'Property not found' });
+      }
+
+      await this.sendPropertyContent(req, res, company, property);
+    } catch (error) {
+      console.error('Error getting property content:', error);
+      res.status(500).json({ error: 'Failed to retrieve property content' });
+    }
+  }
+
+  // 2026-10-03 11:39, content for a paired tablet; property comes from the device token, never the URL
+  async getDeviceContent(req: AuthRequest, res: Response) {
+    try {
+      const property = await this.propertyService.findById(req.device!.property_id);
+      if (!property || property.status !== 'active') {
+        return res.status(404).json({ error: 'Property not available' });
+      }
+
+      const company = await this.companyService.findById(property.company_id);
+      if (!company || company.status !== 'active') {
+        return res.status(404).json({ error: 'Property not available' });
+      }
+
+      await this.sendPropertyContent(req, res, company, property);
+    } catch (error) {
+      console.error('Error getting device content:', error);
+      res.status(500).json({ error: 'Failed to retrieve property content' });
+    }
+  }
+
+  private async sendPropertyContent(req: Request, res: Response, company: { name: string; slug: string; logo_url?: string }, property: Property) {
+    const propertyWithContent = await this.propertyService.getPropertyWithContent(property.id);
+
+    // 2026-10-03 12:32, Phase 5: direct-booking / review QR codes for the tablet
+    const baseUrl = (process.env.APP_BASE_URL || `${req.protocol}://${req.get('host')}`).replace(/\/$/, '');
+    const guestLinks = await this.linkService.buildGuestLinks(property, baseUrl);
+
+    console.log(`Property content retrieved for tablet: property ${property.id}`);
+    res.json({
+      message: 'Property content retrieved successfully',
+      company: {
+        name: company.name,
+        slug: company.slug,
+        logo_url: company.logo_url
+      },
+      ...propertyWithContent,
+      guest_links: guestLinks
+    });
+  }
+
+  // 2026-10-03 12:32, QR scan counts for the dashboard (last 30 days)
+  async getLinkStats(req: AuthRequest, res: Response) {
+    try {
+      const { companySlug, propertySlug } = req.params;
+      const company = await this.companyService.findBySlug(companySlug);
+      if (!company) {
+        return res.status(404).json({ error: 'Company not found' });
+      }
+      if (req.user?.role === 'company_admin' && req.user.company_id !== company.id) {
+        return res.status(403).json({ error: 'Access denied' });
+      }
+      const property = await this.propertyService.findBySlug(company.id, propertySlug);
+      if (!property) {
+        return res.status(404).json({ error: 'Property not found' });
+      }
+
+      const stats = await this.linkService.getStats(property.id, 30);
+      res.json({ days: 30, stats });
+    } catch (error) {
+      console.error('Error getting link stats:', error);
+      res.status(500).json({ error: 'Failed to retrieve link stats' });
+    }
+  }
+
+  // 2026-10-03 12:32, validate/normalize optional fields that createProperty's INSERT doesn't cover
+  private normalizeOptionalFields(body: any): { fields?: Record<string, any>; error?: string } {
+    const fields: Record<string, any> = {};
+    for (const key of ['direct_booking_url', 'review_url', 'main_image_url']) {
+      if (body[key] === undefined) continue;
+      const value = typeof body[key] === 'string' ? body[key].trim() : '';
+      if (!value) { fields[key] = null; continue; }
+      const isRelativeImage = key === 'main_image_url' && value.startsWith('/uploads/');
+      if (!isRelativeImage && !isHttpUrl(value)) {
+        return { error: `${key} must be an http(s) URL` };
+      }
+      fields[key] = value;
+    }
+    if (body.return_guest_offer !== undefined) {
+      const offer = typeof body.return_guest_offer === 'string' ? body.return_guest_offer.trim() : '';
+      if (offer.length > 255) return { error: 'return_guest_offer must be 255 characters or fewer' };
+      fields.return_guest_offer = offer || null;
+    }
+    if (body.guest_checkout_date !== undefined) {
+      const date = typeof body.guest_checkout_date === 'string' ? body.guest_checkout_date.trim() : '';
+      if (date && !/^\d{4}-\d{2}-\d{2}$/.test(date)) return { error: 'guest_checkout_date must be YYYY-MM-DD' };
+      fields.guest_checkout_date = date || null;
+    }
+    return { fields };
+  }
+
+  // Amenities endpoints
+  async getAmenitiesByProperty(req: AuthRequest, res: Response) {
+    try {
+      const { companySlug, propertySlug } = req.params;
+      
+      // Get company by slug
+      const company = await this.companyService.findBySlug(companySlug);
+      if (!company) {
+        return res.status(404).json({ error: 'Company not found' });
+      }
+
+      // Check permissions
+      if (req.user?.role === 'company_admin' && req.user.company_id !== company.id) {
+        return res.status(403).json({ error: 'Access denied' });
+      }
+
+      const property = await this.propertyService.findBySlug(company.id, propertySlug);
+      if (!property) {
+        return res.status(404).json({ error: 'Property not found' });
+      }
+
+      const amenities = await this.propertyService.getAmenitiesByProperty(property.id);
+      
+      res.json({
+        message: 'Amenities retrieved successfully',
+        property: {
+          id: property.id,
+          name: property.name,
+          slug: property.slug
+        },
+        amenities
+      });
+    } catch (error) {
+      console.error('Error getting amenities:', error);
+      res.status(500).json({ error: 'Failed to retrieve amenities' });
+    }
+  }
+
+  async createAmenity(req: AuthRequest, res: Response) {
+    try {
+      const { companySlug, propertySlug } = req.params;
+      const { name, description, icon, image_url, category, display_order } = req.body;
+      
+      // Get company by slug
+      const company = await this.companyService.findBySlug(companySlug);
+      if (!company) {
+        return res.status(404).json({ error: 'Company not found' });
+      }
+
+      // Check permissions
+      if (req.user?.role === 'company_admin' && req.user.company_id !== company.id) {
+        return res.status(403).json({ error: 'Access denied' });
+      }
+
+      const property = await this.propertyService.findBySlug(company.id, propertySlug);
+      if (!property) {
+        return res.status(404).json({ error: 'Property not found' });
+      }
+
+      const amenityData = {
+        property_id: property.id,
+        name,
+        description,
+        icon,
+        image_url,
+        category,
+        display_order
+      };
+
+      const amenity = await this.propertyService.createAmenity(amenityData);
+      
+      console.log(`Amenity created: ${amenity.name} for property ${property.name} by ${req.user?.email}`);
+      res.json({
+        message: 'Amenity created successfully',
+        amenity
+      });
+    } catch (error) {
+      console.error('Error creating amenity:', error);
+      res.status(500).json({ error: 'Failed to create amenity' });
+    }
+  }
+
+  async updateAmenity(req: AuthRequest, res: Response) {
+    try {
+      const { companySlug, propertySlug, amenityId } = req.params;
+      const updates = req.body;
+      
+      // Get company by slug
+      const company = await this.companyService.findBySlug(companySlug);
+      if (!company) {
+        return res.status(404).json({ error: 'Company not found' });
+      }
+
+      // Check permissions
+      if (req.user?.role === 'company_admin' && req.user.company_id !== company.id) {
+        return res.status(403).json({ error: 'Access denied' });
+      }
+
+      const property = await this.propertyService.findBySlug(company.id, propertySlug);
+      if (!property) {
+        return res.status(404).json({ error: 'Property not found' });
+      }
+
+      // 2026-10-03 11:34, amenity must belong to this property (blocks cross-tenant edits by id)
+      const existingAmenity = await this.propertyService.findAmenityById(parseInt(amenityId));
+      if (!existingAmenity || existingAmenity.property_id !== property.id) {
+        return res.status(404).json({ error: 'Amenity not found' });
+      }
+
+      const amenity = await this.propertyService.updateAmenity(existingAmenity.id, updates);
+      if (!amenity) {
+        return res.status(404).json({ error: 'Amenity not found' });
+      }
+      
+      console.log(`Amenity updated: ${amenity.name} by ${req.user?.email}`);
+      res.json({
+        message: 'Amenity updated successfully',
+        amenity
+      });
+    } catch (error) {
+      console.error('Error updating amenity:', error);
+      res.status(500).json({ error: 'Failed to update amenity' });
+    }
+  }
+
+  async deleteAmenity(req: AuthRequest, res: Response) {
+    try {
+      const { companySlug, propertySlug, amenityId } = req.params;
+      
+      // Get company by slug
+      const company = await this.companyService.findBySlug(companySlug);
+      if (!company) {
+        return res.status(404).json({ error: 'Company not found' });
+      }
+
+      // Check permissions
+      if (req.user?.role === 'company_admin' && req.user.company_id !== company.id) {
+        return res.status(403).json({ error: 'Access denied' });
+      }
+
+      const property = await this.propertyService.findBySlug(company.id, propertySlug);
+      if (!property) {
+        return res.status(404).json({ error: 'Property not found' });
+      }
+
+      // 2026-10-03 11:34, amenity must belong to this property (blocks cross-tenant deletes by id)
+      const existingAmenity = await this.propertyService.findAmenityById(parseInt(amenityId));
+      if (!existingAmenity || existingAmenity.property_id !== property.id) {
+        return res.status(404).json({ error: 'Amenity not found' });
+      }
+
+      const deleted = await this.propertyService.deleteAmenity(existingAmenity.id);
+      if (!deleted) {
+        return res.status(404).json({ error: 'Amenity not found' });
+      }
+      
+      console.log(`Amenity deleted: ${amenityId} by ${req.user?.email}`);
+      res.json({
+        message: 'Amenity deleted successfully'
+      });
+    } catch (error) {
+      console.error('Error deleting amenity:', error);
+      res.status(500).json({ error: 'Failed to delete amenity' });
+    }
+  }
+
+  // Image upload endpoints
+  async uploadPropertyImage(req: AuthRequest, res: Response) {
+    try {
+      const { companySlug } = req.params;
+      
+      // Check if file was uploaded
+      if (!req.file) {
+        return res.status(400).json({ error: 'No image file provided' });
+      }
+      
+      // Get company by slug
+      const company = await this.companyService.findBySlug(companySlug);
+      if (!company) {
+        return res.status(404).json({ error: 'Company not found' });
+      }
+
+      // Check permissions
+      if (req.user?.role === 'company_admin' && req.user.company_id !== company.id) {
+        return res.status(403).json({ error: 'Access denied' });
+      }
+
+      // Process and save image with Sharp
+      const processedImage = await processAndSaveImage(req.file.buffer, 'property', req.file.originalname);
+      const imageUrl = getImageUrl(processedImage.filename, 'property');
+      
+      console.log(`Property image processed and uploaded: ${processedImage.filename} by ${req.user?.email}`);
+      res.json({
+        message: 'Image uploaded and processed successfully',
+        imageUrl,
+        filename: processedImage.filename,
+        originalName: req.file.originalname,
+        originalSize: processedImage.originalSize,
+        processedSizes: processedImage.processedSizes,
+        availableSizes: {
+          large: getImageUrl(processedImage.sizes.large, 'property'),
+          medium: getImageUrl(processedImage.sizes.medium, 'property'),
+          small: getImageUrl(processedImage.sizes.small, 'property')
+        },
+        processedFormat: 'jpeg'
+      });
+    } catch (error) {
+      console.error('Error uploading property image:', error);
+      res.status(500).json({ error: 'Failed to upload image' });
+    }
+  }
+
+  async uploadAmenityImage(req: AuthRequest, res: Response) {
+    try {
+      const { companySlug } = req.params;
+      
+      // Check if file was uploaded
+      if (!req.file) {
+        return res.status(400).json({ error: 'No image file provided' });
+      }
+      
+      // Get company by slug
+      const company = await this.companyService.findBySlug(companySlug);
+      if (!company) {
+        return res.status(404).json({ error: 'Company not found' });
+      }
+
+      // Check permissions
+      if (req.user?.role === 'company_admin' && req.user.company_id !== company.id) {
+        return res.status(403).json({ error: 'Access denied' });
+      }
+
+      // Process and save image with Sharp
+      const processedImage = await processAndSaveImage(req.file.buffer, 'amenity', req.file.originalname);
+      const imageUrl = getImageUrl(processedImage.filename, 'amenity');
+      
+      console.log(`Amenity image processed and uploaded: ${processedImage.filename} by ${req.user?.email}`);
+      res.json({
+        message: 'Image uploaded and processed successfully',
+        imageUrl,
+        filename: processedImage.filename,
+        originalName: req.file.originalname,
+        originalSize: processedImage.originalSize,
+        processedSizes: processedImage.processedSizes,
+        availableSizes: {
+          large: getImageUrl(processedImage.sizes.large, 'amenity'),
+          medium: getImageUrl(processedImage.sizes.medium, 'amenity'),
+          small: getImageUrl(processedImage.sizes.small, 'amenity')
+        },
+        processedFormat: 'jpeg'
+      });
+    } catch (error) {
+      console.error('Error uploading amenity image:', error);
+      res.status(500).json({ error: 'Failed to upload image' });
+    }
+  }
+}
