@@ -48,6 +48,9 @@ export interface Property {
   review_url?: string | null;
   return_guest_offer?: string | null;
   guest_checkout_date?: string | Date | null;
+  // 2026-10-03 15:29, tablet appearance (managed per property)
+  tablet_theme?: 'auto' | 'light' | 'dark';
+  background_image_url?: string | null;
   status: 'active' | 'inactive';
   created_at: Date;
   updated_at: Date;

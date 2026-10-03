@@ -58,6 +58,8 @@ CREATE TABLE properties (
     review_url VARCHAR(500),
     return_guest_offer VARCHAR(255),
     guest_checkout_date DATE NULL, -- current guest's checkout (manual until stays sync exists)
+    tablet_theme ENUM('auto', 'light', 'dark') NOT NULL DEFAULT 'auto', -- 2026-10-03 15:29, tablet look (set by property manager)
+    background_image_url VARCHAR(500) NULL,
     status ENUM('active', 'inactive') DEFAULT 'active',
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,

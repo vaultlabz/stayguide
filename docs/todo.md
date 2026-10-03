@@ -1,5 +1,33 @@
 # StayGuide SaaS Platform Development Plan
 
+## [2026-10-03] - FEATURE: Design system, light/dark themes and custom tablet backgrounds
+
+**What Changed:**
+- ✅ New shared token stylesheet `public/css/theme.css` (color, surface, text, border, radius, spacing, shadow, type scale; light + dark) and `public/js/theme.js` (light / auto / dark toggle, persisted in `localStorage`, applied before first paint)
+- ✅ All 9 dashboard/login/landing views moved to tokens; new `.sg-app` (dashboards, billing, invoice) and `.sg-auth` (login) layers; landing page redesigned
+- ✅ Tablet (`tablet-app.html` + `tablet-app.css`) rebuilt on the tokens: 18px base, 2-column landscape layout, SVG card icons, 48px+ touch targets, QR cards always dark-on-white
+- ✅ Per-property `tablet_theme` ('auto' | 'light' | 'dark') and `background_image_url` (uploaded `/uploads/...` path or https URL): DB column + migration, `Property` type, update whitelist, controller validation, mock data, dashboard "Tablet Appearance" section (upload through the existing `property-image` endpoint)
+- ✅ Audit written to `docs/DESIGN_AUDIT.md`; service worker VERSION v3 with `/css/theme.css` in the shell; `/js` static mount; debug "Test JS" button removed from the company dashboard
+
+**Why:**
+- Nine pages carried duplicated inline CSS with about 60 literal colors, purple gradients, failing contrast and no dark mode
+- Property managers (not guests) must control the kiosk look; a custom background must never cost readability
+
+**How:**
+- Three-tier tokens (primitives in `:root`, semantic names consumed by pages); dark values repeated for `@media (prefers-color-scheme: dark)` and `[data-theme="dark"]`
+- A one-off script remapped literal hex colors in the inline CSS to tokens by property context; shared layers use higher specificity (`.sg-app`) so remaining inline rules cannot fork the look
+- Tablet applies `data-theme` + `--tablet-bg` from the content payload and caches the last look in `localStorage` (no flash on reload, works offline); the background is a fixed layer with a theme-aware scrim, and cards are 90% opaque with blur only when a background is set
+
+**Impact:**
+- **Accessibility**: automated contrast scan of rendered text passes AA in both themes on login, landing, dashboards and tablet; visible focus rings; reduced motion honored
+- **Maintainability**: one place to change colors/spacing; no new dependencies, no external fonts (CSP intact)
+- **Kiosk**: Wi-Fi and house info are above the fold at 1280x800; QR codes keep scanner contrast in dark mode
+
+**Technical Details:**
+- Migration: `database/migrations/2026-10-03_tablet_theme.sql`; `schema.sql` updated. `background_image_url` accepts `/uploads/...` (no `..`) or an http(s) URL; the tablet applies only `/uploads/` or https and rejects quotes/parentheses before building `url("...")`
+- Existing IDs/classes used by browser tests are unchanged; `.close` is now a `<button>` and the header text sits in `.header-text`
+- Verified: tsc and build pass; inline scripts pass `node --check`; offline-test 15/15, phase3 21/21, phase5 24/24; new design-test 56/56 (theme toggle + persistence, tablet theme override, background + scrim, worst-case contrast, QR, touch targets, CSP/console errors)
+
 ## [2026-10-03] - DOCS: Tablet Hardware Specs & Recommended Models
 
 **What Changed:**

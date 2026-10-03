@@ -4,6 +4,9 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Invoice Details - StayGuide Admin</title>
+    <!-- 2026-10-03 15:31, shared design tokens + light/dark theme (set before paint to avoid a flash) -->
+    <link rel="stylesheet" href="/css/theme.css">
+    <script src="/js/theme.js"></script>
     <style>
         * {
             margin: 0;
@@ -12,14 +15,14 @@
         }
         
         body {
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            background-color: #f5f7fa;
-            color: #333;
+            font-family: var(--font-sans);
+            background-color: var(--bg);
+            color: var(--text);
         }
         
         .header {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            color: white;
+            background: var(--accent);
+            color: var(--on-accent);
             padding: 1rem 2rem;
             display: flex;
             justify-content: space-between;
@@ -38,15 +41,15 @@
         }
         
         .nav-links a {
-            color: white;
+            color: var(--on-accent);
             text-decoration: none;
             padding: 0.5rem 1rem;
-            border-radius: 5px;
+            border-radius: var(--radius-sm);
             transition: background-color 0.3s;
         }
         
         .nav-links a:hover {
-            background: rgba(255, 255, 255, 0.2);
+            background: color-mix(in srgb, var(--on-accent) 20%, transparent);
         }
         
         .user-info {
@@ -58,7 +61,7 @@
         .btn {
             padding: 0.5rem 1rem;
             border: none;
-            border-radius: 5px;
+            border-radius: var(--radius-sm);
             cursor: pointer;
             text-decoration: none;
             font-weight: 500;
@@ -67,36 +70,36 @@
         }
         
         .btn-primary {
-            background: #4f46e5;
-            color: white;
+            background: var(--accent);
+            color: var(--on-accent);
         }
         
         .btn-primary:hover {
-            background: #4338ca;
+            background: var(--accent-hover);
         }
         
         .btn-secondary {
-            background: rgba(255, 255, 255, 0.2);
-            color: white;
-            border: 1px solid rgba(255, 255, 255, 0.3);
+            background: color-mix(in srgb, var(--on-accent) 20%, transparent);
+            color: var(--on-accent);
+            border: 1px solid color-mix(in srgb, var(--on-accent) 30%, transparent);
         }
         
         .btn-success {
-            background: #10b981;
-            color: white;
+            background: var(--success-solid);
+            color: var(--on-accent);
         }
         
         .btn-success:hover {
-            background: #059669;
+            background: var(--success-solid);
         }
         
         .btn-warning {
-            background: #f59e0b;
-            color: white;
+            background: var(--warning-solid);
+            color: var(--on-accent);
         }
         
         .btn-warning:hover {
-            background: #d97706;
+            background: var(--warning-solid);
         }
         
         .container {
@@ -114,19 +117,19 @@
         
         .page-title {
             font-size: 2rem;
-            color: #1f2937;
+            color: var(--text);
         }
         
         .invoice-container {
-            background: white;
-            border-radius: 10px;
+            background: var(--surface);
+            border-radius: var(--radius);
             box-shadow: 0 2px 10px rgba(0,0,0,0.05);
             overflow: hidden;
         }
         
         .invoice-header {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            color: white;
+            background: var(--accent);
+            color: var(--on-accent);
             padding: 2rem;
             text-align: center;
         }
@@ -153,10 +156,10 @@
         }
         
         .info-section h3 {
-            color: #374151;
+            color: var(--text-2);
             margin-bottom: 1rem;
             font-size: 1.1rem;
-            border-bottom: 2px solid #e5e7eb;
+            border-bottom: 2px solid var(--border);
             padding-bottom: 0.5rem;
         }
         
@@ -164,7 +167,7 @@
             display: flex;
             justify-content: space-between;
             padding: 0.5rem 0;
-            border-bottom: 1px solid #f3f4f6;
+            border-bottom: 1px solid var(--border);
         }
         
         .info-item:last-child {
@@ -173,45 +176,45 @@
         
         .info-label {
             font-weight: 500;
-            color: #6b7280;
+            color: var(--text-muted);
         }
         
         .info-value {
-            color: #1f2937;
+            color: var(--text);
             font-weight: 500;
         }
         
         .status-badge {
             padding: 0.25rem 0.75rem;
-            border-radius: 20px;
+            border-radius: var(--radius-lg);
             font-size: 0.75rem;
             font-weight: 500;
             text-transform: uppercase;
         }
         
         .status-paid {
-            background: #d1fae5;
-            color: #065f46;
+            background: var(--success-bg);
+            color: var(--success-text);
         }
         
         .status-pending {
-            background: #fef3c7;
-            color: #92400e;
+            background: var(--warning-bg);
+            color: var(--warning-text);
         }
         
         .status-overdue {
-            background: #fee2e2;
-            color: #991b1b;
+            background: var(--danger-bg);
+            color: var(--danger-text);
         }
         
         .status-cancelled {
-            background: #f3f4f6;
-            color: #4b5563;
+            background: var(--surface-2);
+            color: var(--text-2);
         }
         
         .billing-breakdown {
-            background: #f9fafb;
-            border-radius: 8px;
+            background: var(--surface-2);
+            border-radius: var(--radius-sm);
             padding: 1.5rem;
             margin: 2rem 0;
         }
@@ -220,7 +223,7 @@
             display: flex;
             justify-content: space-between;
             padding: 0.5rem 0;
-            border-bottom: 1px solid #e5e7eb;
+            border-bottom: 1px solid var(--border);
         }
         
         .breakdown-item:last-child {
@@ -229,12 +232,12 @@
             font-size: 1.1rem;
             margin-top: 0.5rem;
             padding-top: 1rem;
-            border-top: 2px solid #d1d5db;
+            border-top: 2px solid var(--border-strong);
         }
         
         .total-amount {
             font-size: 1.5rem;
-            color: #4f46e5;
+            color: var(--accent-text);
             font-weight: bold;
         }
         
@@ -244,35 +247,35 @@
             justify-content: center;
             margin-top: 2rem;
             padding: 1.5rem;
-            background: #f9fafb;
-            border-top: 1px solid #e5e7eb;
+            background: var(--surface-2);
+            border-top: 1px solid var(--border);
         }
         
         .loading {
             text-align: center;
             padding: 3rem;
-            color: #6b7280;
+            color: var(--text-muted);
         }
         
         .error {
-            background: #fee2e2;
-            color: #991b1b;
+            background: var(--danger-bg);
+            color: var(--danger-text);
             padding: 1rem;
-            border-radius: 8px;
+            border-radius: var(--radius-sm);
             margin: 1rem 0;
         }
         
         .success {
-            background: #d1fae5;
-            color: #065f46;
+            background: var(--success-bg);
+            color: var(--success-text);
             padding: 1rem;
-            border-radius: 8px;
+            border-radius: var(--radius-sm);
             margin: 1rem 0;
         }
         
         .spinner {
-            border: 2px solid #f3f4f6;
-            border-top: 2px solid #4f46e5;
+            border: 2px solid var(--border);
+            border-top: 2px solid var(--accent);
             border-radius: 50%;
             width: 20px;
             height: 20px;
@@ -287,7 +290,7 @@
         }
     </style>
 </head>
-<body>
+<body class="sg-app">
     <div class="header">
         <div class="logo">StayGuide Admin</div>
         <div class="nav-links">
@@ -296,6 +299,7 @@
             <a href="#" id="helpdesk-link">Helpdesk</a>
         </div>
         <div class="user-info">
+            <div data-theme-toggle></div>
             <span id="user-name">Admin User</span>
             <button class="btn btn-secondary" id="logout-btn">Logout</button>
         </div>
@@ -465,7 +469,7 @@
                         </div>
                         
                         <div class="billing-breakdown">
-                            <h3 style="margin-bottom: 1rem; color: #374151;">Billing Breakdown</h3>
+                            <h3 style="margin-bottom: 1rem; color: var(--text-2);">Billing Breakdown</h3>
                             
                             ${invoice.connection_fee > 0 ? `
                             <div class="breakdown-item">

@@ -4,6 +4,9 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Company Dashboard - StayGuide</title>
+    <!-- 2026-10-03 15:31, shared design tokens + light/dark theme (set before paint to avoid a flash) -->
+    <link rel="stylesheet" href="/css/theme.css">
+    <script src="/js/theme.js"></script>
     <style>
         * {
             margin: 0;
@@ -12,14 +15,14 @@
         }
         
         body {
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            background-color: #f5f7fa;
-            color: #333;
+            font-family: var(--font-sans);
+            background-color: var(--bg);
+            color: var(--text);
         }
         
         .header {
-            background: linear-gradient(135deg, #4f46e5 0%, #7c3aed 100%);
-            color: white;
+            background: var(--accent);
+            color: var(--on-accent);
             padding: 1rem 2rem;
             display: flex;
             justify-content: space-between;
@@ -52,7 +55,7 @@
         .btn {
             padding: 0.5rem 1rem;
             border: none;
-            border-radius: 5px;
+            border-radius: var(--radius-sm);
             cursor: pointer;
             text-decoration: none;
             font-weight: 500;
@@ -60,27 +63,27 @@
         }
         
         .btn-primary {
-            background: #10b981;
-            color: white;
+            background: var(--success-solid);
+            color: var(--on-accent);
         }
         
         .btn-primary:hover {
-            background: #059669;
+            background: var(--success-solid);
         }
         
         .btn-secondary {
-            background: rgba(255, 255, 255, 0.2);
-            color: white;
-            border: 1px solid rgba(255, 255, 255, 0.3);
+            background: color-mix(in srgb, var(--on-accent) 20%, transparent);
+            color: var(--on-accent);
+            border: 1px solid color-mix(in srgb, var(--on-accent) 30%, transparent);
         }
         
         .btn-danger {
-            background: #ef4444;
-            color: white;
+            background: var(--danger-solid);
+            color: var(--on-accent);
         }
         
         .btn-danger:hover {
-            background: #dc2626;
+            background: var(--danger-solid);
         }
         
         .container {
@@ -98,7 +101,7 @@
         
         .dashboard-title {
             font-size: 2rem;
-            color: #1f2937;
+            color: var(--text);
         }
         
         .stats-grid {
@@ -109,9 +112,9 @@
         }
         
         .stat-card {
-            background: white;
+            background: var(--surface);
             padding: 1.5rem;
-            border-radius: 10px;
+            border-radius: var(--radius);
             box-shadow: 0 2px 10px rgba(0,0,0,0.1);
             text-align: center;
         }
@@ -119,11 +122,11 @@
         .stat-number {
             font-size: 2rem;
             font-weight: bold;
-            color: #4f46e5;
+            color: var(--accent-text);
         }
         
         .stat-label {
-            color: #6b7280;
+            color: var(--text-muted);
             margin-top: 0.5rem;
         }
         
@@ -134,16 +137,16 @@
         }
         
         .properties-section {
-            background: white;
-            border-radius: 10px;
+            background: var(--surface);
+            border-radius: var(--radius);
             box-shadow: 0 2px 10px rgba(0,0,0,0.1);
             overflow: hidden;
         }
         
         .section-header {
-            background: #f9fafb;
+            background: var(--surface-2);
             padding: 1.5rem;
-            border-bottom: 1px solid #e5e7eb;
+            border-bottom: 1px solid var(--border);
             display: flex;
             justify-content: space-between;
             align-items: center;
@@ -152,7 +155,7 @@
         .section-title {
             font-size: 1.25rem;
             font-weight: 600;
-            color: #1f2937;
+            color: var(--text);
         }
         
         .property-grid {
@@ -163,37 +166,37 @@
         }
         
         .property-card {
-            border: 1px solid #e5e7eb;
-            border-radius: 8px;
+            border: 1px solid var(--border);
+            border-radius: var(--radius-sm);
             padding: 1.5rem;
             transition: all 0.3s ease;
         }
         
         .property-card:hover {
-            border-color: #4f46e5;
-            box-shadow: 0 4px 12px rgba(79, 70, 229, 0.1);
+            border-color: var(--accent);
+            box-shadow: 0 4px 12px var(--accent-ring);
         }
         
         .property-name {
             font-size: 1.1rem;
             font-weight: 600;
-            color: #1f2937;
+            color: var(--text);
             margin-bottom: 0.5rem;
         }
         
         .property-slug {
-            font-family: 'Courier New', monospace;
-            background: #f3f4f6;
+            font-family: var(--font-mono);
+            background: var(--surface-2);
             padding: 0.25rem 0.5rem;
-            border-radius: 4px;
+            border-radius: var(--radius-sm);
             font-size: 0.875rem;
-            color: #4f46e5;
+            color: var(--accent-text);
             margin-bottom: 1rem;
         }
         
         .property-details {
             font-size: 0.875rem;
-            color: #6b7280;
+            color: var(--text-muted);
             margin-bottom: 1rem;
         }
         
@@ -215,8 +218,8 @@
         }
         
         .quick-actions {
-            background: white;
-            border-radius: 10px;
+            background: var(--surface);
+            border-radius: var(--radius);
             box-shadow: 0 2px 10px rgba(0,0,0,0.1);
             padding: 1.5rem;
         }
@@ -233,15 +236,15 @@
         }
         
         .recent-activity {
-            background: white;
-            border-radius: 10px;
+            background: var(--surface);
+            border-radius: var(--radius);
             box-shadow: 0 2px 10px rgba(0,0,0,0.1);
             padding: 1.5rem;
         }
         
         .activity-item {
             padding: 0.75rem 0;
-            border-bottom: 1px solid #e5e7eb;
+            border-bottom: 1px solid var(--border);
             font-size: 0.875rem;
         }
         
@@ -250,7 +253,7 @@
         }
         
         .activity-time {
-            color: #6b7280;
+            color: var(--text-muted);
         }
         
         .modal {
@@ -265,10 +268,10 @@
         }
         
         .modal-content {
-            background: white;
+            background: var(--surface);
             margin: 5% auto;
             padding: 2rem;
-            border-radius: 10px;
+            border-radius: var(--radius);
             max-width: 600px;
             max-height: 80vh;
             overflow-y: auto;
@@ -280,7 +283,7 @@
             align-items: center;
             margin-bottom: 1rem;
             padding-bottom: 1rem;
-            border-bottom: 1px solid #e5e7eb;
+            border-bottom: 1px solid var(--border);
         }
         
         /* Slide Panel Styles */
@@ -290,7 +293,7 @@
             right: -100%;
             width: 60%;
             height: 100vh;
-            background: white;
+            background: var(--surface);
             z-index: 1000;
             transition: right 0.3s ease-in-out;
             box-shadow: -4px 0 20px rgba(0,0,0,0.15);
@@ -320,8 +323,8 @@
         }
         
         .slide-panel-header {
-            background: linear-gradient(135deg, #4f46e5 0%, #7c3aed 100%);
-            color: white;
+            background: var(--accent);
+            color: var(--on-accent);
             padding: 1.5rem 2rem;
             display: flex;
             justify-content: space-between;
@@ -339,9 +342,9 @@
         }
         
         .slide-panel-close {
-            background: rgba(255,255,255,0.2);
+            background: color-mix(in srgb, var(--on-accent) 20%, transparent);
             border: none;
-            color: white;
+            color: var(--on-accent);
             width: 40px;
             height: 40px;
             border-radius: 50%;
@@ -354,7 +357,7 @@
         }
         
         .slide-panel-close:hover {
-            background: rgba(255,255,255,0.3);
+            background: color-mix(in srgb, var(--on-accent) 30%, transparent);
         }
         
         .slide-panel-content {
@@ -362,22 +365,22 @@
         }
         
         .property-form-section {
-            background: #f9fafb;
-            border-radius: 8px;
+            background: var(--surface-2);
+            border-radius: var(--radius-sm);
             padding: 1.5rem;
             margin-bottom: 2rem;
         }
         
         .property-form-section h3 {
             margin: 0 0 1rem 0;
-            color: #374151;
+            color: var(--text-2);
             font-size: 1.1rem;
         }
         
         .close {
             cursor: pointer;
             font-size: 1.5rem;
-            color: #6b7280;
+            color: var(--text-muted);
         }
         
         .form-group {
@@ -388,14 +391,14 @@
             display: block;
             margin-bottom: 0.5rem;
             font-weight: 500;
-            color: #374151;
+            color: var(--text-2);
         }
         
         .form-input, .form-textarea {
             width: 100%;
             padding: 0.75rem;
-            border: 1px solid #d1d5db;
-            border-radius: 5px;
+            border: 1px solid var(--border-strong);
+            border-radius: var(--radius-sm);
             font-size: 0.875rem;
         }
         
@@ -406,8 +409,8 @@
         
         .form-input:focus, .form-textarea:focus {
             outline: none;
-            border-color: #4f46e5;
-            box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.1);
+            border-color: var(--accent);
+            box-shadow: 0 0 0 3px var(--accent-ring);
         }
         
         .form-row {
@@ -419,74 +422,74 @@
         .loading {
             text-align: center;
             padding: 2rem;
-            color: #6b7280;
+            color: var(--text-muted);
         }
         
         .error {
-            background: #fee2e2;
-            color: #991b1b;
+            background: var(--danger-bg);
+            color: var(--danger-text);
             padding: 0.75rem;
-            border-radius: 5px;
+            border-radius: var(--radius-sm);
             margin-bottom: 1rem;
         }
         
         .success {
-            background: #d1fae5;
-            color: #065f46;
+            background: var(--success-bg);
+            color: var(--success-text);
             padding: 0.75rem;
-            border-radius: 5px;
+            border-radius: var(--radius-sm);
             margin-bottom: 1rem;
         }
         
         .empty-state {
             text-align: center;
             padding: 3rem;
-            color: #6b7280;
+            color: var(--text-muted);
         }
         
         .empty-state h3 {
             margin-bottom: 1rem;
-            color: #374151;
+            color: var(--text-2);
         }
         
         .upload-area {
-            border: 2px dashed #d1d5db;
-            border-radius: 8px;
+            border: 2px dashed var(--border-strong);
+            border-radius: var(--radius-sm);
             padding: 1rem;
             text-align: center;
-            background: #f9fafb;
+            background: var(--surface-2);
             transition: all 0.3s ease;
             cursor: pointer;
         }
         
         .upload-area:hover {
-            border-color: #4f46e5;
-            background: #f0f9ff;
+            border-color: var(--accent);
+            background: var(--info-bg);
         }
         
         .upload-area.dragover {
-            border-color: #4f46e5;
-            background: #e0f2fe;
+            border-color: var(--accent);
+            background: var(--info-bg);
         }
         
         .upload-text {
-            color: #6b7280;
+            color: var(--text-muted);
             font-size: 0.875rem;
             margin-bottom: 0.5rem;
         }
         
         .upload-button {
-            background: #4f46e5;
-            color: white;
+            background: var(--accent);
+            color: var(--on-accent);
             border: none;
             padding: 0.5rem 1rem;
-            border-radius: 4px;
+            border-radius: var(--radius-sm);
             cursor: pointer;
             font-size: 0.875rem;
         }
         
         .upload-button:hover {
-            background: #4338ca;
+            background: var(--accent-hover);
         }
         
         @media (max-width: 768px) {
@@ -523,16 +526,18 @@
         }
     </style>
 </head>
-<body>
+<body class="sg-app">
     <header class="header">
         <div class="logo">StayGuide</div>
-        <div style="display: flex; gap: 1rem;">
-            <a href="#" id="dashboard-nav" style="color: white; text-decoration: none; padding: 0.5rem 1rem; background: rgba(255,255,255,0.2); border-radius: 5px;">Dashboard</a>
-            <a href="#" id="billing-nav" style="color: white; text-decoration: none; padding: 0.5rem 1rem; border-radius: 5px; transition: background 0.3s;" onmouseover="this.style.background='rgba(255,255,255,0.2)'" onmouseout="this.style.background='transparent'">Billing</a>
-        </div>
+        <!-- 2026-10-03 15:36, nav uses shared .nav-links styles (inline hover handlers removed) -->
+        <nav class="nav-links">
+            <a href="#" id="dashboard-nav" class="active" aria-current="page">Dashboard</a>
+            <a href="#" id="billing-nav">Billing</a>
+        </nav>
         <div class="company-info">
             <div class="company-name" id="company-name">Loading...</div>
             <div class="user-info">
+                <div data-theme-toggle></div>
                 <span id="user-name">Loading...</span>
                 <button class="btn btn-secondary" onclick="logout()">Logout</button>
             </div>
@@ -543,7 +548,7 @@
         <div class="dashboard-header">
             <h1 class="dashboard-title">Company Dashboard</h1>
             <div style="display: flex; gap: 1rem;">
-                <button class="btn btn-secondary" onclick="testFunction()">🧪 Test JS</button>
+                <!-- 2026-10-03 15:36, debug "Test JS" button removed from the UI (testFunction kept for console use) -->
                 <button class="btn btn-primary" onclick="openCreatePropertyModal()">Add New Property</button>
             </div>
         </div>
@@ -677,6 +682,37 @@
                     <div id="main-image-upload-status" style="margin-top: 0.5rem; font-size: 0.875rem;"></div>
                 </div>
 
+                <!-- 2026-10-03 15:40, per-property tablet look: theme + custom background (guests cannot change it) -->
+                <div class="property-form-section">
+                    <h3>Tablet Appearance</h3>
+                    <p style="margin: 0 0 1rem 0; color: var(--text-muted); font-size: 0.9rem;">
+                        Applies to this property's guest tablet. Backgrounds get a readability overlay automatically.
+                    </p>
+                    <div class="form-group">
+                        <label class="form-label" for="tablet-theme">Theme</label>
+                        <select id="tablet-theme" class="form-input">
+                            <option value="auto">Auto (follow the tablet's system setting)</option>
+                            <option value="light">Light</option>
+                            <option value="dark">Dark</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label" for="background-image-url">Background image</label>
+                        <input type="text" id="background-image-url" class="form-input" placeholder="Upload below or paste an https:// image URL"
+                               oninput="previewImage(this.value, 'background-image-preview')">
+                    </div>
+                    <div class="upload-area" id="background-image-upload-area" onclick="document.getElementById('background-image-file').click()">
+                        <div class="upload-text">Click to upload a background (landscape photos work best)</div>
+                        <button type="button" class="upload-button">Choose Image</button>
+                        <input type="file" id="background-image-file" accept="image/*" style="display: none;"
+                               onchange="uploadBackgroundImage(this.files[0])">
+                    </div>
+                    <div id="background-image-preview" style="margin-top: 0.5rem;"></div>
+                    <div id="background-image-upload-status" style="margin-top: 0.5rem; font-size: 0.875rem;"></div>
+                    <button type="button" class="btn btn-secondary btn-small" style="margin-top: 0.5rem;"
+                            onclick="document.getElementById('background-image-url').value=''; previewImage('', 'background-image-preview');">Remove background</button>
+                </div>
+
                 <!-- WiFi & Access Section -->
                 <div class="property-form-section">
                     <h3>WiFi & Access Information</h3>
@@ -719,7 +755,7 @@
                 <!-- 2026-10-03 12:32, Phase 5: direct booking + review QR codes on the tablet -->
                 <div class="property-form-section">
                     <h3>Direct Booking &amp; Reviews</h3>
-                    <p style="margin: 0 0 1rem 0; color: #6b7280; font-size: 0.9rem;">
+                    <p style="margin: 0 0 1rem 0; color: var(--text-muted); font-size: 0.9rem;">
                         The tablet shows these as QR codes guests scan with their phone. Leave blank to hide.
                     </p>
                     <div class="form-group">
@@ -738,7 +774,7 @@
                         <label class="form-label">Current guest's checkout date (review prompt shows that day)</label>
                         <input type="date" id="guest-checkout-date" class="form-input">
                     </div>
-                    <div id="link-stats" style="color: #6b7280; font-size: 0.9rem;"></div>
+                    <div id="link-stats" style="color: var(--text-muted); font-size: 0.9rem;"></div>
                 </div>
 
                 <!-- Amenities Section -->
@@ -755,12 +791,12 @@
                 <!-- 2026-10-03 11:39, paired tablets (only for saved properties) -->
                 <div class="property-form-section" id="tablets-section" style="display: none;">
                     <h3>Tablets</h3>
-                    <p style="margin: 0 0 1rem 0; color: #6b7280; font-size: 0.9rem;">
+                    <p style="margin: 0 0 1rem 0; color: var(--text-muted); font-size: 0.9rem;">
                         Open <strong>/tablet</strong> on the device (the kiosk start URL), then enter the code below. Codes expire after 15 minutes and work once.
                     </p>
-                    <div id="pairing-code-display" style="display: none; margin-bottom: 1rem; padding: 1rem; background: #eef2ff; border-radius: 8px; text-align: center;">
+                    <div id="pairing-code-display" style="display: none; margin-bottom: 1rem; padding: 1rem; background: var(--accent-soft); border-radius: var(--radius-sm); text-align: center;">
                         <div style="font-size: 2rem; font-weight: 700; letter-spacing: 0.4rem;" id="pairing-code-value"></div>
-                        <div style="color: #6b7280; font-size: 0.85rem;" id="pairing-code-expiry"></div>
+                        <div style="color: var(--text-muted); font-size: 0.85rem;" id="pairing-code-expiry"></div>
                     </div>
                     <div id="devices-list" style="margin-bottom: 1rem;"></div>
                     <div style="display: flex; gap: 0.5rem;">
@@ -770,7 +806,7 @@
                 </div>
 
                 <!-- Action Buttons -->
-                <div style="display: flex; gap: 1rem; margin-top: 2rem; padding: 1rem 0; border-top: 1px solid #e5e7eb;">
+                <div style="display: flex; gap: 1rem; margin-top: 2rem; padding: 1rem 0; border-top: 1px solid var(--border);">
                     <button type="submit" id="property-submit-btn" class="btn btn-primary" style="flex: 1;">Create Property</button>
                     <button type="button" class="btn btn-secondary" onclick="closePropertyPanel()">Cancel</button>
                 </div>
@@ -916,7 +952,7 @@
                             ${property.main_image_url ? `
                                 <div style="margin-bottom: 1rem;">
                                     <img src="${property.main_image_url}" alt="${property.name}" 
-                                         style="width: 100%; height: 150px; object-fit: cover; border-radius: 8px;">
+                                         style="width: 100%; height: 150px; object-fit: cover; border-radius: var(--radius-sm);">
                                 </div>
                             ` : ''}
                             <div class="property-name">${property.name}</div>
@@ -966,6 +1002,7 @@
             // Clear amenities and image previews
             document.getElementById('amenities-list').innerHTML = '';
             document.getElementById('main-image-preview').innerHTML = '';
+            document.getElementById('background-image-preview').innerHTML = ''; // 2026-10-03 15:40
             document.getElementById('load-amenities-btn').style.display = 'none';
 
             document.getElementById('link-stats').textContent = ''; // 2026-10-03 12:32
@@ -1012,6 +1049,8 @@
                 house_rules: document.getElementById('house-rules').value,
                 emergency_contact: document.getElementById('emergency-contact').value,
                 // 2026-10-03 12:32, Phase 5 guest links
+                tablet_theme: document.getElementById('tablet-theme').value, // 2026-10-03 15:40
+                background_image_url: document.getElementById('background-image-url').value,
                 direct_booking_url: document.getElementById('direct-booking-url').value,
                 return_guest_offer: document.getElementById('return-guest-offer').value,
                 review_url: document.getElementById('review-url').value,
@@ -1122,6 +1161,9 @@
                 document.getElementById('house-rules').value = property.house_rules || '';
                 document.getElementById('emergency-contact').value = property.emergency_contact || '';
                 // 2026-10-03 12:32, Phase 5 guest links
+                document.getElementById('tablet-theme').value = property.tablet_theme || 'auto'; // 2026-10-03 15:40
+                document.getElementById('background-image-url').value = property.background_image_url || '';
+                previewImage(property.background_image_url || '', 'background-image-preview');
                 document.getElementById('direct-booking-url').value = property.direct_booking_url || '';
                 document.getElementById('return-guest-offer').value = property.return_guest_offer || '';
                 document.getElementById('review-url').value = property.review_url || '';
@@ -1183,7 +1225,7 @@
             try {
                 const { devices } = await apiCall(devicesBasePath());
                 if (!devices.length) {
-                    list.innerHTML = '<p style="color: #6b7280; margin: 0;">No tablets paired yet.</p>';
+                    list.innerHTML = '<p style="color: var(--text-muted); margin: 0;">No tablets paired yet.</p>';
                     return;
                 }
                 list.innerHTML = devices.map(d => {
@@ -1191,10 +1233,10 @@
                         ? `Waiting for code (expires ${new Date(d.pairing_expires_at).toLocaleTimeString()})`
                         : `Last seen ${d.last_seen_at ? new Date(d.last_seen_at).toLocaleString() : 'never'}`;
                     return `
-                        <div style="display: flex; justify-content: space-between; align-items: center; padding: 0.5rem 0; border-bottom: 1px solid #e5e7eb;">
+                        <div style="display: flex; justify-content: space-between; align-items: center; padding: 0.5rem 0; border-bottom: 1px solid var(--border);">
                             <div>
                                 <strong>${escapeHtml(d.name || 'Tablet #' + d.id)}</strong>
-                                <div style="color: #6b7280; font-size: 0.85rem;">${escapeHtml(status)}</div>
+                                <div style="color: var(--text-muted); font-size: 0.85rem;">${escapeHtml(status)}</div>
                             </div>
                             <button type="button" class="btn btn-danger btn-small" onclick="revokeDevice(${Number(d.id)})">
                                 ${d.status === 'pending' ? 'Cancel' : 'Revoke'}
@@ -1202,7 +1244,7 @@
                         </div>`;
                 }).join('');
             } catch (error) {
-                list.innerHTML = `<p style="color: #dc2626; margin: 0;">Failed to load tablets: ${escapeHtml(error.message)}</p>`;
+                list.innerHTML = `<p style="color: var(--danger-text); margin: 0;">Failed to load tablets: ${escapeHtml(error.message)}</p>`;
             }
         }
 
@@ -1348,24 +1390,24 @@
             }
         });
         
-        // Image preview function
-        function previewMainImage(url) {
-            const preview = document.getElementById('main-image-preview');
+        // 2026-10-03 15:40, image preview + upload shared by the main image and the tablet background (URL is escaped: it is user input)
+        function previewImage(url, previewId) {
+            const preview = document.getElementById(previewId);
             if (url && url.trim()) {
-                preview.innerHTML = `<img src="${url}" alt="Main property image" style="max-width: 200px; max-height: 150px; border-radius: 8px; object-fit: cover;">`;
+                preview.innerHTML = `<img src="${escapeHtml(url)}" alt="Preview" style="max-width: 200px; max-height: 150px; border-radius: var(--radius-sm); object-fit: cover;">`;
             } else {
                 preview.innerHTML = '';
             }
         }
-        
-        // File upload function for main property image
-        async function uploadMainImage(file) {
+        function previewMainImage(url) { previewImage(url, 'main-image-preview'); }
+
+        async function uploadImage(file, urlInputId, previewId, statusId) {
             if (!file) return;
             
-            const statusDiv = document.getElementById('main-image-upload-status');
-            const urlInput = document.getElementById('main-image-url');
+            const statusDiv = document.getElementById(statusId);
+            const urlInput = document.getElementById(urlInputId);
             
-            statusDiv.innerHTML = '<span style="color: #3b82f6;">Uploading...</span>';
+            statusDiv.innerHTML = '<span style="color: var(--info-text);">Uploading...</span>';
             
             try {
                 const formData = new FormData();
@@ -1386,7 +1428,7 @@
                     urlInput.value = data.imageUrl;
                     
                     // Preview the uploaded image
-                    previewMainImage(data.imageUrl);
+                    previewImage(data.imageUrl, previewId);
                     
                     // Calculate size reduction
                     const originalSizeMB = (data.originalSize / (1024 * 1024)).toFixed(2);
@@ -1395,17 +1437,20 @@
                     const mediumSizeKB = (data.processedSizes.medium / 1024).toFixed(1);
                     const smallSizeKB = (data.processedSizes.small / 1024).toFixed(1);
                     
-                    statusDiv.innerHTML = `<span style="color: #10b981;">✓ Optimized & uploaded: ${data.originalName}</span><br>
-                                          <span style="color: #6b7280; font-size: 0.75rem;">Original: ${originalSizeMB}MB → Large: ${largeSizeKB}KB • Medium: ${mediumSizeKB}KB • Small: ${smallSizeKB}KB</span><br>
-                                          <span style="color: #6b7280; font-size: 0.7rem;">Processed to JPEG with Sharp optimization • Multiple sizes available</span>`;
+                    statusDiv.innerHTML = `<span style="color: var(--success-text);">✓ Optimized & uploaded: ${data.originalName}</span><br>
+                                          <span style="color: var(--text-muted); font-size: 0.75rem;">Original: ${originalSizeMB}MB → Large: ${largeSizeKB}KB • Medium: ${mediumSizeKB}KB • Small: ${smallSizeKB}KB</span><br>
+                                          <span style="color: var(--text-muted); font-size: 0.7rem;">Processed to JPEG with Sharp optimization • Multiple sizes available</span>`;
                 } else {
                     throw new Error(data.error || 'Upload failed');
                 }
             } catch (error) {
                 console.error('Error uploading image:', error);
-                statusDiv.innerHTML = `<span style="color: #ef4444;">✗ Upload failed: ${error.message}</span>`;
+                statusDiv.innerHTML = `<span style="color: var(--danger-text);">✗ Upload failed: ${error.message}</span>`;
             }
         }
+
+        function uploadMainImage(file) { return uploadImage(file, 'main-image-url', 'main-image-preview', 'main-image-upload-status'); }
+        function uploadBackgroundImage(file) { return uploadImage(file, 'background-image-url', 'background-image-preview', 'background-image-upload-status'); }
         
         // Amenities management
         let amenitiesCount = 0;
@@ -1423,43 +1468,43 @@
             
             const amenityDiv = document.createElement('div');
             amenityDiv.className = 'amenity-item';
-            amenityDiv.style.cssText = 'border: 1px solid #e5e7eb; border-radius: 8px; padding: 1rem; margin-bottom: 1rem; background: #f9fafb;';
+            amenityDiv.style.cssText = 'border: 1px solid var(--border); border-radius: var(--radius-sm); padding: 1rem; margin-bottom: 1rem; background: var(--surface-2);';
             amenityDiv.dataset.amenityId = amenityId;
             
             amenityDiv.innerHTML = `
                 <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.5rem;">
-                    <h5 style="margin: 0; color: #374151;">Amenity ${amenityData ? '#' + amenityData.id : '(New)'}</h5>
+                    <h5 style="margin: 0; color: var(--text-2);">Amenity ${amenityData ? '#' + amenityData.id : '(New)'}</h5>
                     <button type="button" class="btn btn-danger" style="padding: 0.25rem 0.5rem; font-size: 0.75rem;" onclick="removeAmenity('${amenityId}')">Remove</button>
                 </div>
                 <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.5rem;">
                     <div>
-                        <label style="display: block; margin-bottom: 0.25rem; font-size: 0.875rem; color: #374151;">Name*</label>
+                        <label style="display: block; margin-bottom: 0.25rem; font-size: 0.875rem; color: var(--text-2);">Name*</label>
                         <input type="text" class="form-input" value="${amenityData ? amenityData.name : ''}" data-field="name" required style="padding: 0.5rem; font-size: 0.875rem;">
                     </div>
                     <div>
-                        <label style="display: block; margin-bottom: 0.25rem; font-size: 0.875rem; color: #374151;">Icon</label>
+                        <label style="display: block; margin-bottom: 0.25rem; font-size: 0.875rem; color: var(--text-2);">Icon</label>
                         <input type="text" class="form-input" value="${amenityData ? amenityData.icon : ''}" data-field="icon" placeholder="🏊‍♂️" style="padding: 0.5rem; font-size: 0.875rem;">
                     </div>
                     <div>
-                        <label style="display: block; margin-bottom: 0.25rem; font-size: 0.875rem; color: #374151;">Category</label>
+                        <label style="display: block; margin-bottom: 0.25rem; font-size: 0.875rem; color: var(--text-2);">Category</label>
                         <select class="form-input" data-field="category" style="padding: 0.5rem; font-size: 0.875rem;">
                             ${amenityCategories.map(cat => `<option value="${cat}" ${amenityData && amenityData.category === cat ? 'selected' : ''}>${cat}</option>`).join('')}
                         </select>
                     </div>
                     <div>
-                        <label style="display: block; margin-bottom: 0.25rem; font-size: 0.875rem; color: #374151;">Display Order</label>
+                        <label style="display: block; margin-bottom: 0.25rem; font-size: 0.875rem; color: var(--text-2);">Display Order</label>
                         <input type="number" class="form-input" value="${amenityData ? amenityData.display_order : 0}" data-field="display_order" style="padding: 0.5rem; font-size: 0.875rem;">
                     </div>
                 </div>
                 <div style="margin-top: 0.5rem;">
-                    <label style="display: block; margin-bottom: 0.25rem; font-size: 0.875rem; color: #374151;">Description</label>
+                    <label style="display: block; margin-bottom: 0.25rem; font-size: 0.875rem; color: var(--text-2);">Description</label>
                     <textarea class="form-input" data-field="description" placeholder="Brief description of the amenity..." style="padding: 0.5rem; font-size: 0.875rem; min-height: 60px; resize: vertical;">${amenityData ? amenityData.description : ''}</textarea>
                 </div>
                 <div style="margin-top: 0.5rem;">
-                    <label style="display: block; margin-bottom: 0.25rem; font-size: 0.875rem; color: #374151;">Amenity Image</label>
+                    <label style="display: block; margin-bottom: 0.25rem; font-size: 0.875rem; color: var(--text-2);">Amenity Image</label>
                     <div style="display: flex; gap: 0.5rem; align-items: center; margin-bottom: 0.5rem;">
                         <input type="text" class="form-input" value="${amenityData ? amenityData.image_url : ''}" data-field="image_url" placeholder="Image URL or upload below" style="flex: 1; padding: 0.5rem; font-size: 0.875rem;" oninput="previewAmenityImage(this.value, '${amenityId}')">
-                        <span style="color: #6b7280; font-size: 0.75rem;">OR</span>
+                        <span style="color: var(--text-muted); font-size: 0.75rem;">OR</span>
                         <input type="file" class="form-input" accept="image/*" onchange="uploadAmenityImage(this.files[0], '${amenityId}')" style="flex: 1; padding: 0.5rem; font-size: 0.875rem;">
                     </div>
                     <div id="amenity-image-preview-${amenityId}" style="margin-top: 0.5rem;"></div>
@@ -1486,7 +1531,7 @@
         function previewAmenityImage(url, amenityId) {
             const preview = document.getElementById(`amenity-image-preview-${amenityId}`);
             if (url && url.trim()) {
-                preview.innerHTML = `<img src="${url}" alt="Amenity image" style="max-width: 150px; max-height: 100px; border-radius: 6px; object-fit: cover;">`;
+                preview.innerHTML = `<img src="${url}" alt="Amenity image" style="max-width: 150px; max-height: 100px; border-radius: var(--radius-sm); object-fit: cover;">`;
             } else {
                 preview.innerHTML = '';
             }
@@ -1499,7 +1544,7 @@
             const statusDiv = document.getElementById(`amenity-image-upload-status-${amenityId}`);
             const urlInput = document.querySelector(`[data-amenity-id="${amenityId}"] [data-field="image_url"]`);
             
-            statusDiv.innerHTML = '<span style="color: #3b82f6;">Uploading...</span>';
+            statusDiv.innerHTML = '<span style="color: var(--info-text);">Uploading...</span>';
             
             try {
                 const formData = new FormData();
@@ -1529,15 +1574,15 @@
                     const mediumSizeKB = (data.processedSizes.medium / 1024).toFixed(1);
                     const smallSizeKB = (data.processedSizes.small / 1024).toFixed(1);
                     
-                    statusDiv.innerHTML = `<span style="color: #10b981;">✓ Optimized: ${data.originalName}</span><br>
-                                          <span style="color: #6b7280; font-size: 0.7rem;">Original: ${originalSizeMB}MB → Large: ${largeSizeKB}KB • Medium: ${mediumSizeKB}KB • Small: ${smallSizeKB}KB</span><br>
-                                          <span style="color: #6b7280; font-size: 0.65rem;">Sharp-optimized JPEG • Multiple sizes for responsive display</span>`;
+                    statusDiv.innerHTML = `<span style="color: var(--success-text);">✓ Optimized: ${data.originalName}</span><br>
+                                          <span style="color: var(--text-muted); font-size: 0.7rem;">Original: ${originalSizeMB}MB → Large: ${largeSizeKB}KB • Medium: ${mediumSizeKB}KB • Small: ${smallSizeKB}KB</span><br>
+                                          <span style="color: var(--text-muted); font-size: 0.65rem;">Sharp-optimized JPEG • Multiple sizes for responsive display</span>`;
                 } else {
                     throw new Error(data.error || 'Upload failed');
                 }
             } catch (error) {
                 console.error('Error uploading amenity image:', error);
-                statusDiv.innerHTML = `<span style="color: #ef4444;">✗ Upload failed: ${error.message}</span>`;
+                statusDiv.innerHTML = `<span style="color: var(--danger-text);">✗ Upload failed: ${error.message}</span>`;
             }
         }
         

@@ -1,11 +1,12 @@
 // 2026-10-03 11:52, StayGuide tablet service worker: keeps the paired tablet usable when Wi-Fi drops.
 // Only handles the tablet's own requests; dashboard/admin traffic passes straight through.
 
-const VERSION = 'v2';
+// 2026-10-03 15:38, v3: shell now includes the shared theme.css
+const VERSION = 'v3';
 const SHELL_CACHE = `sg-shell-${VERSION}`;
 const CONTENT_CACHE = `sg-content-${VERSION}`;
 const IMAGE_CACHE = `sg-images-${VERSION}`;
-const SHELL_URLS = ['/tablet', '/css/tablet-app.css', '/manifest.json', '/icons/stayguide.svg'];
+const SHELL_URLS = ['/tablet', '/css/theme.css', '/css/tablet-app.css', '/manifest.json', '/icons/stayguide.svg'];
 const NETWORK_TIMEOUT_MS = 5000;
 const MAX_IMAGES = 150;
 

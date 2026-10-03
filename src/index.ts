@@ -42,6 +42,8 @@ app.use(express.urlencoded({ extended: true }));
 // Serve static files
 app.use('/uploads', express.static(path.join(__dirname, '../public/uploads')));
 app.use('/css', express.static(path.join(__dirname, '../public/css')));
+// 2026-10-03 15:31, shared theme switcher script
+app.use('/js', express.static(path.join(__dirname, '../public/js')));
 
 // 2026-10-03 11:52, tablet PWA files. sw.js must not be HTTP-cached or tablets keep stale workers.
 app.get('/sw.js', (req, res) => {

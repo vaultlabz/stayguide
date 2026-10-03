@@ -354,15 +354,21 @@ export class PropertyController {
   // 2026-10-03 12:32, validate/normalize optional fields that createProperty's INSERT doesn't cover
   private normalizeOptionalFields(body: any): { fields?: Record<string, any>; error?: string } {
     const fields: Record<string, any> = {};
-    for (const key of ['direct_booking_url', 'review_url', 'main_image_url']) {
+    for (const key of ['direct_booking_url', 'review_url', 'main_image_url', 'background_image_url']) {
       if (body[key] === undefined) continue;
       const value = typeof body[key] === 'string' ? body[key].trim() : '';
       if (!value) { fields[key] = null; continue; }
-      const isRelativeImage = key === 'main_image_url' && value.startsWith('/uploads/');
+      const isRelativeImage = (key === 'main_image_url' || key === 'background_image_url') && value.startsWith('/uploads/') && !value.includes('..');
       if (!isRelativeImage && !isHttpUrl(value)) {
         return { error: `${key} must be an http(s) URL` };
       }
       fields[key] = value;
+    }
+    // 2026-10-03 15:29, tablet theme is an enum (null/empty resets to auto)
+    if (body.tablet_theme !== undefined) {
+      const theme = body.tablet_theme || 'auto';
+      if (!['auto', 'light', 'dark'].includes(theme)) return { error: 'tablet_theme must be auto, light or dark' };
+      fields.tablet_theme = theme;
     }
     if (body.return_guest_offer !== undefined) {
       const offer = typeof body.return_guest_offer === 'string' ? body.return_guest_offer.trim() : '';

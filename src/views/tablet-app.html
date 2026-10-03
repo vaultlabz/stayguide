@@ -4,12 +4,29 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>StayGuide - Property Information</title>
+    <!-- 2026-10-03 15:38, shared tokens first, then tablet styles -->
+    <link rel="stylesheet" href="/css/theme.css">
     <link rel="stylesheet" href="/css/tablet-app.css">
+    <!-- 2026-10-03 15:38, the look (theme + custom background) is chosen by the property manager, not guests. The last
+         known look is cached so it applies before first paint and while offline. -->
+    <script>
+        var TABLET_LOOK_KEY = 'stayguide_tablet_look';
+        function applyTabletLook(theme, bgUrl) {
+            var root = document.documentElement;
+            if (theme === 'light' || theme === 'dark') root.setAttribute('data-theme', theme); else root.removeAttribute('data-theme');
+            var ok = typeof bgUrl === 'string' && (/^\/uploads\/[^\s"'\\()]+$/.test(bgUrl) || /^https:\/\/[^\s"'\\()]+$/.test(bgUrl));
+            if (ok) { root.style.setProperty('--tablet-bg', 'url("' + bgUrl + '")'); root.classList.add('has-bg'); }
+            else { root.style.removeProperty('--tablet-bg'); root.classList.remove('has-bg'); }
+        }
+        try { var look = JSON.parse(localStorage.getItem(TABLET_LOOK_KEY) || 'null'); if (look) applyTabletLook(look.theme, look.bg); } catch (e) {}
+    </script>
     <!-- 2026-10-03 11:52, PWA manifest (offline support for paired tablets) -->
     <link rel="manifest" href="/manifest.json">
-    <meta name="theme-color" content="#667eea">
+    <meta name="theme-color" content="#1d6b60">
 </head>
 <body>
+    <!-- 2026-10-03 15:38, custom background layer (image + scrim) -->
+    <div id="bg-layer" class="bg-layer" aria-hidden="true"></div>
     <!-- 2026-10-03 11:52, shown when content comes from the offline cache -->
     <div id="offline-banner" class="offline-banner" style="display: none;"></div>
     <div class="container">
@@ -17,16 +34,16 @@
         <div id="error" class="error" style="display: none;"></div>
 
         <!-- 2026-10-03 11:39, pairing screen for unpaired kiosk tablets (/tablet) -->
-        <div id="pairing" class="card" style="display: none; max-width: 420px; margin: 4rem auto; text-align: center;">
-            <div class="card-header" style="justify-content: center;">
-                <div class="card-icon">🔗</div>
+        <div id="pairing" class="card pairing-card" style="display: none;">
+            <div class="card-header">
+                <div class="card-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M10 13a5 5 0 0 0 7.1 0l3-3a5 5 0 0 0-7.1-7.1l-1.7 1.7"/><path d="M14 11a5 5 0 0 0-7.1 0l-3 3A5 5 0 0 0 11 21.1l1.7-1.7"/></svg></div>
                 <div class="card-title">Pair this tablet</div>
             </div>
             <p>In the StayGuide dashboard, open the property, choose <strong>Tablets → Pair new tablet</strong>, and enter the 6-digit code here.</p>
             <form id="pairingForm" class="report-form">
                 <div class="form-group">
                     <input type="text" id="pairing-code" inputmode="numeric" autocomplete="off" maxlength="6" pattern="\d{6}" required
-                           placeholder="123456" style="font-size: 2rem; text-align: center; letter-spacing: 0.5rem;">
+                           placeholder="123456" class="pairing-code" aria-label="6-digit pairing code">
                 </div>
                 <div id="pairing-error" class="error" style="display: none;"></div>
                 <button type="submit" class="pair-button">Pair Tablet</button>
@@ -35,10 +52,12 @@
         
         <div id="content" style="display: none;">
             <div class="header">
-                <div class="company-logo" id="company-name">StayGuide</div>
-                <div class="property-name" id="property-name">Loading...</div>
-                <div class="property-address" id="property-address"></div>
-                <div class="property-description" id="property-description"></div>
+                <div class="header-text">
+                    <div class="company-logo" id="company-name">StayGuide</div>
+                    <h1 class="property-name" id="property-name">Loading...</h1>
+                    <div class="property-address" id="property-address"></div>
+                    <div class="property-description" id="property-description"></div>
+                </div>
             </div>
             
             <div id="welcome-section"></div>
@@ -46,13 +65,11 @@
             <!-- 2026-10-03 12:45, manager announcements (pool closed, maintenance visits, etc.) -->
             <div id="announcements-section"></div>
 
-            <!-- 2026-10-03 12:32, Phase 5: book-direct / review QR codes -->
-            <div id="guest-links-section"></div>
             
             <div class="content-grid">
                 <div class="card">
                     <div class="card-header">
-                        <div class="card-icon">📶</div>
+                        <div class="card-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12.5a10 10 0 0 1 14 0"/><path d="M8.5 16a5 5 0 0 1 7 0"/><path d="M2 9a14 14 0 0 1 20 0"/><circle cx="12" cy="19.5" r="1" fill="currentColor"/></svg></div>
                         <div class="card-title">WiFi Information</div>
                     </div>
                     <div id="wifi-info"></div>
@@ -60,7 +77,7 @@
                 
                 <div class="card">
                     <div class="card-header">
-                        <div class="card-icon">🏠</div>
+                        <div class="card-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 11l9-8 9 8"/><path d="M5 10v10h14V10"/><path d="M10 20v-6h4v6"/></svg></div>
                         <div class="card-title">Property Information</div>
                     </div>
                     <div id="property-info"></div>
@@ -68,7 +85,7 @@
                 
                 <div class="card">
                     <div class="card-header">
-                        <div class="card-icon">⭐</div>
+                        <div class="card-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3l2.7 5.6 6.1.9-4.4 4.3 1 6.1L12 17l-5.4 2.9 1-6.1L3.2 9.5l6.1-.9z"/></svg></div>
                         <div class="card-title">Amenities</div>
                     </div>
                     <div id="amenities-section"></div>
@@ -76,7 +93,7 @@
                 
                 <div class="card">
                     <div class="card-header">
-                        <div class="card-icon">🎥</div>
+                        <div class="card-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="5" width="18" height="14" rx="3"/><path d="M10 9.5v5l4.5-2.5z" fill="currentColor"/></svg></div>
                         <div class="card-title">How-to Videos</div>
                     </div>
                     <div id="videos-section"></div>
@@ -84,7 +101,7 @@
                 
                 <div class="card">
                     <div class="card-header">
-                        <div class="card-icon">🍽️</div>
+                        <div class="card-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7 3v8a2 2 0 0 0 2 2v8"/><path d="M5 3v6M9 3v6"/><path d="M17 21V3c-2.2 1.5-3 4-3 7v3h3"/></svg></div>
                         <div class="card-title">Local Recommendations</div>
                     </div>
                     <div id="recommendations-section"></div>
@@ -92,7 +109,7 @@
                 
                 <div class="card report-card">
                     <div class="card-header">
-                        <div class="card-icon">🛠️</div>
+                        <div class="card-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M14.7 6.3a4 4 0 0 0 5 5L21 12.6 12.6 21a2.1 2.1 0 0 1-3-3L18 9.6"/><path d="M14.7 6.3L9.6 11.4M5 3l4 4-2 2-4-4z"/></svg></div>
                         <div class="card-title">Report an Issue</div>
                     </div>
                     <div class="card-content">
@@ -101,6 +118,9 @@
                     </div>
                 </div>
             </div>
+
+            <!-- 2026-10-03 15:39, QR cards moved below the info cards so Wi-Fi and house info stay above the fold (id unchanged) -->
+            <div id="guest-links-section"></div>
         </div>
     </div>
 
@@ -109,7 +129,7 @@
         <div class="modal-content video-modal-content">
             <div class="modal-header">
                 <h2 id="video-modal-title">Video</h2>
-                <span class="close" onclick="closeVideoModal()">&times;</span>
+                <button type="button" class="close" onclick="closeVideoModal()" aria-label="Close video">&times;</button>
             </div>
             <div id="video-player" class="video-player"></div>
         </div>
@@ -120,7 +140,7 @@
         <div class="modal-content">
             <div class="modal-header">
                 <h2>Report an Issue</h2>
-                <span class="close" onclick="closeReportModal()">&times;</span>
+                <button type="button" class="close" onclick="closeReportModal()" aria-label="Close">&times;</button>
             </div>
             <form id="reportForm" class="report-form">
                 <!-- 2026-10-03 11:58, no name/room/phone: guests are already known from the booking (stayguide vibe.txt) -->
@@ -339,6 +359,12 @@
             const { company, property, content, restaurants, videos, local_info, announcements, amenities } = data;
             const e = escapeHtml;
             
+            // 2026-10-03 15:38, apply the manager-chosen theme + background (cached for the next load / offline)
+            const lookTheme = ['light', 'dark'].includes(property.tablet_theme) ? property.tablet_theme : 'auto';
+            const lookBg = safeUrl(property.background_image_url);
+            applyTabletLook(lookTheme, lookBg);
+            if (isDeviceMode) storageSet(TABLET_LOOK_KEY, JSON.stringify({ theme: lookTheme, bg: lookBg }));
+
             // Update header
             document.getElementById('company-name').textContent = company.name;
             document.getElementById('property-name').textContent = property.name;
@@ -354,8 +380,7 @@
             }
             const mainImage = safeUrl(property.main_image_url);
             imageDiv.innerHTML = mainImage ? `
-                    <img src="${e(mainImage)}" alt="${e(property.name)}" 
-                         style="width: 100%; max-height: 300px; object-fit: cover; border-radius: 15px; margin-bottom: 1rem;">
+                    <img class="hero-image" src="${e(mainImage)}" alt="${e(property.name)}">
                 ` : '';
             
             // Welcome message
@@ -410,18 +435,13 @@
                 document.getElementById('amenities-section').innerHTML = amenities.map(amenity => {
                     const img = safeUrl(amenity.image_url);
                     return `
-                    <div style="display: flex; align-items: center; padding: 1rem; margin-bottom: 1rem; background: #f8fafc; border-radius: 12px; border-left: 4px solid #3b82f6;">
-                        <div style="font-size: 2rem; margin-right: 1rem;">${e(amenity.icon || '⭐')}</div>
-                        <div style="flex: 1;">
-                            <div style="font-weight: 600; color: #1f2937; margin-bottom: 0.25rem;">${e(amenity.name)}</div>
-                            <div style="color: #6b7280; font-size: 0.9rem;">${e(amenity.description)}</div>
+                    <div class="amenity-row">
+                        <div class="amenity-icon">${e(amenity.icon || '⭐')}</div>
+                        <div class="amenity-body">
+                            <div class="amenity-name">${e(amenity.name)}</div>
+                            <div class="amenity-desc">${e(amenity.description)}</div>
                         </div>
-                        ${img ? `
-                            <div style="margin-left: 1rem;">
-                                <img src="${e(img)}" alt="${e(amenity.name)}" 
-                                     style="width: 80px; height: 80px; object-fit: cover; border-radius: 8px;">
-                            </div>
-                        ` : ''}
+                        ${img ? `<img class="amenity-img" src="${e(img)}" alt="${e(amenity.name)}">` : ''}
                     </div>`;
                 }).join('');
             } else {
@@ -463,7 +483,7 @@
             if (restaurants && restaurants.length > 0) {
                 recommendationsHTML += `
                     <div class="recommendations">
-                        <h4 style="color: #92400e; margin-bottom: 1rem;">🍽️ Restaurants</h4>
+                        <h4>🍽️ Restaurants</h4>
                         ${recommendationItems(restaurants, 'name')}
                     </div>
                 `;
@@ -471,7 +491,7 @@
             if (local_info && local_info.length > 0) {
                 recommendationsHTML += `
                     <div class="recommendations">
-                        <h4 style="color: #92400e; margin-bottom: 1rem;">🏛️ Local Attractions</h4>
+                        <h4>🏛️ Local Attractions</h4>
                         ${recommendationItems(local_info, 'title')}
                     </div>
                 `;

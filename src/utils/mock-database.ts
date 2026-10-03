@@ -80,6 +80,9 @@ export const mockProperties = [
     check_out_instructions: 'Check-out is at 11:00 AM. Please leave keys in the lockbox and ensure all windows and doors are locked.',
     house_rules: 'No smoking indoors. No pets allowed. Quiet hours are 10 PM to 8 AM. Maximum 6 guests.',
     emergency_contact: 'Emergency Contact: Property Manager - (555) 123-4567',
+    // 2026-10-03 15:29, tablet appearance defaults
+    tablet_theme: 'auto',
+    background_image_url: null,
     status: 'active',
     created_at: new Date(),
     updated_at: new Date()
@@ -98,6 +101,8 @@ export const mockProperties = [
     check_out_instructions: 'Check-out by 10:00 AM. Please lock all doors.',
     house_rules: 'No smoking. Pets welcome with deposit. Quiet hours 9 PM to 8 AM.',
     emergency_contact: 'Mountain Rescue: (555) 999-0000',
+    tablet_theme: 'auto',
+    background_image_url: null,
     status: 'active',
     created_at: new Date(),
     updated_at: new Date()

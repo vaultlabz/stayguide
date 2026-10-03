@@ -3,212 +3,115 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>StayGuide - Property Management Platform</title>
+    <title>StayGuide - Digital guest guides for short-term rentals</title>
+    <!-- 2026-10-03 15:35, shared design tokens + light/dark theme (set before paint to avoid a flash) -->
+    <link rel="stylesheet" href="/css/theme.css">
+    <script src="/js/theme.js"></script>
     <style>
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }
-        
-        body {
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            line-height: 1.6;
-            color: #333;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            min-height: 100vh;
-        }
-        
-        .container {
-            max-width: 1200px;
-            margin: 0 auto;
-            padding: 0 20px;
-        }
-        
-        header {
-            padding: 1rem 0;
-            background: rgba(255, 255, 255, 0.1);
-            backdrop-filter: blur(10px);
-        }
-        
-        nav {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-        }
-        
-        .logo {
-            font-size: 1.8rem;
-            font-weight: bold;
-            color: white;
-        }
-        
-        .auth-buttons {
-            display: flex;
-            gap: 1rem;
-        }
-        
-        .btn {
-            padding: 0.8rem 1.5rem;
-            border: none;
-            border-radius: 5px;
-            text-decoration: none;
-            font-weight: 600;
-            transition: all 0.3s ease;
-            cursor: pointer;
-        }
-        
-        .btn-primary {
-            background: #4f46e5;
-            color: white;
-        }
-        
-        .btn-primary:hover {
-            background: #4338ca;
-            transform: translateY(-2px);
-        }
-        
-        .btn-secondary {
-            background: rgba(255, 255, 255, 0.2);
-            color: white;
-            border: 2px solid rgba(255, 255, 255, 0.3);
-        }
-        
-        .btn-secondary:hover {
-            background: rgba(255, 255, 255, 0.3);
-            transform: translateY(-2px);
-        }
-        
-        .hero {
-            text-align: center;
-            padding: 4rem 0;
-            color: white;
-        }
-        
-        .hero h1 {
-            font-size: 3.5rem;
-            margin-bottom: 1rem;
-            font-weight: 700;
-        }
-        
-        .hero p {
-            font-size: 1.3rem;
-            margin-bottom: 2rem;
-            opacity: 0.9;
-        }
-        
-        .features {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
-            gap: 2rem;
-            margin: 4rem 0;
-        }
-        
-        .feature {
-            background: rgba(255, 255, 255, 0.1);
-            backdrop-filter: blur(10px);
-            padding: 2rem;
-            border-radius: 10px;
-            text-align: center;
-            color: white;
-        }
-        
-        .feature h3 {
-            font-size: 1.5rem;
-            margin-bottom: 1rem;
-            color: #fbbf24;
-        }
-        
-        .cta {
-            text-align: center;
-            padding: 4rem 0;
-        }
-        
-        .cta h2 {
-            color: white;
-            font-size: 2.5rem;
-            margin-bottom: 2rem;
-        }
-        
-        footer {
-            background: rgba(0, 0, 0, 0.3);
-            color: white;
-            text-align: center;
-            padding: 2rem 0;
-        }
-        
-        @media (max-width: 768px) {
-            .hero h1 {
-                font-size: 2.5rem;
-            }
-            
-            .auth-buttons {
-                flex-direction: column;
-                gap: 0.5rem;
-            }
-            
-            nav {
-                flex-direction: column;
-                gap: 1rem;
-            }
+        /* 2026-10-03 15:35, landing page redesign: editorial layout on the shared tokens (archetype: quiet hospitality / editorial) */
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        .container { max-width: 1120px; margin: 0 auto; padding: 0 var(--space-5); }
+        header { border-bottom: 1px solid var(--border); }
+        header nav.container { display: flex; justify-content: space-between; align-items: center; gap: var(--space-4); padding: var(--space-4) var(--space-5); }
+        .logo { font-family: var(--font-display); font-size: 1.5rem; font-weight: 600; color: var(--accent-text); letter-spacing: 0.01em; text-decoration: none; }
+        .nav-right { display: flex; align-items: center; gap: var(--space-3); flex-wrap: wrap; justify-content: flex-end; }
+        .auth-buttons { display: flex; gap: var(--space-3); flex-wrap: wrap; }
+        .btn { display: inline-flex; align-items: center; justify-content: center; min-height: 44px; padding: 0 var(--space-5); border: 1px solid transparent; border-radius: 999px; text-decoration: none; font-weight: 600; font-size: var(--text-base); cursor: pointer; transition: background 0.15s var(--ease), border-color 0.15s var(--ease); }
+        .btn-primary { background: var(--accent); color: var(--on-accent); }
+        .btn-primary:hover { background: var(--accent-hover); }
+        .btn-secondary { background: transparent; color: var(--text); border-color: var(--border-strong); }
+        .btn-secondary:hover { background: var(--surface-2); }
+
+        .hero { display: grid; grid-template-columns: 1.15fr 0.85fr; gap: var(--space-7); align-items: center; padding: var(--space-8) 0 var(--space-7); }
+        .eyebrow { font-size: var(--text-sm); letter-spacing: 0.12em; text-transform: uppercase; color: var(--accent-text); font-weight: 600; margin-bottom: var(--space-4); }
+        .hero h1 { font-family: var(--font-display); font-weight: 500; font-size: clamp(2.5rem, 1.6rem + 3.4vw, 4.25rem); line-height: 1.08; letter-spacing: -0.02em; margin-bottom: var(--space-5); }
+        .hero p { font-size: var(--text-lg); color: var(--text-2); max-width: 34rem; margin-bottom: var(--space-6); }
+
+        /* Tablet mock: the one thing to remember is the kiosk in the room */
+        .device { background: var(--surface-3); border-radius: 28px; padding: 14px; box-shadow: var(--shadow-lg); border: 1px solid var(--border-strong); transform: rotate(-2deg); }
+        .screen { background: var(--bg); border-radius: 16px; padding: var(--space-4); aspect-ratio: 16 / 10; display: grid; grid-template-rows: auto 1fr; gap: var(--space-3); overflow: hidden; }
+        .screen-title { font-family: var(--font-display); font-size: 1.15rem; }
+        .screen-title small { display: block; font-family: var(--font-sans); font-size: 0.65rem; letter-spacing: 0.1em; text-transform: uppercase; color: var(--accent-text); }
+        .tiles { display: grid; grid-template-columns: repeat(3, 1fr); gap: var(--space-2); }
+        .tile { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-sm); padding: var(--space-2); font-size: 0.65rem; color: var(--text-muted); display: flex; flex-direction: column; justify-content: flex-end; }
+        .tile b { color: var(--text); font-size: 0.75rem; }
+        .tile.qr { background: #fff; color: #111; align-items: center; justify-content: center; }
+        .tile.qr i { width: 70%; aspect-ratio: 1; background: conic-gradient(#111 25%, #fff 0 50%, #111 0 75%, #fff 0) 0 0 / 22% 22%; }
+
+        .features { display: grid; grid-template-columns: repeat(3, 1fr); border-top: 1px solid var(--border); }
+        .feature { padding: var(--space-6) var(--space-5) var(--space-6) 0; border-bottom: 1px solid var(--border); }
+        .feature h3 { font-family: var(--font-display); font-weight: 500; font-size: var(--text-xl); margin-bottom: var(--space-2); }
+        .feature p { color: var(--text-muted); max-width: 28rem; }
+        .feature .n { display: block; font-size: var(--text-sm); color: var(--accent-text); font-weight: 600; margin-bottom: var(--space-2); font-variant-numeric: tabular-nums; }
+
+        .cta { text-align: center; padding: var(--space-8) 0; }
+        .cta h2 { font-family: var(--font-display); font-weight: 500; font-size: var(--text-3xl); margin-bottom: var(--space-5); }
+        .cta .auth-buttons { justify-content: center; }
+        footer { border-top: 1px solid var(--border); color: var(--text-muted); padding: var(--space-5) 0; font-size: var(--text-sm); }
+
+        @media (max-width: 860px) {
+            .hero { grid-template-columns: 1fr; padding: var(--space-6) 0; gap: var(--space-6); }
+            .features { grid-template-columns: 1fr; }
+            .feature { padding-right: 0; }
+            .device { transform: none; }
         }
     </style>
 </head>
 <body>
     <header>
         <nav class="container">
-            <div class="logo">StayGuide</div>
-            <div class="auth-buttons">
-                <a href="/admin/login" class="btn btn-secondary">Admin Login</a>
-                <a href="#company-login" class="btn btn-primary" onclick="showCompanyLogin()">Company Login</a>
+            <a class="logo" href="/">StayGuide</a>
+            <div class="nav-right">
+                <div data-theme-toggle></div>
+                <div class="auth-buttons">
+                    <a href="/admin/login" class="btn btn-secondary">Admin Login</a>
+                    <a href="#company-login" class="btn btn-primary" onclick="showCompanyLogin()">Company Login</a>
+                </div>
             </div>
         </nav>
     </header>
 
     <main class="container">
         <section class="hero">
-            <h1>Enhance Your Guests' Experience</h1>
-            <p>The complete multi-tenant platform for property owners to create customized tablet experiences for their rental guests.</p>
+            <div>
+                <div class="eyebrow">Digital guest guides</div>
+                <h1>Enhance your guests' experience</h1>
+                <p>The complete multi-tenant platform for property owners to create customized tablet experiences for their rental guests.</p>
+                <div class="auth-buttons">
+                    <a href="/company/demo-rentals/login" class="btn btn-primary">Try the demo company</a>
+                    <a href="#features" class="btn btn-secondary">See how it works</a>
+                </div>
+            </div>
+            <div class="device" aria-hidden="true">
+                <div class="screen">
+                    <div class="screen-title"><small>Welcome</small>Seaside Villa</div>
+                    <div class="tiles">
+                        <div class="tile"><b>Wi-Fi</b>SeasideVilla_Guest</div>
+                        <div class="tile"><b>Check-out</b>11:00 AM</div>
+                        <div class="tile qr"><i></i></div>
+                        <div class="tile"><b>Restaurants</b>3 nearby</div>
+                        <div class="tile"><b>How-to</b>Hot tub, TV</div>
+                        <div class="tile"><b>Report</b>Need help?</div>
+                    </div>
+                </div>
+            </div>
         </section>
 
-        <section class="features">
-            <div class="feature">
-                <h3>🏠 Multi-Property Management</h3>
-                <p>Manage multiple properties with individual customization. Each property gets its own branded tablet experience with local recommendations and property-specific information.</p>
-            </div>
-            
-            <div class="feature">
-                <h3>📱 Tablet-Optimized Interface</h3>
-                <p>Beautiful, intuitive interface designed specifically for tablet displays. Perfect for guest interaction with local restaurants, attractions, and property information.</p>
-            </div>
-            
-            <div class="feature">
-                <h3>🔧 Easy Content Management</h3>
-                <p>Simple admin dashboard to update property information, local recommendations, announcements, and how-to videos. No technical expertise required.</p>
-            </div>
-            
-            <div class="feature">
-                <h3>💰 Flexible Billing</h3>
-                <p>Transparent pricing with connection fees and per-property monthly rates. Scale your business without hidden costs or complicated pricing structures.</p>
-            </div>
-            
-            <div class="feature">
-                <h3>🎯 Local Recommendations</h3>
-                <p>Curated lists of local restaurants, attractions, and services. Help your guests discover the best your area has to offer with integrated Google Maps.</p>
-            </div>
-            
-            <div class="feature">
-                <h3>📞 Built-in Support</h3>
-                <p>Integrated helpdesk system for your questions and support needs. Get help when you need it from our dedicated support team.</p>
-            </div>
+        <section class="features" id="features">
+            <div class="feature"><span class="n">01</span><h3>Multi-property management</h3><p>Manage multiple properties with individual customization. Each property gets its own branded tablet experience with local recommendations and property-specific information.</p></div>
+            <div class="feature"><span class="n">02</span><h3>Tablet-optimized interface</h3><p>A calm, intuitive interface designed for tablet displays. Perfect for guests browsing local restaurants, attractions and property information.</p></div>
+            <div class="feature"><span class="n">03</span><h3>Easy content management</h3><p>Simple dashboard to update property information, local recommendations, announcements and how-to videos. No technical expertise required.</p></div>
+            <div class="feature"><span class="n">04</span><h3>Flexible billing</h3><p>Transparent pricing with connection fees and per-property monthly rates. Scale your business without hidden costs.</p></div>
+            <div class="feature"><span class="n">05</span><h3>Local recommendations</h3><p>Curated lists of local restaurants, attractions and services. Help your guests discover the best your area has to offer.</p></div>
+            <div class="feature"><span class="n">06</span><h3>Built-in support</h3><p>Integrated helpdesk for your questions and support needs, with a dedicated support team behind it.</p></div>
         </section>
 
         <section class="cta">
-            <h2>Ready to Get Started?</h2>
+            <h2>Ready to get started?</h2>
             <div class="auth-buttons">
                 <a href="/admin/login" class="btn btn-primary">Platform Admin</a>
                 <a href="#company-login" class="btn btn-secondary" onclick="showCompanyLogin()">Company Access</a>
-                <a href="/company/demo-rentals/login" class="btn btn-secondary" style="background: rgba(16, 185, 129, 0.3); border-color: rgba(16, 185, 129, 0.5);">🎮 Demo Company</a>
+                <a href="/company/demo-rentals/login" class="btn btn-secondary">Demo Company</a>
             </div>
         </section>
     </main>
