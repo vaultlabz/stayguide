@@ -203,3 +203,27 @@
 - **title:** Show announcements on the tablet
 - **was:** pending → **now:** done
 - **note:** announcements rendered with type styling
+
+## 2026-10-03 17:38 | claude-code | task.created
+- **id:** 28
+- **title:** UI redesign: design system, light/dark themes, design audit (docs/DESIGN_AUDIT.md)
+
+## 2026-10-03 17:38 | claude-code | task.completed
+- **id:** 28
+- **title:** UI redesign: design system, light/dark themes, design audit (docs/DESIGN_AUDIT.md)
+
+## 2026-10-03 17:38 | claude-code | task.created
+- **id:** 29
+- **title:** Tablet redesign: icon-only home, glass UI, 8 Figma luxury gradients, clock + Open-Meteo weather, Wi-Fi join QR, ease-in transitions + blurred sheets
+
+## 2026-10-03 17:38 | claude-code | task.completed
+- **id:** 29
+- **title:** Tablet redesign: icon-only home, glass UI, 8 Figma luxury gradients, clock + Open-Meteo weather, Wi-Fi join QR, ease-in transitions + blurred sheets
+
+## 2026-10-03 17:38 | claude-code | task.created
+- **id:** 30
+- **title:** Real-device check of tablet redesign on Galaxy Tab A11+ (blur/transition performance, Fully Kiosk)
+
+## 2026-10-03 17:38 | claude-code | task.created
+- **id:** 31
+- **title:** Center last row of home tiles (7 tiles wrap 4+3)

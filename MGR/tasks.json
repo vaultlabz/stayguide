@@ -372,6 +372,60 @@
         "achieve": "managers can post notices (e.g. pool cleaning) guests actually see",
         "according": "gap found during Phase 2"
       }
+    },
+    {
+      "id": 28,
+      "creationDate": "2026-10-03 17:38",
+      "title": "UI redesign: design system, light/dark themes, design audit (docs/DESIGN_AUDIT.md)",
+      "description": "commit 50d8db5",
+      "complexity": 7,
+      "completionDate": "2026-10-03 17:38",
+      "status": "done",
+      "priority": "medium",
+      "trelloCardId": null
+    },
+    {
+      "id": 29,
+      "creationDate": "2026-10-03 17:38",
+      "title": "Tablet redesign: icon-only home, glass UI, 8 Figma luxury gradients, clock + Open-Meteo weather, Wi-Fi join QR, ease-in transitions + blurred sheets",
+      "description": "commits 2df381a, 5466d12; design suite 326/326",
+      "complexity": 9,
+      "completionDate": "2026-10-03 17:38",
+      "status": "done",
+      "priority": "medium",
+      "trelloCardId": null
+    },
+    {
+      "id": 30,
+      "creationDate": "2026-10-03 17:38",
+      "title": "Real-device check of tablet redesign on Galaxy Tab A11+ (blur/transition performance, Fully Kiosk)",
+      "description": "From design review 2026-10-03",
+      "complexity": 3,
+      "completionDate": null,
+      "status": "pending",
+      "priority": "low",
+      "trelloCardId": null,
+      "context": {
+        "doing": "Real-device check of tablet redesign on Galaxy Tab A11+ (blur/transition performance, Fully Kiosk)",
+        "achieve": "tablet redesign is production-ready",
+        "according": "design review 2026-10-03"
+      }
+    },
+    {
+      "id": 31,
+      "creationDate": "2026-10-03 17:38",
+      "title": "Center last row of home tiles (7 tiles wrap 4+3)",
+      "description": "From design review 2026-10-03",
+      "complexity": 1,
+      "completionDate": null,
+      "status": "pending",
+      "priority": "low",
+      "trelloCardId": null,
+      "context": {
+        "doing": "Center last row of home tiles (7 tiles wrap 4+3)",
+        "achieve": "tablet redesign is production-ready",
+        "according": "design review 2026-10-03"
+      }
     }
   ]
 }

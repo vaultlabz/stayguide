@@ -26,3 +26,10 @@
 ## Checkpoint (claude-code)
 - Git: initial commit 4ace9ce pushed to private repo https://github.com/vaultlabz/stayguide (branches main + design)
 - Sharing: jonbeatz (jonbeatz@gmail.com) already has admin via vaultlabz org membership; no invite needed
+
+2026-10-03 17:38
+## Checkpoint (claude-code)
+- Design branch: UI redesign (50d8db5) + tablet redesign with 8 Figma luxury gradients, icon-only home, clock/weather, Wi-Fi QR, transitions + blur (2df381a, 5466d12); pushed to origin/design
+- Gradients extracted via Figma MCP (file vvZxGSsNrWLCILQJkV3aaY) and pre-rendered to public/img/gradients/*.webp
+- Verified: tsc/build, design suite 326/326, regression 15/21/24; live Open-Meteo weather + geocode OK; not yet on a real Tab A11+
+- Open: notify "muse" agent (unknown target); center 4+3 tile row; real-device check; merge design → main when approved
