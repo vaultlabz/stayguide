@@ -29,3 +29,17 @@ export async function resolveOwnedProperty(req: AuthRequest, res: Response): Pro
   }
   return property;
 }
+
+// 2026-10-03 23:06, company-level variant (billing pages): /company/:companySlug/...
+export async function resolveOwnedCompany(req: AuthRequest, res: Response) {
+  const company = await companyService.findBySlug(req.params.companySlug);
+  if (!company) {
+    res.status(404).json({ error: 'Company not found' });
+    return null;
+  }
+  if (req.user?.role === 'company_admin' && req.user.company_id !== company.id) {
+    res.status(403).json({ error: 'Access denied' });
+    return null;
+  }
+  return company;
+}

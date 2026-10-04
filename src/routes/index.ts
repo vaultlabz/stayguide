@@ -17,6 +17,11 @@ router.get('/', (req, res) => {
   res.sendFile(path.join(__dirname, '../views/landing.html'));
 });
 
+// 2026-10-03 23:06, G3 self-serve signup page
+router.get('/signup', (req, res) => {
+  res.sendFile(path.join(__dirname, '../views/signup.html'));
+});
+
 // 2026-10-03 11:39, paired tablets: /tablet, /device/pair, /device/content
 router.use(deviceRoutes);
 

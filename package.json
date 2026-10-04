@@ -13,7 +13,7 @@
     "build:clean": "rm -rf dist && npm run build",
     "test": "npm run test:unit && npm run test:e2e",
     "test:unit": "ts-node tests/e2e/unit-test.ts",
-    "test:e2e": "node tests/e2e/offline-test.js && node tests/e2e/phase3-test.js && node tests/e2e/phase5-test.js && node tests/e2e/design-test.js && node tests/e2e/content-test.js && node tests/e2e/guest-link-test.js"
+    "test:e2e": "node tests/e2e/offline-test.js && node tests/e2e/phase3-test.js && node tests/e2e/phase5-test.js && node tests/e2e/design-test.js && node tests/e2e/content-test.js && node tests/e2e/guest-link-test.js && node tests/e2e/billing-test.js"
   },
   "keywords": [
     "rental",
@@ -36,7 +36,8 @@
     "multer": "^2.0.1",
     "mysql2": "^3.6.0",
     "qrcode": "^1.5.4",
-    "sharp": "^0.35.5"
+    "sharp": "^0.35.5",
+    "stripe": "^23.0.0"
   },
   "devDependencies": {
     "@types/bcryptjs": "^2.4.2",

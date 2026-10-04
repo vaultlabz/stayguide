@@ -3,17 +3,26 @@ import { Request, Response } from 'express';
 import { AuthRequest } from '../types';
 import { DeviceService } from '../services/DeviceService';
 import { PropertyService } from '../services/PropertyService';
-import { resolveOwnedProperty } from '../utils/ownership'; // 2026-10-03 22:25, shared ownership check
+import { resolveOwnedProperty } from '../utils/ownership';
+import { CompanyService } from '../services/CompanyService';
+import { entitlementsFor, upgradeRequired } from '../services/EntitlementService'; // 2026-10-03 23:06 // 2026-10-03 22:25, shared ownership check
 
 export class DeviceController {
   private deviceService = new DeviceService();
   private propertyService = new PropertyService();
+  private companyService = new CompanyService();
 
   // POST /company/:companySlug/properties/:propertySlug/devices/pairing-code
   async createPairingCode(req: AuthRequest, res: Response) {
     try {
       const property = await resolveOwnedProperty(req, res);
       if (!property) return;
+
+      // 2026-10-03 23:06, G3: pairing tablets is a Pro feature
+      const company = await this.companyService.findById(property.company_id);
+      if (!entitlementsFor(company).features.tablet && req.user?.role !== 'super_admin') {
+        return upgradeRequired(res, 'tablet', 'Tablets are part of Pro. The Free plan includes the phone guide link.');
+      }
 
       const name = typeof req.body?.name === 'string' ? req.body.name.trim().slice(0, 100) : undefined;
       const { device, code, expiresAt } = await this.deviceService.createPairingCode(property.id, name || undefined);

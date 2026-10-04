@@ -1,5 +1,37 @@
 # StayGuide SaaS Platform Development Plan
 
+## [2026-10-03] - FEATURE: Plans, Self-Serve Signup and Stripe Billing (G3, task #37)
+
+**What Changed:**
+- ✅ `src/config/plans.ts`: locked pricing in one place (Free $0 / Pro $9.99 per property per month or $89/yr / Portfolio $32 per 5-property block; Desk/Wall kits $399/$699 or $39/$49 per month bundles; Signature quote)
+- ✅ Entitlements (`EntitlementService`), enforced server-side: Free = 1 property, guide link only; Pro/Portfolio = tablet pairing + content, themes, announcements, no branding. `past_due` = grace, `canceled` → Free. Plan limits answer 402 `upgrade_required`
+- ✅ Self-serve signup: `/signup` page + `POST /api/signup` (validation, unique slug, rate limit) → Free account, logged in
+- ✅ Stripe (`stripe` 23.0.0): Checkout with cards + ACH (`allowed_payment_method_types`), pay-by-invoice subscriptions (send_invoice, 14 days, bank transfer/ACH/card), hardware Checkout (purchase with bank transfer + shipping, or monthly bundle), Customer Portal
+- ✅ Webhooks at `POST /billing/webhook` (raw body before express.json, signature-verified, idempotent via `stripe_events`); handles checkout, async payment, subscription created/updated/deleted, invoice.payment_failed
+- ✅ Quantity sync: adding a property prorates; removing one lowers the quantity from the next invoice (no refund)
+- ✅ New billing page (`company-billing.html`): current plan, plan cards with monthly/annual, pay by invoice, hardware kits, orders. Dashboard shows upgrade prompts on 402 and the real monthly cost (was `$NaN`)
+- ✅ Admin: `GET/PUT /admin/hardware-orders` for fulfilment
+- ✅ Migration `2026-10-03_plans_billing.sql`: company plan/subscription columns, `stripe_events`, `hardware_orders`, missing `billing.stripe_*` columns. **Existing companies grandfathered as Pro (legacy)**
+- ✅ `docs/BILLING_SETUP.md`: products/prices, payment methods, portal, webhook events, env vars, go-live test
+- ✅ Fixed: mock `createUser` stored the plain password (mock signups couldn't log in); tablet shows "needs an active subscription" on 402 instead of a misleading offline banner
+
+**Why:**
+- PRD v1.0: self-serve from property #1, published pricing, invoices visible to owners, billing stops when a property is removed
+
+**How:**
+- Without `STRIPE_SECRET_KEY`, billing endpoints answer 503 and the page shows a notice; the rest of the app is unaffected
+- Billing state is written only by `CompanyService.setBillingState` (its own whitelist), never from request bodies
+- Subscription events only apply to the company's current subscription id
+
+**Impact:**
+- **Revenue**: hosts can sign up and pay with no sales call; ACH and bank transfer lower fees on larger plans
+- **Trust**: transparent proration rules; the owner sees invoices via the Portal
+
+**Technical Details:**
+- New suite `tests/e2e/billing-test.js` (62 checks) runs the real Stripe SDK against a local fake Stripe API; webhooks are signed with the SDK test helper
+- Full regression: unit 24, offline 15, phase3 21, phase5 24, design 326, content 30, guest-link 36, billing 62
+- Not tested against real Stripe (no keys yet) or real MySQL
+
 ## [2026-10-03] - FEATURE: Free-Tier Phone/Web Guide Link (G2, task #36)
 
 **What Changed:**

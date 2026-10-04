@@ -5,6 +5,7 @@ import { PropertyController } from '../controllers/PropertyController';
 import { DeviceController } from '../controllers/DeviceController';
 import { ContentController } from '../controllers/ContentController';
 import { GuestLinkController } from '../controllers/GuestLinkController';
+import { BillingPlanController } from '../controllers/BillingPlanController';
 import { authenticateToken, requireCompanyAdmin } from '../middleware/auth';
 import { uploadPropertyImage, uploadAmenityImage } from '../middleware/upload';
 
@@ -22,6 +23,7 @@ const propertyController = new PropertyController();
 const deviceController = new DeviceController();
 const contentController = new ContentController();
 const guestLinkController = new GuestLinkController();
+const billingPlanController = new BillingPlanController();
 
 // Company admin login
 router.get('/login', (req: express.Request<CompanyParams>, res) => {
@@ -82,6 +84,13 @@ router.put('/properties/:propertySlug/content/:type/order', contentController.re
 router.put('/properties/:propertySlug/content/:type/:id', contentController.update.bind(contentController));
 router.delete('/properties/:propertySlug/content/:type/:id', contentController.remove.bind(contentController));
 router.put('/properties/:propertySlug/welcome', contentController.setWelcome.bind(contentController));
+
+// 2026-10-03 23:06, G3 self-serve billing (Stripe)
+router.get('/billing/status', billingPlanController.status.bind(billingPlanController));
+router.post('/billing/checkout', billingPlanController.checkout.bind(billingPlanController));
+router.post('/billing/invoice', billingPlanController.invoice.bind(billingPlanController));
+router.post('/billing/hardware', billingPlanController.hardware.bind(billingPlanController));
+router.post('/billing/portal', billingPlanController.portal.bind(billingPlanController));
 
 // 2026-10-03 22:42, G2 public phone/web guide link
 router.get('/properties/:propertySlug/guest-link', guestLinkController.get.bind(guestLinkController));

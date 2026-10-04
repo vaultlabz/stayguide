@@ -5,6 +5,7 @@ import morgan from 'morgan';
 import dotenv from 'dotenv';
 import path from 'path';
 import routes from './routes';
+import { BillingPlanController } from './controllers/BillingPlanController';
 
 dotenv.config();
 
@@ -36,6 +37,10 @@ app.use(helmet({
 }));
 app.use(cors());
 app.use(morgan('combined'));
+// 2026-10-03 23:06, G3 Stripe webhook needs the raw body for signature verification, so it is mounted before express.json()
+const billingWebhook = new BillingPlanController();
+app.post('/billing/webhook', express.raw({ type: 'application/json', limit: '1mb' }), billingWebhook.webhook.bind(billingWebhook));
+
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 

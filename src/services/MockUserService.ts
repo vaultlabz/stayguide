@@ -1,5 +1,5 @@
 import { User } from '../types';
-import { comparePassword } from '../utils/auth';
+import { comparePassword, hashPassword } from '../utils/auth';
 import { mockUsers, mockDelay, MOCK_MODE } from '../utils/mock-database';
 
 export class MockUserService {
@@ -56,9 +56,12 @@ export class MockUserService {
     
     await mockDelay();
     
+    // 2026-10-03 23:06, hash like the real service (was storing the plain password, so mock signups couldn't log in)
+    const { password, ...rest } = userData;
     const newUser = {
       id: Math.max(...mockUsers.map(u => u.id)) + 1,
-      ...userData,
+      ...rest,
+      password_hash: await hashPassword(password),
       status: 'active',
       created_at: new Date(),
       updated_at: new Date()

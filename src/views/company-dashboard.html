@@ -996,6 +996,14 @@
                 
                 const data = await response.json();
                 
+                // 2026-10-03 23:06, G3: plan limits come back as 402 upgrade_required, so offer the billing page
+                if (response.status === 402 && data.code === 'upgrade_required') {
+                    if (confirm(`${data.error}\n\nOpen Plan & billing to upgrade?`)) {
+                        window.location.href = `/company/${companySlug}/billing`;
+                    }
+                    throw new Error(data.error);
+                }
+
                 if (!response.ok) {
                     throw new Error(data.error || 'API request failed');
                 }
@@ -1090,12 +1098,14 @@
         function updateStats(properties, company) {
             const totalProperties = properties.length;
             const activeProperties = properties.filter(p => p.status === 'active').length;
-            const monthlyCost = company ? (company.monthly_fee_per_property * activeProperties).toFixed(2) : '0.00';
+            // 2026-10-03 23:06, G3: real plan cost (was monthly_fee_per_property * n, which showed $NaN)
+            const monthlyCost = '…';
             
             document.getElementById('total-properties').textContent = totalProperties;
             document.getElementById('active-properties').textContent = activeProperties;
-            document.getElementById('monthly-cost').textContent = `$${monthlyCost}`;
+            document.getElementById('monthly-cost').textContent = monthlyCost; // 2026-10-03 23:06, placeholder until loadPlanCost() fills it
             document.getElementById('tablet-views').textContent = '-'; // TODO: Implement analytics
+            loadPlanCost(); // 2026-10-03 23:06
         }
         
         // Slide Panel functions
@@ -1336,6 +1346,22 @@
                 el.textContent = `Last ${days} days: ${stats.book} booking scans · ${stats.showcase} other-property scans · ${stats.review} review scans`;
             } catch (error) {
                 el.textContent = '';
+            }
+        }
+
+        // 2026-10-03 23:06, G3 monthly cost card from the billing status
+        async function loadPlanCost() {
+            const el = document.getElementById('monthly-cost');
+            try {
+                const b = await apiCall(`/company/${companySlug}/billing/status`);
+                const plan = b.plans[b.plan];
+                let cost = 0;
+                if (b.plan === 'pro') cost = b.interval === 'year' ? (plan.price.year * b.billed_quantity) / 12 : plan.price.month * b.billed_quantity;
+                if (b.plan === 'portfolio') cost = plan.price.month * b.billed_quantity;
+                el.textContent = b.status === 'legacy' ? 'Invoiced' : `$${cost.toFixed(2)}`;
+                el.title = `${plan.name} plan`;
+            } catch {
+                el.textContent = '-';
             }
         }
 

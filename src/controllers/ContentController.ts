@@ -2,6 +2,8 @@
 import { Response } from 'express';
 import { AuthRequest } from '../types';
 import { resolveOwnedProperty } from '../utils/ownership';
+import { CompanyService } from '../services/CompanyService';
+import { entitlementsFor, upgradeRequired } from '../services/EntitlementService'; // 2026-10-03 23:06
 import { ContentService, CONTENT_TYPES, isContentType, validateContent } from '../services/ContentService';
 
 export class ContentController {
@@ -42,6 +44,12 @@ export class ContentController {
       if (!isContentType(type)) return res.status(404).json({ error: 'Unknown content type' });
       const property = await resolveOwnedProperty(req, res);
       if (!property) return;
+
+      // 2026-10-03 23:06, G3: announcements on the home screen are a Pro feature
+      if (type === 'announcements' && req.user?.role !== 'super_admin') {
+        const company = await new CompanyService().findById(property.company_id);
+        if (!entitlementsFor(company).features.announcements) return upgradeRequired(res, 'announcements', 'Announcements are part of Pro.');
+      }
 
       const { fields, error } = validateContent(type, req.body, false);
       if (error) return res.status(400).json({ error });

@@ -45,6 +45,8 @@ export const mockCompanies = [
     status: 'active',
     connection_fee: 50.00,
     monthly_fee_per_property: 29.99,
+    plan: 'pro', // 2026-10-03 23:06, demo companies are grandfathered (legacy manual billing)
+    subscription_status: 'legacy',
     created_at: new Date(),
     updated_at: new Date()
   },
@@ -59,6 +61,8 @@ export const mockCompanies = [
     status: 'active',
     connection_fee: 75.00,
     monthly_fee_per_property: 39.99,
+    plan: 'pro', // 2026-10-03 23:06, demo companies are grandfathered (legacy manual billing)
+    subscription_status: 'legacy',
     created_at: new Date(),
     updated_at: new Date()
   }
@@ -264,6 +268,10 @@ export const mockAnnouncements: any[] = [
     created_at: new Date()
   }
 ];
+
+// 2026-10-03 23:06, G3 mock billing state
+export const mockStripeEvents: Set<string> = new Set();
+export const mockHardwareOrders: any[] = [];
 
 // 2026-10-03 22:25, mock how-to videos, local info and welcome text (were hard-coded in MockPropertyService)
 export const mockVideos: any[] = [

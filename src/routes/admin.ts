@@ -2,11 +2,13 @@ import express from 'express';
 import path from 'path';
 import { AuthController } from '../controllers/AuthController';
 import { CompanyController } from '../controllers/CompanyController';
+import { BillingPlanController } from '../controllers/BillingPlanController';
 import { authenticateToken, requireSuperAdmin } from '../middleware/auth';
 
 const router = express.Router();
 const authController = new AuthController();
 const companyController = new CompanyController();
+const billingPlanController = new BillingPlanController();
 
 // Main admin login
 router.get('/login', (req, res) => {
@@ -38,6 +40,10 @@ router.get('/invoice/:invoiceId', (req, res) => {
 
 // Protected routes - require super admin authentication
 router.use(authenticateToken, requireSuperAdmin);
+
+// 2026-10-03 23:06, G3 hardware order fulfilment
+router.get('/hardware-orders', billingPlanController.listOrders.bind(billingPlanController));
+router.put('/hardware-orders/:id', billingPlanController.updateOrder.bind(billingPlanController));
 
 // Companies management API
 router.get('/companies', companyController.getAllCompanies.bind(companyController));

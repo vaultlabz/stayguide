@@ -11,6 +11,14 @@ export interface Company {
   status: 'active' | 'inactive' | 'suspended';
   connection_fee: number;
   monthly_fee_per_property: number;
+  // 2026-10-03 23:06, G3 plans + Stripe Billing (never client-writable; see BillingService)
+  plan?: 'free' | 'pro' | 'portfolio';
+  billing_interval?: 'month' | 'year' | null;
+  subscription_status?: string | null;
+  stripe_customer_id?: string | null;
+  stripe_subscription_id?: string | null;
+  current_period_end?: Date | string | null;
+  cancel_at_period_end?: boolean | number;
   created_at: Date;
   updated_at: Date;
 }

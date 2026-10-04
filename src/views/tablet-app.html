@@ -373,6 +373,18 @@
                     return showPairingScreen('This tablet is no longer paired. Enter a new code from the dashboard.');
                 }
 
+                // 2026-10-03 23:06, G3: tablet whose company has no paid plan (keep the pairing; retry later)
+                if (response.status === 402 && isDeviceMode) {
+                    loadedContent = null;
+                    setOfflineBanner(null);
+                    document.getElementById('loading').style.display = 'none';
+                    document.getElementById('content').style.display = 'none';
+                    document.getElementById('error').style.display = 'block';
+                    document.getElementById('error').textContent = 'This tablet needs an active StayGuide Pro subscription. Please ask the property manager to renew it.';
+                    setTimeout(loadPropertyContent, 5 * 60 * 1000);
+                    return;
+                }
+
                 if (!response.ok && isGuestLinkMode) {
                     throw new Error(response.status === 404
                         ? 'This guide link is no longer valid. Please ask your host for the current link.'
@@ -386,6 +398,7 @@
                 }
 
                 loadedContent = data;
+                document.documentElement.classList.toggle('show-branding', !!data.show_branding); // 2026-10-03 23:06
                 displayPropertyContent(data);
                 document.getElementById('error').style.display = 'none';
 

@@ -513,8 +513,8 @@
       "title": "G3: Plans, entitlements, self-serve signup, Stripe Billing (cards + ACH, bank-transfer invoices)",
       "description": "Guest product plan (PRD v1.0 follow-up), see ~/.claude/plans/lets-discuss-this-i-robust-panda.md",
       "complexity": 9,
-      "completionDate": null,
-      "status": "pending",
+      "completionDate": "2026-10-03 23:31",
+      "status": "done",
       "priority": "high",
       "trelloCardId": null,
       "context": {

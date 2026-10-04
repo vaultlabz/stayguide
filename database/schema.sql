@@ -12,6 +12,13 @@ CREATE TABLE companies (
     status ENUM('active', 'inactive', 'suspended') DEFAULT 'active',
     connection_fee DECIMAL(10,2) DEFAULT 0.00,
     monthly_fee_per_property DECIMAL(10,2) DEFAULT 0.00,
+    plan ENUM('free', 'pro', 'portfolio') NOT NULL DEFAULT 'free', -- 2026-10-03 23:06, G3 billing
+    billing_interval ENUM('month', 'year') NULL,
+    subscription_status VARCHAR(32) NULL,
+    stripe_customer_id VARCHAR(64) NULL UNIQUE,
+    stripe_subscription_id VARCHAR(64) NULL,
+    current_period_end TIMESTAMP NULL,
+    cancel_at_period_end BOOLEAN NOT NULL DEFAULT FALSE,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
     
@@ -199,6 +206,8 @@ CREATE TABLE billing (
     status ENUM('pending', 'paid', 'overdue', 'cancelled') DEFAULT 'pending',
     invoice_number VARCHAR(100) UNIQUE,
     paid_at TIMESTAMP NULL,
+    stripe_payment_intent_id VARCHAR(255) NULL, -- 2026-10-03 23:06 (code used it; column was missing)
+    stripe_customer_id VARCHAR(64) NULL,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
     
@@ -395,4 +404,26 @@ CREATE TABLE link_clicks (
 
     FOREIGN KEY (property_id) REFERENCES properties(id) ON DELETE CASCADE,
     INDEX idx_property_created (property_id, created_at)
+);
+
+-- 2026-10-03 23:06, G3 Stripe webhook idempotency + hardware orders
+CREATE TABLE stripe_events (
+    id VARCHAR(255) PRIMARY KEY,
+    type VARCHAR(100) NOT NULL,
+    received_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE TABLE hardware_orders (
+    id INT PRIMARY KEY AUTO_INCREMENT,
+    company_id INT NOT NULL,
+    kit ENUM('desk', 'wall') NOT NULL,
+    mode ENUM('purchase', 'bundle') NOT NULL,
+    status ENUM('pending', 'paid', 'shipped', 'cancelled') NOT NULL DEFAULT 'pending',
+    stripe_checkout_session_id VARCHAR(255) NULL UNIQUE,
+    amount_total DECIMAL(10,2) NULL,
+    shipping_details TEXT NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    FOREIGN KEY (company_id) REFERENCES companies(id) ON DELETE CASCADE,
+    INDEX idx_status (status)
 );

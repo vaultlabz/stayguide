@@ -284,3 +284,9 @@
 - **title:** G2: Free tier phone/web guide link (/g/:token, mobile layout, Wi-Fi toggle)
 - **was:** pending → **now:** done
 - **note:** guest-link-test 36/36; full regression green (476 checks)
+
+## 2026-10-03 23:31 | claude-code | task.completed
+- **id:** 37
+- **title:** G3: Plans, entitlements, self-serve signup, Stripe Billing (cards + ACH, bank-transfer invoices)
+- **was:** pending → **now:** done
+- **note:** billing-test 62/62 vs fake Stripe; full regression green (538 checks); awaiting real Stripe keys

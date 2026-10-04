@@ -2,7 +2,7 @@ import { RowDataPacket } from 'mysql2';
 import { db } from '../utils/database';
 import { Company } from '../types';
 import { MockCompanyService } from './MockCompanyService';
-import { MOCK_MODE } from '../utils/mock-database';
+import { MOCK_MODE, mockCompanies } from '../utils/mock-database';
 import { pickAllowedFields, buildSetClause, COMPANY_UPDATE_FIELDS } from '../utils/sql';
 
 export class CompanyService {
@@ -30,6 +30,27 @@ export class CompanyService {
       console.error('Error finding company by ID:', error);
       throw new Error('Database error');
     }
+  }
+
+  // 2026-10-03 23:06, G3 billing state: written only by BillingService / webhooks, never from request bodies
+  static readonly BILLING_FIELDS = ['plan', 'billing_interval', 'subscription_status', 'stripe_customer_id', 'stripe_subscription_id', 'current_period_end', 'cancel_at_period_end'] as const;
+
+  async setBillingState(id: number, state: Partial<Company>): Promise<void> {
+    const fields = pickAllowedFields(state as Record<string, any>, CompanyService.BILLING_FIELDS);
+    if (!Object.keys(fields).length) return;
+    if (MOCK_MODE) {
+      const company: any = mockCompanies.find(c => c.id === id);
+      if (company) Object.assign(company, fields);
+      return;
+    }
+    const { setClause, values } = buildSetClause(fields);
+    await db.execute(`UPDATE companies SET ${setClause}, updated_at = CURRENT_TIMESTAMP WHERE id = ?`, [...values, id]);
+  }
+
+  async findByStripeCustomerId(customerId: string): Promise<Company | null> {
+    if (MOCK_MODE) return (mockCompanies.find((c: any) => c.stripe_customer_id === customerId) as unknown as Company) || null;
+    const [rows] = await db.execute<RowDataPacket[]>('SELECT * FROM companies WHERE stripe_customer_id = ?', [customerId]);
+    return (rows[0] as Company) || null;
   }
 
   async findBySlug(slug: string): Promise<Company | null> {

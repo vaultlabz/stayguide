@@ -1,0 +1,123 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Create your account - StayGuide</title>
+    <!-- 2026-10-03 23:06, G3 self-serve signup (Free plan, no sales call) -->
+    <link rel="stylesheet" href="/css/theme.css">
+    <script src="/js/theme.js"></script>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: var(--font-sans); background: var(--accent); min-height: 100vh; display: flex; align-items: center; justify-content: center; padding: 24px 16px; }
+        .signup-container { background: var(--surface); padding: 2.5rem; border-radius: var(--radius-lg); box-shadow: 0 20px 40px rgba(0,0,0,0.1); width: 100%; max-width: 460px; }
+        .logo { text-align: center; margin-bottom: 1.75rem; }
+        .logo h1 { color: var(--accent-text); font-size: 2rem; margin-bottom: 0.4rem; }
+        .logo p { color: var(--text-muted); font-size: 0.95rem; }
+        .plan-note { text-align: center; margin-bottom: 1.5rem; padding: 0.75rem 1rem; background: var(--surface-2); border-radius: var(--radius-sm); color: var(--text-2); font-size: 0.9rem; }
+        .form-row { display: flex; gap: 0.75rem; }
+        .form-row .form-group { flex: 1; }
+        .form-group { margin-bottom: 1.1rem; }
+        .form-label { display: block; margin-bottom: 0.45rem; font-weight: 500; color: var(--text-2); }
+        .form-input { width: 100%; padding: 0.75rem; border: 1px solid var(--border-strong); border-radius: var(--radius-sm); font-size: 1rem; background: var(--surface); color: var(--text); }
+        .form-input:focus { outline: none; border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent-ring); }
+        .hint { color: var(--text-muted); font-size: 0.8rem; margin-top: 0.3rem; }
+        .btn { width: 100%; padding: 0.8rem; background: var(--accent); color: var(--on-accent); border: none; border-radius: var(--radius-sm); font-size: 1rem; font-weight: 600; cursor: pointer; margin-top: 0.25rem; }
+        .btn:hover { background: var(--accent-hover); }
+        .btn:disabled { background: var(--disabled-bg); cursor: not-allowed; }
+        .btn:focus-visible { outline: 2px solid var(--text); outline-offset: 2px; }
+        .error { background: var(--danger-bg); color: var(--danger-text); padding: 0.75rem; border-radius: var(--radius-sm); margin-bottom: 1rem; font-size: 0.9rem; }
+        .links { text-align: center; margin-top: 1.5rem; color: var(--text-muted); font-size: 0.9rem; }
+        .links a { color: var(--accent-text); text-decoration: none; }
+        .links a:hover { text-decoration: underline; }
+        @media (max-width: 480px) { .signup-container { padding: 1.75rem 1.25rem; } .form-row { flex-direction: column; gap: 0; } }
+    </style>
+</head>
+<body class="sg-auth">
+    <main class="signup-container">
+        <div class="logo">
+            <h1>StayGuide</h1>
+            <p>Create your account in a minute</p>
+        </div>
+        <div class="plan-note" id="plan-note">Start free with 1 property and a phone guide link. Upgrade anytime.</div>
+
+        <div id="error-message" class="error" role="alert" style="display: none;"></div>
+
+        <form id="signupForm" novalidate>
+            <div class="form-group">
+                <label class="form-label" for="company_name">Company or host name</label>
+                <input type="text" id="company_name" class="form-input" maxlength="120" autocomplete="organization" required>
+            </div>
+            <div class="form-row">
+                <div class="form-group">
+                    <label class="form-label" for="first_name">First name</label>
+                    <input type="text" id="first_name" class="form-input" maxlength="100" autocomplete="given-name" required>
+                </div>
+                <div class="form-group">
+                    <label class="form-label" for="last_name">Last name</label>
+                    <input type="text" id="last_name" class="form-input" maxlength="100" autocomplete="family-name" required>
+                </div>
+            </div>
+            <div class="form-group">
+                <label class="form-label" for="email">Email</label>
+                <input type="email" id="email" class="form-input" maxlength="255" autocomplete="email" required>
+            </div>
+            <div class="form-group">
+                <label class="form-label" for="password">Password</label>
+                <input type="password" id="password" class="form-input" minlength="8" maxlength="128" autocomplete="new-password" required>
+                <div class="hint">At least 8 characters.</div>
+            </div>
+            <button type="submit" class="btn" id="signupBtn">Create free account</button>
+        </form>
+
+        <div class="links">
+            Already have an account? Sign in from your company page.<br>
+            <a href="/">&larr; Back to home</a>
+        </div>
+    </main>
+
+    <script>
+        // ?plan=pro|portfolio comes from the pricing section: send them to billing after signup
+        const wantedPlan = new URLSearchParams(location.search).get('plan');
+        if (wantedPlan === 'pro' || wantedPlan === 'portfolio') {
+            document.getElementById('plan-note').textContent = `You'll choose ${wantedPlan === 'pro' ? 'Pro' : 'Portfolio'} right after creating your account. Free to start.`;
+        }
+
+        const showError = message => {
+            const el = document.getElementById('error-message');
+            el.textContent = message;
+            el.style.display = 'block';
+        };
+
+        document.getElementById('signupForm').addEventListener('submit', async e => {
+            e.preventDefault();
+            document.getElementById('error-message').style.display = 'none';
+            const form = e.target;
+            if (!form.checkValidity()) {
+                const bad = form.querySelector(':invalid');
+                showError(bad.id === 'password' ? 'Password must be at least 8 characters.' : `Please fill in ${form.querySelector(`label[for="${bad.id}"]`).textContent.toLowerCase()}.`);
+                bad.focus();
+                return;
+            }
+            const btn = document.getElementById('signupBtn');
+            btn.disabled = true;
+            btn.textContent = 'Creating your account…';
+            try {
+                const body = Object.fromEntries(['company_name', 'first_name', 'last_name', 'email', 'password'].map(k => [k, document.getElementById(k).value]));
+                const response = await fetch('/api/signup', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
+                const data = await response.json();
+                if (!response.ok) throw new Error(data.error || 'Signup failed');
+                try { localStorage.setItem('stayguide_token', data.token); } catch {}
+                const slug = encodeURIComponent(data.company.slug);
+                location.href = (wantedPlan === 'pro' || wantedPlan === 'portfolio')
+                    ? `/company/${slug}/billing?upgrade=${wantedPlan}`
+                    : `/company/${slug}/dashboard`;
+            } catch (error) {
+                showError(error.message);
+                btn.disabled = false;
+                btn.textContent = 'Create free account';
+            }
+        });
+    </script>
+</body>
+</html>

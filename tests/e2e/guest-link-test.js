@@ -79,7 +79,8 @@ const kill = () => { try { execSync('lsof -ti tcp:' + H.PORT + ' -sTCP:LISTEN | 
   await phone.goto(B + `/g/${token2}`);
   await phone.waitForSelector('#content', { state: 'visible', timeout: 10000 });
   check('guide loads on phone, no pairing screen', !(await phone.isVisible('#pairing')));
-  check('"Powered by StayGuide" footer shown', await phone.isVisible('.powered-by'));
+  // 2026-10-03 23:06, demo company is grandfathered Pro, so branding is hidden (Free accounts are covered in billing-test.js)
+  check('"Powered by StayGuide" hidden on Pro', !(await phone.isVisible('.powered-by')));
   const cols = await phone.evaluate(() => getComputedStyle(document.querySelector('.tiles')).gridTemplateColumns.split(' ').length);
   check('tiles in 2 columns on phone', cols === 2, String(cols));
   check('no horizontal scroll', await phone.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth));

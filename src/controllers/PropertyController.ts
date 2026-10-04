@@ -3,6 +3,8 @@ import { PropertyService } from '../services/PropertyService';
 import { CompanyService } from '../services/CompanyService';
 import { AuthRequest, Property } from '../types';
 import { LinkService, isHttpUrl } from '../services/LinkService';
+import { entitlementsFor, countActiveProperties, upgradeRequired } from '../services/EntitlementService'; // 2026-10-03 23:06
+import { StripeBillingService } from '../services/StripeBillingService';
 import QRCode from 'qrcode';
 import path from 'path';
 import { wifiQrPayload } from '../utils/wifi';
@@ -25,6 +27,11 @@ export class PropertyController {
   private propertyService = new PropertyService();
   private companyService = new CompanyService();
   private linkService = new LinkService();
+
+  // 2026-10-03 23:06, G3: keep the Stripe quantity in step with active properties (never blocks the property change)
+  private syncBilling(companyId: number) {
+    new StripeBillingService().syncQuantity(companyId).catch(error => console.error('Billing quantity sync failed:', error));
+  }
 
   async getPropertiesByCompany(req: AuthRequest, res: Response) {
     try {
@@ -123,6 +130,14 @@ export class PropertyController {
         return res.status(403).json({ error: 'Access denied' });
       }
 
+      // 2026-10-03 23:06, G3: plan property limit (Free = 1). Super admins can always create.
+      if (req.user?.role !== 'super_admin') {
+        const ent = entitlementsFor(company);
+        if (ent.maxProperties !== null && (await countActiveProperties(company.id)) >= ent.maxProperties) {
+          return upgradeRequired(res, 'properties', `The ${ent.plan === 'free' ? 'Free' : ent.plan} plan includes ${ent.maxProperties} property. Upgrade to Pro to add more.`);
+        }
+      }
+
       // Validate required fields
       if (!name || !slug) {
         return res.status(400).json({ 
@@ -162,6 +177,7 @@ export class PropertyController {
         property = (await this.propertyService.updateProperty(property.id, optional.fields)) || property;
       }
 
+      this.syncBilling(company.id);
       console.log(`Property created: ${property.name} for ${company.name} by ${req.user?.email}`);
       res.status(201).json({
         message: 'Property created successfully',
@@ -216,6 +232,13 @@ export class PropertyController {
       }
       Object.assign(updates, optional.fields);
 
+      // 2026-10-03 23:06, G3: tablet themes/backgrounds are Pro (defaults are always allowed, since the form sends them)
+      if (!entitlementsFor(company).features.themes && req.user?.role !== 'super_admin') {
+        const f = optional.fields || {};
+        const custom = (f.tablet_background && f.tablet_background !== 'solid') || (f.tablet_theme && f.tablet_theme !== 'auto') || !!f.background_image_url;
+        if (custom) return upgradeRequired(res, 'themes', 'Tablet themes and backgrounds are part of Pro.');
+      }
+
       const updatedProperty = await this.propertyService.updateProperty(existingProperty.id, updates);
 
       console.log(`Property updated: ${updatedProperty?.name} by ${req.user?.email}`);
@@ -255,6 +278,7 @@ export class PropertyController {
       }
 
       await this.propertyService.deleteProperty(property.id);
+      this.syncBilling(company.id);
 
       console.log(`Property deleted: ${property.name} by ${req.user?.email}`);
       res.json({
@@ -308,6 +332,11 @@ export class PropertyController {
         return res.status(404).json({ error: 'Property not available' });
       }
 
+      // 2026-10-03 23:06, G3: tablets need a paid plan (Free = phone guide link only)
+      if (!entitlementsFor(company).features.tablet) {
+        return res.status(402).json({ error: 'This tablet needs an active StayGuide Pro subscription.', code: 'subscription_required' });
+      }
+
       await this.sendPropertyContent(req, res, company, property);
     } catch (error) {
       console.error('Error getting device content:', error);
@@ -316,9 +345,17 @@ export class PropertyController {
   }
 
   // 2026-10-03 22:42, mode 'guest_link' = public phone guide: honors the Wi-Fi visibility toggle and never echoes the link token
-  private async sendPropertyContent(req: Request, res: Response, company: { name: string; slug: string; logo_url?: string }, property: Property, mode: 'tablet' | 'guest_link' = 'tablet') {
+  private async sendPropertyContent(req: Request, res: Response, company: { name: string; slug: string; logo_url?: string; plan?: any; subscription_status?: string | null }, property: Property, mode: 'tablet' | 'guest_link' = 'tablet') {
     const propertyWithContent = await this.propertyService.getPropertyWithContent(property.id);
     const publicProperty: any = { ...(propertyWithContent?.property || property) };
+    // 2026-10-03 23:06, G3: Free plan gets the plain guide (no announcements, no custom look, StayGuide branding)
+    const features = entitlementsFor(company as any).features;
+    if (!features.themes) {
+      publicProperty.tablet_background = 'solid';
+      publicProperty.tablet_theme = 'auto';
+      publicProperty.background_image_url = null;
+    }
+    if (propertyWithContent && !features.announcements) propertyWithContent.announcements = [];
     delete publicProperty.guest_link_token;
     const hideWifi = mode === 'guest_link' && (property.guest_link_show_wifi === false || property.guest_link_show_wifi === 0);
     if (hideWifi) publicProperty.wifi_password = null;
@@ -340,6 +377,7 @@ export class PropertyController {
       ...propertyWithContent,
       property: publicProperty,
       access: mode,
+      show_branding: !features.branding_removed, // 2026-10-03 23:06
       guest_links: guestLinks,
       // 2026-10-03 17:00, "Join Wi-Fi" QR for the Wi-Fi sheet (generated server-side like the guest-link QRs)
       wifi_qr_svg: wifiPayload ? await QRCode.toString(wifiPayload, { type: 'svg', margin: 1, errorCorrectionLevel: 'M' }) : null
