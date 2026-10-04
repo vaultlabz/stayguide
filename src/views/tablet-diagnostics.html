@@ -1,0 +1,223 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Tablet diagnostics - StayGuide</title>
+    <!-- 2026-10-04 00:51, G6: on-device check for candidate tablets / Android all-in-ones. Runs locally; sends nothing. -->
+    <link rel="stylesheet" href="/css/theme.css">
+    <script src="/js/theme.js"></script>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: var(--font-sans); background: var(--bg); color: var(--text); padding: 24px 16px 48px; }
+        main { max-width: 960px; margin: 0 auto; }
+        h1 { font-size: 1.8rem; font-weight: 600; margin-bottom: 6px; }
+        .lead { color: var(--text-muted); margin-bottom: 20px; }
+        .verdict { display: flex; align-items: center; gap: 16px; padding: 18px 20px; border-radius: var(--radius-lg); border: 1px solid var(--border); background: var(--surface); margin-bottom: 20px; }
+        .verdict strong { font-size: 1.4rem; }
+        .verdict .dot { width: 18px; height: 18px; border-radius: 50%; flex-shrink: 0; }
+        .actions { display: flex; gap: 10px; flex-wrap: wrap; margin-left: auto; }
+        button { font: inherit; font-weight: 600; min-height: 44px; padding: 0 18px; border-radius: var(--radius-sm); border: 1px solid var(--border-strong); background: var(--surface); color: var(--text); cursor: pointer; }
+        button.primary { background: var(--accent); color: var(--on-accent); border-color: transparent; }
+        button:focus-visible { outline: 2px solid var(--text); outline-offset: 2px; }
+        button:disabled { opacity: 0.6; cursor: progress; }
+        .group { margin-top: 18px; }
+        .group h2 { font-size: 1rem; color: var(--text-2); margin-bottom: 8px; text-transform: uppercase; letter-spacing: 0.06em; }
+        table { width: 100%; border-collapse: collapse; background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-sm); overflow: hidden; }
+        td { padding: 10px 12px; border-bottom: 1px solid var(--border); vertical-align: top; }
+        tr:last-child td { border-bottom: 0; }
+        td.status { width: 72px; font-weight: 700; font-size: 0.8rem; text-transform: uppercase; letter-spacing: 0.04em; }
+        td.name { width: 34%; font-weight: 600; }
+        td.detail { color: var(--text-2); overflow-wrap: anywhere; }
+        .pass { color: #1f7a4d; } .warn { color: #a15c00; } .fail { color: #b42318; } .info { color: var(--text-muted); }
+        :root[data-theme="dark"] .pass { color: #5fd49a; } :root[data-theme="dark"] .warn { color: #f2b45c; } :root[data-theme="dark"] .fail { color: #ff8a80; }
+        .dot.pass { background: #1f7a4d; } .dot.warn { background: #d18a00; } .dot.fail { background: #b42318; } .dot.info { background: var(--text-muted); }
+        pre { white-space: pre-wrap; background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-sm); padding: 14px; font-size: 0.85rem; margin-top: 16px; display: none; }
+        /* Perf probe stage: a sheet-like layer animating over a busy background, like the real tablet */
+        #stage { position: fixed; inset: 0; pointer-events: none; z-index: 10; display: none; background: linear-gradient(135deg, #3e2d3f, #8d645c); }
+        #stage .layer { position: absolute; inset: 10% 15%; border-radius: 24px; background: rgba(255,255,255,0.08); border: 1px solid rgba(255,255,255,0.15); will-change: transform, opacity; }
+        #stage.blur .layer { -webkit-backdrop-filter: blur(24px) saturate(1.2); backdrop-filter: blur(24px) saturate(1.2); }
+        #stage .tiles { position: absolute; inset: 0; display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; padding: 40px; }
+        #stage .tiles div { border-radius: 18px; background: rgba(255,255,255,0.12); }
+        @media (max-width: 640px) { td.name { width: 40%; } .verdict { flex-wrap: wrap; } .actions { margin-left: 0; } }
+    </style>
+</head>
+<body>
+    <main>
+        <h1>Tablet diagnostics</h1>
+        <p class="lead">Open this page on a candidate tablet (ideally inside Fully Kiosk) to check it can run StayGuide well. Nothing is sent anywhere. Copy the report into the supplier quote.</p>
+
+        <div class="verdict" id="verdict" role="status" aria-live="polite">
+            <span class="dot info" id="verdict-dot"></span>
+            <div><strong id="verdict-title">Running checks…</strong><div class="info" id="verdict-sub">This takes about 6 seconds.</div></div>
+            <div class="actions">
+                <button type="button" id="rerun" onclick="runAll()" disabled>Run again</button>
+                <button type="button" class="primary" id="copy" onclick="copyReport()" disabled>Copy report</button>
+            </div>
+        </div>
+
+        <div id="groups"></div>
+        <pre id="report" aria-label="Plain-text report"></pre>
+    </main>
+
+    <div id="stage" aria-hidden="true"><div class="tiles"><div></div><div></div><div></div><div></div><div></div><div></div><div></div><div></div></div><div class="layer"></div></div>
+
+    <script>
+        // Thresholds tuned to what the StayGuide tablet page uses (see docs/KIOSK_SETUP.md → Vetting a generic AIO)
+        const MIN_CHROME_PASS = 110, MIN_CHROME_WARN = 100;
+        const results = [];
+        const add = (group, name, status, detail) => results.push({ group, name, status, detail: String(detail) });
+        const sleep = ms => new Promise(r => setTimeout(r, ms));
+
+        function browserChecks() {
+            const ua = navigator.userAgent;
+            const chrome = (ua.match(/Chrome\/(\d+)/) || [])[1];
+            const android = (ua.match(/Android (\d+(?:\.\d+)?)/) || [])[1];
+            const v = chrome ? Number(chrome) : 0;
+            add('Browser', 'Chrome / WebView version', v >= MIN_CHROME_PASS ? 'pass' : v >= MIN_CHROME_WARN ? 'warn' : 'fail',
+                chrome ? `Chromium ${chrome} (need ≥ ${MIN_CHROME_PASS}; update Android System WebView if lower)` : 'Not a Chromium browser');
+            add('Browser', 'Android version', !android ? 'info' : Number(android) >= 13 ? 'pass' : Number(android) >= 11 ? 'warn' : 'fail',
+                android ? `Android ${android} (11+ required, 13+ preferred)` : 'Not Android (desktop / other)');
+            add('Browser', 'Fully Kiosk JavaScript interface', typeof window.fully !== 'undefined' ? 'pass' : 'info',
+                typeof window.fully !== 'undefined' ? 'Detected' : 'Not detected (fine if testing outside Fully, or JS interface disabled)');
+            add('Browser', 'User agent', 'info', ua);
+        }
+
+        function screenChecks() {
+            const dpr = window.devicePixelRatio || 1;
+            const w = Math.round(screen.width * dpr), h = Math.round(screen.height * dpr);
+            const long = Math.max(w, h), short = Math.min(w, h);
+            add('Screen', 'Physical resolution', long >= 1920 && short >= 1080 ? 'pass' : long >= 1280 && short >= 800 ? 'warn' : 'fail', `${long}×${short} px (≥ 1920×1080 recommended)`);
+            add('Screen', 'Layout size', 'info', `${window.innerWidth}×${window.innerHeight} CSS px at ${dpr}× density`);
+            add('Screen', 'Orientation', window.innerWidth >= window.innerHeight ? 'pass' : 'warn', window.innerWidth >= window.innerHeight ? 'Landscape' : 'Portrait (StayGuide is designed for landscape)');
+            add('Screen', 'Touch input', navigator.maxTouchPoints > 0 ? 'pass' : 'warn', `${navigator.maxTouchPoints || 0} touch points`);
+        }
+
+        async function featureChecks() {
+            const css = (prop, val) => (window.CSS && CSS.supports && CSS.supports(prop, val));
+            add('Features', 'Offline mode (Service Worker)', 'serviceWorker' in navigator && window.isSecureContext ? 'pass' : 'fail',
+                !window.isSecureContext ? 'Page is not HTTPS: offline mode needs HTTPS' : ('serviceWorker' in navigator ? 'Supported' : 'Not supported'));
+            add('Features', 'Cache storage', 'caches' in window ? 'pass' : 'fail', 'caches' in window ? 'Supported' : 'Not supported');
+            let ls = false;
+            try { localStorage.setItem('__sg_diag', '1'); ls = localStorage.getItem('__sg_diag') === '1'; localStorage.removeItem('__sg_diag'); } catch {}
+            add('Features', 'Local storage (pairing token)', ls ? 'pass' : 'fail', ls ? 'Writable' : 'Blocked: in Fully Kiosk, do not enable "Clear Web Storage"');
+            const blur = css('backdrop-filter', 'blur(4px)') || css('-webkit-backdrop-filter', 'blur(4px)');
+            add('Features', 'Background blur (backdrop-filter)', blur ? 'pass' : 'warn', blur ? 'Supported' : 'Not supported: StayGuide falls back to a solid dim');
+            const modern = css('aspect-ratio', '16 / 9') && css('inset', '0') && (window.CSS && CSS.supports && CSS.supports('selector(:focus-visible)'));
+            add('Features', 'Modern CSS (aspect-ratio, inset, :focus-visible)', modern ? 'pass' : 'fail', modern ? 'Supported' : 'Missing: layout will break');
+            const webp = await new Promise(resolve => {
+                const img = new Image();
+                img.onload = () => resolve(img.width === 1);
+                img.onerror = () => resolve(false);
+                img.src = 'data:image/webp;base64,UklGRiIAAABXRUJQVlA4IBYAAAAwAQCdASoBAAEADsD+JaQAA3AAAAAA';
+            });
+            add('Features', 'WebP images (gradient backgrounds)', webp ? 'pass' : 'fail', webp ? 'Supported' : 'Not supported');
+            let keepalive = false;
+            try { keepalive = 'keepalive' in new Request('/', { keepalive: true }); } catch {}
+            add('Features', 'Background sends (fetch keepalive)', keepalive ? 'pass' : 'warn', keepalive ? 'Supported' : 'Not supported: a few analytics events may be lost');
+            add('Features', 'Reduced-motion setting', window.matchMedia('(prefers-reduced-motion: reduce)').matches ? 'info' : 'pass',
+                window.matchMedia('(prefers-reduced-motion: reduce)').matches ? 'On: transitions will be minimal' : 'Off (full transitions)');
+        }
+
+        async function deviceChecks() {
+            const mem = navigator.deviceMemory;
+            add('Device', 'Memory (RAM)', mem === undefined ? 'info' : mem >= 4 ? 'pass' : mem >= 2 ? 'warn' : 'fail', mem === undefined ? 'Not reported by this browser' : `≈ ${mem} GB (4 GB+ recommended)`);
+            const cores = navigator.hardwareConcurrency;
+            add('Device', 'CPU cores', !cores ? 'info' : cores >= 4 ? 'pass' : 'warn', cores ? `${cores}` : 'Not reported');
+            try {
+                const est = navigator.storage && navigator.storage.estimate ? await navigator.storage.estimate() : null;
+                const mb = est && est.quota ? Math.round(est.quota / 1048576) : null;
+                add('Device', 'Storage available to the browser', mb === null ? 'info' : mb >= 200 ? 'pass' : mb >= 50 ? 'warn' : 'fail', mb === null ? 'Not reported' : `${mb.toLocaleString()} MB quota`);
+            } catch { add('Device', 'Storage available to the browser', 'info', 'Not reported'); }
+            const tz = Intl.DateTimeFormat().resolvedOptions().timeZone;
+            add('Device', 'Time zone', 'info', `${tz}, ${new Date().toLocaleString()}: must match the property (clock + checkout day)`);
+            const conn = navigator.connection;
+            add('Device', 'Network', navigator.onLine ? 'pass' : 'warn',
+                `${navigator.onLine ? 'Online' : 'Offline'}${conn && conn.effectiveType ? `, ${conn.effectiveType}` : ''}${conn && conn.downlink ? `, ~${conn.downlink} Mbps` : ''}`);
+        }
+
+        // Frame rate while animating a sheet-like layer (opacity + transform), with and without blur
+        async function measureFps(withBlur, ms = 2000) {
+            const stage = document.getElementById('stage');
+            const layer = stage.querySelector('.layer');
+            stage.classList.toggle('blur', withBlur);
+            stage.style.display = 'block';
+            await sleep(150);
+            return new Promise(resolve => {
+                let frames = 0, worst = 0, last = performance.now();
+                const start = last;
+                function tick(now) {
+                    const dt = now - last; last = now; frames++;
+                    if (frames > 2) worst = Math.max(worst, dt);
+                    const t = (now - start) / 600;
+                    layer.style.opacity = String(0.55 + 0.45 * Math.sin(t * Math.PI));
+                    layer.style.transform = `translateY(${Math.sin(t * Math.PI) * 14}px) scale(${0.98 + 0.02 * Math.sin(t * Math.PI)})`;
+                    if (now - start < ms) requestAnimationFrame(tick);
+                    else { stage.style.display = 'none'; resolve({ fps: Math.round(frames / ((now - start) / 1000)), worst: Math.round(worst) }); }
+                }
+                requestAnimationFrame(tick);
+            });
+        }
+
+        async function perfChecks() {
+            const plain = await measureFps(false);
+            const blurred = await measureFps(true);
+            const grade = fps => (fps >= 50 ? 'pass' : fps >= 30 ? 'warn' : 'fail');
+            add('Smoothness', 'Sheet transition', grade(plain.fps), `${plain.fps} fps, worst frame ${plain.worst} ms`);
+            add('Smoothness', 'Sheet transition with blur', grade(blurred.fps), `${blurred.fps} fps, worst frame ${blurred.worst} ms${blurred.fps < 30 ? ': consider solid backgrounds on this model' : ''}`);
+        }
+
+        function render() {
+            const order = ['Browser', 'Screen', 'Features', 'Device', 'Smoothness'];
+            const esc = v => String(v).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+            document.getElementById('groups').innerHTML = order.map(g => `
+                <section class="group"><h2>${g}</h2><table><tbody>
+                    ${results.filter(r => r.group === g).map(r => `<tr><td class="status ${r.status}">${r.status}</td><td class="name">${esc(r.name)}</td><td class="detail">${esc(r.detail)}</td></tr>`).join('')}
+                </tbody></table></section>`).join('');
+
+            const fails = results.filter(r => r.status === 'fail').length, warns = results.filter(r => r.status === 'warn').length;
+            const verdict = fails ? 'fail' : warns ? 'warn' : 'pass';
+            document.getElementById('verdict-dot').className = `dot ${verdict}`;
+            document.getElementById('verdict-title').textContent = verdict === 'pass' ? 'Suitable for StayGuide' : verdict === 'warn' ? `Usable, with ${warns} warning${warns === 1 ? '' : 's'}` : `Not suitable: ${fails} failed check${fails === 1 ? '' : 's'}`;
+            document.getElementById('verdict-sub').textContent = `${results.filter(r => r.status === 'pass').length} passed · ${warns} warning${warns === 1 ? '' : 's'} · ${fails} failed`;
+
+            const report = [`StayGuide tablet diagnostics, ${new Date().toISOString()}`, `Verdict: ${verdict.toUpperCase()} (${document.getElementById('verdict-sub').textContent})`, '']
+                .concat(results.map(r => `[${r.status.toUpperCase().padEnd(4)}] ${r.group} / ${r.name}: ${r.detail}`)).join('\n');
+            const pre = document.getElementById('report');
+            pre.textContent = report;
+            pre.style.display = 'block';
+            window.__diagnostics = { verdict, results, report };
+        }
+
+        async function runAll() {
+            results.length = 0;
+            document.getElementById('rerun').disabled = true;
+            document.getElementById('copy').disabled = true;
+            document.getElementById('verdict-title').textContent = 'Running checks…';
+            browserChecks();
+            screenChecks();
+            await featureChecks();
+            await deviceChecks();
+            await perfChecks();
+            render();
+            document.getElementById('rerun').disabled = false;
+            document.getElementById('copy').disabled = false;
+        }
+
+        async function copyReport() {
+            const text = window.__diagnostics ? window.__diagnostics.report : '';
+            const btn = document.getElementById('copy');
+            try { await navigator.clipboard.writeText(text); btn.textContent = 'Copied'; }
+            catch {
+                const range = document.createRange();
+                range.selectNodeContents(document.getElementById('report'));
+                const sel = window.getSelection(); sel.removeAllRanges(); sel.addRange(range);
+                btn.textContent = 'Selected: press Copy';
+            }
+            setTimeout(() => { btn.textContent = 'Copy report'; }, 2500);
+        }
+
+        runAll();
+    </script>
+</body>
+</html>

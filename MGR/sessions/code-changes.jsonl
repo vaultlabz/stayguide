@@ -13,3 +13,4 @@
 {"at":"2026-10-03 23:31","tool":"claude-code","description":"G3 plans/entitlements, self-serve signup, Stripe Billing (Checkout+ACH, invoices, portal, webhooks), billing page, BILLING_SETUP.md"}
 {"at":"2026-10-04 00:24","tool":"claude-code","description":"G5 marketing pricing section (server-rendered from plans.ts), signup CTAs, FAQ, JSON-LD; landing.html, pricing-html.ts"}
 {"at":"2026-10-04 00:40","tool":"claude-code","description":"G4 section analytics: section_events, device/guide event endpoints, tablet tracking, dashboard guest activity"}
+{"at":"2026-10-04 01:01","tool":"claude-code","description":"G6 /tablet/diagnostics + AIO vetting checklist; tablet-diagnostics.html, device.ts, KIOSK_SETUP.md"}

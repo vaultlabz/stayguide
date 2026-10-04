@@ -44,6 +44,26 @@ How to prepare an Android tablet so it boots straight into StayGuide, can't be u
 
 **Standardize on one model per tier.** It keeps provisioning, spares and this guide simple.
 
+### Vetting a generic Android all-in-one (AIO)
+
+<!-- 2026-10-04 00:51, G6: Counter/Wall kits use generic RK3568-class all-in-ones (PRD §10); qualify each model before stocking it -->
+
+Generic all-in-ones are cheaper, but often lack Google Play certification and long-term updates. **Qualify every model (and every new firmware batch) before stocking it:**
+
+1. **Run the diagnostics page.** On the sample unit, open `https://<host>/tablet/diagnostics`, ideally inside Fully Kiosk with the JS interface enabled. Wait about 6 seconds and tap **Copy report**. Attach the report to the supplier quote.
+   - **Fail** on any check: reject the model.
+   - **Warn**: acceptable only if you understand the warning. For example, blur below 30 fps means using **solid** backgrounds for that model.
+2. **Android 11 or newer**, 13+ preferred. Ask the supplier which version ships and whether updates are planned.
+3. **Updatable Android System WebView, Chromium ≥ 110.** On non-Play devices, confirm you can install WebView updates (APK) or that the supplier ships them. The diagnostics page reports the version.
+4. **Fully Kiosk PLUS installs and runs** (APK install on non-GMS). Check that kiosk mode, start on boot, and screen on/off scheduling all work on this model.
+5. **Pairing and offline:** pair it with a test property, turn Wi-Fi off, and confirm the saved guide and offline banner show.
+6. **Smoothness:** "Sheet transition with blur" should be ≥ 30 fps, ideally 50+. Below that, set the property to a solid background.
+7. **Power:** continuous charging without battery swelling: a battery-less mode, a charge limit, or no battery at all.
+8. **Mounting:** VESA 75/100 or the included stand fits your enclosure; ports reachable for power only.
+9. **Supplier commitment** in writing: firmware/security update cadence, warranty term, and RMA turnaround.
+
+**Security trade-off:** devices without Google Play certification don't get Google's monthly security patches or Play Protect. Mitigate with: StayGuide-only use, Fully Kiosk lockdown, a device-only Wi-Fi network (separate from guests), and replacement on a fixed cycle (e.g. 3 years). The tablet page already falls back to a solid dim where `backdrop-filter` isn't supported.
+
 ### Battery longevity (always-on kiosks)
 
 - **Samsung:** enable **Settings → Battery → Battery protection** (One UI caps charging at roughly 80–85%, depending on version). Confirm the setting exists on the first unit you receive.

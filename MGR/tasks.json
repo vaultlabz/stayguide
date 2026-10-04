@@ -561,8 +561,8 @@
       "title": "G6: Generic AIO hardware enablement (/tablet/diagnostics + vetting checklist)",
       "description": "Guest product plan (PRD v1.0 follow-up), see ~/.claude/plans/lets-discuss-this-i-robust-panda.md",
       "complexity": 4,
-      "completionDate": null,
-      "status": "pending",
+      "completionDate": "2026-10-04 01:01",
+      "status": "done",
       "priority": "medium",
       "trelloCardId": null,
       "context": {

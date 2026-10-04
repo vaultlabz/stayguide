@@ -302,3 +302,9 @@
 - **title:** G4: Section analytics (tile opens, video plays, QR shows)
 - **was:** pending → **now:** done
 - **note:** analytics-test 19/19; full regression 573
+
+## 2026-10-04 01:01 | claude-code | task.completed
+- **id:** 40
+- **title:** G6: Generic AIO hardware enablement (/tablet/diagnostics + vetting checklist)
+- **was:** pending → **now:** done
+- **note:** diagnostics-test 11/11; vetting checklist in KIOSK_SETUP.md

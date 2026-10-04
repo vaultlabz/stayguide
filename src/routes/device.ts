@@ -16,6 +16,11 @@ router.get('/tablet', (req, res) => {
   res.sendFile(path.join(__dirname, '../views/tablet-app.html'));
 });
 
+// 2026-10-04 00:51, G6: on-device diagnostics for vetting candidate tablets / generic Android all-in-ones (runs locally, no data sent)
+router.get('/tablet/diagnostics', (req, res) => {
+  res.sendFile(path.join(__dirname, '../views/tablet-diagnostics.html'));
+});
+
 // Pairing codes are 6 digits, so limit guesses per client IP
 const pairLimiter = rateLimit({
   windowMs: 15 * 60 * 1000,

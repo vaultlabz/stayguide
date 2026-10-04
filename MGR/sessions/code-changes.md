@@ -16,3 +16,4 @@
 2026-10-03 23:31 | claude-code | G3 plans/entitlements, self-serve signup, Stripe Billing (Checkout+ACH, invoices, portal, webhooks), billing page, BILLING_SETUP.md
 2026-10-04 00:24 | claude-code | G5 marketing pricing section (server-rendered from plans.ts), signup CTAs, FAQ, JSON-LD; landing.html, pricing-html.ts
 2026-10-04 00:40 | claude-code | G4 section analytics: section_events, device/guide event endpoints, tablet tracking, dashboard guest activity
+2026-10-04 01:01 | claude-code | G6 /tablet/diagnostics + AIO vetting checklist; tablet-diagnostics.html, device.ts, KIOSK_SETUP.md

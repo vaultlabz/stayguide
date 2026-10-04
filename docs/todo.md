@@ -1,5 +1,26 @@
 # StayGuide SaaS Platform Development Plan
 
+## [2026-10-04] - FEATURE: Generic AIO Hardware Enablement (G6, task #40)
+
+**What Changed:**
+- ✅ `/tablet/diagnostics`: on-device check for candidate tablets and generic Android all-in-ones. Covers Chrome/WebView and Android version, resolution/orientation/touch, every browser feature StayGuide uses (service worker, cache, local storage, backdrop-filter, modern CSS, WebP, fetch keepalive), RAM/cores/storage/time zone/network, and an fps probe of the sheet transition with and without blur
+- ✅ Pass/warn/fail verdict and a **Copy report** button for attaching to supplier quotes; runs locally and sends nothing
+- ✅ `docs/KIOSK_SETUP.md`: "Vetting a generic Android all-in-one" checklist (diagnostics, Android ≥ 11, WebView ≥ Chromium 110, Fully Kiosk on non-GMS, pairing + offline test, fps, power, mounting, supplier update/warranty commitment) and the security trade-off with mitigations
+
+**Why:**
+- Tony chose generic RK3568-class AIO kits (PRD §10), which often lack Play certification and updates; each model must be qualified before stocking
+
+**How:**
+- Thresholds match what the tablet page needs (e.g. Chromium ≥ 110, ≥ 1920×1080, blur ≥ 30 fps)
+
+**Impact:**
+- **Operations**: objective, repeatable go/no-go per model and firmware batch
+- **Quality**: avoids shipping kits that can't run offline mode or stutter on blur
+
+**Technical Details:**
+- New suite `tests/e2e/diagnostics-test.js` (11 checks: a Tab A11+-like profile, and a Chrome 90 / Android 9 / 1024×600 profile that fails)
+- The headless test browser has no GPU, so its blur fps (~32) understates real devices; measure on hardware
+
 ## [2026-10-04] - FEATURE: Section Analytics (G4, task #39)
 
 **What Changed:**
