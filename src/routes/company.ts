@@ -40,6 +40,8 @@ router.get('/property/:propertySlug', (req: express.Request<PropertyParams>, res
 
 router.get('/property/:propertySlug/api/content', authenticateToken, requireCompanyAdmin, propertyController.getPropertyContent.bind(propertyController));
 
+router.get('/property/:propertySlug/api/weather', authenticateToken, requireCompanyAdmin, propertyController.getPropertyWeather.bind(propertyController));
+
 // Company dashboard (served without auth, JS handles auth check)
 router.get('/dashboard', (req: express.Request<CompanyParams>, res) => {
   res.sendFile(path.join(__dirname, '../views/company-dashboard.html'));
@@ -52,6 +54,8 @@ router.get('/billing', (req: express.Request<CompanyParams>, res) => {
 
 // Protected routes - require company admin authentication
 router.use(authenticateToken, requireCompanyAdmin);
+
+router.get('/geocode', propertyController.geocode.bind(propertyController));
 
 // Properties management API
 router.get('/properties', propertyController.getPropertiesByCompany.bind(propertyController));

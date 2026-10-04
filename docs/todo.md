@@ -1,5 +1,67 @@
 # StayGuide SaaS Platform Development Plan
 
+## [2026-10-03] - FEATURE: Tablet redesign round 2 - icon-only home, glass UI, Baltic Rose / Rich Bistre, clock + weather
+
+**What Changed:**
+- ✅ Tablet look rebuilt: solid pure black/white (or Baltic Rose / Rich Bistre gradients, or a custom image) with frosted-glass surfaces (translucent fill + 1px hairline, no shadows, no stripes, monochrome line icons), system sans at medium weight, serif dropped
+- ✅ Per-property `tablet_background` ('solid' | 'baltic-rose' | 'rich-bistre' | 'image'); `tablet_theme` now only governs solid and image (gradients force the dark treatment); dashboard picker with live swatches
+- ✅ Icon-only home screen: clock + date, temperature with condition icon, small property name, slim announcement and checkout-day review banners, then 7 large glass tiles (Wi-Fi, House Info, Amenities, How-to Videos, Local Guide, Book Again, Report an Issue). Empty sections hide their tile (Wi-Fi and Report always show)
+- ✅ Each tile opens a large glass sheet (focus-trapped, ESC / backdrop / close button, focus returns to the tile); sheets and modals auto-close after 2 minutes idle
+- ✅ Wi-Fi sheet shows very large network/password plus a "Join Wi-Fi" QR (`WIFI:T:WPA;S:..;P:..;;` with escaping), generated server-side as `wifi_qr_svg`
+- ✅ Weather: `GET /device/weather` (device token) and `/company/:slug/property/:prop/api/weather` (admin preview) proxy Open-Meteo with a 5 s timeout and a 30-minute per-property cache (stale value on upstream failure); `GET /company/:slug/geocode?q=` finds coordinates from an address (ZIP, then city)
+- ✅ New property fields `latitude`, `longitude`, `temperature_unit` ('F'|'C'), `clock_format` ('12h'|'24h'): migrations `2026-10-03_tablet_background.sql` and `2026-10-03_tablet_home.sql`, whitelist, validation, type, schema, mock data (Seaside Villa = Santa Monica)
+- ✅ All 8 Figma gradients selectable (Manhattan Ice, Apricot Storm, Barley Titan, Silver Cloud = light; Erie Charcoal, Burnham Stone, Baltic Rose, Rich Bistre = dark). One shared preset list `public/js/tablet-backgrounds.js` (slug, file, fallback, mode, Figma Linear, scrim) drives the tablet, the dashboard picker (10 swatch tiles with real thumbnails, grouped Basics / Light / Dark) and the server enum validation; each preset forces its own light or dark text treatment and its Linear becomes the primary-button gradient
+- ✅ Gradients served from `/img/gradients/*.webp` (new static mount); the service worker (VERSION v5) caches a gradient cache-first the first time it loads, so it works offline afterwards without a heavy install
+- ✅ Ease-in transitions (opacity/transform/filter only): sheets and modals settle in over 320 ms (cubic-bezier .22,1,.36,1) and leave in 200 ms ease-in; staggered fade-up of the home tiles (40 ms apart), press scale, background crossfade on look change, minute crossfade on the clock; `prefers-reduced-motion` makes everything instant
+- ✅ Opening a sheet or modal blurs and dims everything behind it with one `backdrop-filter` layer (24px blur, saturate 120%); per-card blurs are dropped while it is open; solid dim fallback where backdrop-filter is unsupported
+
+**Why:**
+- The user asked for a sleeker, minimal, black/white-with-transparency tablet using the Figma "Baltic Rose" and "Rich Bistre" gradients, an icon-only front screen, and a clock with time and temperature
+
+**How:**
+- Tokens (`--t-*`) in `tablet-app.css` keyed on `html[data-theme]` and `html[data-bg]`, set by `applyTabletLook()` (also cached in localStorage so the look applies before first paint and offline). Body stays transparent so the fixed background layer shows
+- Lightest regions were measured from the WebP files: Baltic Rose, Burnham Stone and Erie Charcoal carry 22%, 22% and 15% black scrims so white text stays AA; image backgrounds use a 68% (dark) / 78% (light) scrim
+- Clock re-renders on the minute boundary; weather is fetched on load and every 30 minutes and the last value is kept in localStorage (dimmed when it cannot refresh); `/device/weather` is not in the service worker so it is network-only
+- Open-Meteo base URLs are overridable with `OPEN_METEO_BASE_URL` / `OPEN_METEO_GEOCODE_URL` so tests use a local stub
+
+**Impact:**
+- **Guests**: the first screen is calm and tappable from 1 m; Wi-Fi is one tap away with a scan-to-join QR
+- **Managers**: one picker for the whole look, one control for weather location
+- **Offline**: gradients, last weather and the last look all survive a Wi-Fi drop
+
+**Technical Details:**
+- Review prompt moved from a card to a slim banner that opens the Book sheet; `#guest-links-section` (review card + book QR + showcase) now lives in that sheet
+- Browser tests that clicked `#videos-section .video-link` now open the Videos sheet first; selectors and IDs are otherwise unchanged
+- Verified: tsc/build, inline-script syntax, unit checks for the Wi-Fi QR escaping and WMO weather-code mapping, regression suites, and the design suite (see the final report for counts)
+
+## [2026-10-03] - FEATURE: Design system, light/dark themes and custom tablet backgrounds
+
+**What Changed:**
+- ✅ New shared token stylesheet `public/css/theme.css` (color, surface, text, border, radius, spacing, shadow, type scale; light + dark) and `public/js/theme.js` (light / auto / dark toggle, persisted in `localStorage`, applied before first paint)
+- ✅ All 9 dashboard/login/landing views moved to tokens; new `.sg-app` (dashboards, billing, invoice) and `.sg-auth` (login) layers; landing page redesigned
+- ✅ Tablet (`tablet-app.html` + `tablet-app.css`) rebuilt on the tokens: 18px base, 2-column landscape layout, SVG card icons, 48px+ touch targets, QR cards always dark-on-white
+- ✅ Per-property `tablet_theme` ('auto' | 'light' | 'dark') and `background_image_url` (uploaded `/uploads/...` path or https URL): DB column + migration, `Property` type, update whitelist, controller validation, mock data, dashboard "Tablet Appearance" section (upload through the existing `property-image` endpoint)
+- ✅ Audit written to `docs/DESIGN_AUDIT.md`; service worker VERSION v3 with `/css/theme.css` in the shell; `/js` static mount; debug "Test JS" button removed from the company dashboard
+
+**Why:**
+- Nine pages carried duplicated inline CSS with about 60 literal colors, purple gradients, failing contrast and no dark mode
+- Property managers (not guests) must control the kiosk look; a custom background must never cost readability
+
+**How:**
+- Three-tier tokens (primitives in `:root`, semantic names consumed by pages); dark values repeated for `@media (prefers-color-scheme: dark)` and `[data-theme="dark"]`
+- A one-off script remapped literal hex colors in the inline CSS to tokens by property context; shared layers use higher specificity (`.sg-app`) so remaining inline rules cannot fork the look
+- Tablet applies `data-theme` + `--tablet-bg` from the content payload and caches the last look in `localStorage` (no flash on reload, works offline); the background is a fixed layer with a theme-aware scrim, and cards are 90% opaque with blur only when a background is set
+
+**Impact:**
+- **Accessibility**: automated contrast scan of rendered text passes AA in both themes on login, landing, dashboards and tablet; visible focus rings; reduced motion honored
+- **Maintainability**: one place to change colors/spacing; no new dependencies, no external fonts (CSP intact)
+- **Kiosk**: Wi-Fi and house info are above the fold at 1280x800; QR codes keep scanner contrast in dark mode
+
+**Technical Details:**
+- Migration: `database/migrations/2026-10-03_tablet_theme.sql`; `schema.sql` updated. `background_image_url` accepts `/uploads/...` (no `..`) or an http(s) URL; the tablet applies only `/uploads/` or https and rejects quotes/parentheses before building `url("...")`
+- Existing IDs/classes used by browser tests are unchanged; `.close` is now a `<button>` and the header text sits in `.header-text`
+- Verified: tsc and build pass; inline scripts pass `node --check`; offline-test 15/15, phase3 21/21, phase5 24/24; new design-test 56/56 (theme toggle + persistence, tablet theme override, background + scrim, worst-case contrast, QR, touch targets, CSP/console errors)
+
 ## [2026-10-03] - DOCS: Tablet Hardware Specs & Recommended Models
 
 **What Changed:**

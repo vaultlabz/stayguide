@@ -7,3 +7,4 @@
 {"at":"2026-10-03 12:50","tool":"claude-code","description":"Dependency security updates (prod audit 0), sharp 0.35 + Node>=20.9, undefined-bind fixes, tablet announcements"}
 {"at":"2026-10-03 13:34","tool":"claude-code","description":"Follow-ups: deps update, announcements, undefined-bind fixes; package.json, src/services/*, src/views/tablet-app.html"}
 {"at":"2026-10-03 17:53","tool":"claude-code","description":"Session end: handoff, tasks #32-34, MEMORY decisions; MGR/, .mgr/memory/MEMORY.md"}
+{"at":"2026-10-03 17:38","tool":"claude-code","description":"Design branch: tablet redesign with Figma gradients, icon home, clock/weather, transitions"}

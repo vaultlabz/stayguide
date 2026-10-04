@@ -5,8 +5,8 @@
   "scope": "/",
   "display": "fullscreen",
   "orientation": "any",
-  "background_color": "#667eea",
-  "theme_color": "#667eea",
+  "background_color": "#1d6b60",
+  "theme_color": "#1d6b60",
   "icons": [
     { "src": "/icons/stayguide.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any" }
   ]

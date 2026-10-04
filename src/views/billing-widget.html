@@ -31,17 +31,17 @@ async function loadBillingWidget() {
 function displayBillingWidget(stats) {
     const widgetHTML = `
         <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 1rem; margin-bottom: 1.5rem;">
-            <div style="text-align: center; padding: 1rem; background: #f0fdf4; border-radius: 8px;">
-                <div style="font-size: 1.25rem; font-weight: bold; color: #059669;">$${stats.monthly_revenue.toFixed(2)}</div>
-                <div style="font-size: 0.75rem; color: #065f46;">Paid This Month</div>
+            <div style="text-align: center; padding: 1rem; background: var(--success-bg); border-radius: var(--radius-sm);">
+                <div style="font-size: 1.25rem; font-weight: bold; color: var(--success-text);">$${stats.monthly_revenue.toFixed(2)}</div>
+                <div style="font-size: 0.75rem; color: var(--success-text);">Paid This Month</div>
             </div>
-            <div style="text-align: center; padding: 1rem; background: #fef3c7; border-radius: 8px;">
-                <div style="font-size: 1.25rem; font-weight: bold; color: #d97706;">$${stats.pending_amount.toFixed(2)}</div>
-                <div style="font-size: 0.75rem; color: #92400e;">Pending Payments</div>
+            <div style="text-align: center; padding: 1rem; background: var(--warning-bg); border-radius: var(--radius-sm);">
+                <div style="font-size: 1.25rem; font-weight: bold; color: var(--warning-text);">$${stats.pending_amount.toFixed(2)}</div>
+                <div style="font-size: 0.75rem; color: var(--warning-text);">Pending Payments</div>
             </div>
-            <div style="text-align: center; padding: 1rem; background: #fee2e2; border-radius: 8px;">
-                <div style="font-size: 1.25rem; font-weight: bold; color: #dc2626;">$${stats.overdue_amount.toFixed(2)}</div>
-                <div style="font-size: 0.75rem; color: #991b1b;">Overdue Amount</div>
+            <div style="text-align: center; padding: 1rem; background: var(--danger-bg); border-radius: var(--radius-sm);">
+                <div style="font-size: 1.25rem; font-weight: bold; color: var(--danger-text);">$${stats.overdue_amount.toFixed(2)}</div>
+                <div style="font-size: 0.75rem; color: var(--danger-text);">Overdue Amount</div>
             </div>
         </div>
         
@@ -57,7 +57,7 @@ function displayBillingWidget(stats) {
             </div>
         </div>
         
-        <div style="text-align: center; color: #6b7280; font-size: 0.875rem;">
+        <div style="text-align: center; color: var(--text-muted); font-size: 0.875rem;">
             ${stats.overdue_amount > 0 ? 
                 `⚠️ ${stats.overdue_amount > 100 ? 'High priority:' : 'Attention:'} $${stats.overdue_amount.toFixed(2)} in overdue payments` :
                 '✅ All payments are up to date'

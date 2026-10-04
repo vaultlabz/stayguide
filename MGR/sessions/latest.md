@@ -40,3 +40,9 @@
 - Summary: mgr init → audit → web+kiosk decision → tablet plan Phases 0–5 + follow-ups on main; GVR/hardware roadmap; integration + kiosk/hardware docs; private GitHub repo (main, design); design-engineer redesign with Figma luxury gradients on design. Handoff overwritten; tasks #32–#34 added; MEMORY.md decisions recorded.
 - Files (main): src/utils/sql.ts, src/services/{Property,Company,User,Device,MockDevice,Link,Billing,IntegratedAdminAmenity}Service.ts, src/controllers/{Property,Report,Device}Controller.ts, src/middleware/{auth,rate-limit}.ts, src/routes/{company,reports,device,links,index}.ts, src/index.ts, src/views/{tablet-app,company-dashboard}.html, public/{sw.js,manifest.json,css/tablet-app.css,icons/}, database/{schema.sql,migrations/}, docs/{INTEGRATION_GUIDE,KIOSK_SETUP,todo}.md, package.json
 - Files (design): see commits 50d8db5, 2df381a, 5466d12, d9ddc57
+2026-10-03 17:38
+## Checkpoint (claude-code)
+- Design branch: UI redesign (50d8db5) + tablet redesign with 8 Figma luxury gradients, icon-only home, clock/weather, Wi-Fi QR, transitions + blur (2df381a, 5466d12); pushed to origin/design
+- Gradients extracted via Figma MCP (file vvZxGSsNrWLCILQJkV3aaY) and pre-rendered to public/img/gradients/*.webp
+- Verified: tsc/build, design suite 326/326, regression 15/21/24; live Open-Meteo weather + geocode OK; not yet on a real Tab A11+
+- Open: notify "muse" agent (unknown target); center 4+3 tile row; real-device check; merge design → main when approved

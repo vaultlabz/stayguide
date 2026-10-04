@@ -1,11 +1,12 @@
 // 2026-10-03 11:52, StayGuide tablet service worker: keeps the paired tablet usable when Wi-Fi drops.
 // Only handles the tablet's own requests; dashboard/admin traffic passes straight through.
 
-const VERSION = 'v2';
+// 2026-10-03 15:38, v3: shell now includes the shared theme.css
+const VERSION = 'v5'; // 2026-10-03 17:14: gradient backgrounds are cached on first use (cache-first), shared preset list is in the shell
 const SHELL_CACHE = `sg-shell-${VERSION}`;
 const CONTENT_CACHE = `sg-content-${VERSION}`;
 const IMAGE_CACHE = `sg-images-${VERSION}`;
-const SHELL_URLS = ['/tablet', '/css/tablet-app.css', '/manifest.json', '/icons/stayguide.svg'];
+const SHELL_URLS = ['/tablet', '/css/theme.css', '/css/tablet-app.css', '/js/tablet-backgrounds.js', '/manifest.json', '/icons/stayguide.svg'];
 const NETWORK_TIMEOUT_MS = 5000;
 const MAX_IMAGES = 150;
 
@@ -37,8 +38,8 @@ self.addEventListener('fetch', event => {
     event.respondWith(contentNetworkFirst(request));
   } else if (sameOrigin && (url.pathname === '/tablet' || SHELL_URLS.includes(url.pathname))) {
     event.respondWith(shellNetworkFirst(request, url.pathname));
-  } else if (sameOrigin && request.destination === 'image' && url.pathname.startsWith('/uploads/')) {
-    // Only our own uploads: the worker inherits the page CSP (connect-src 'self'), so it must not fetch other origins
+  } else if (sameOrigin && request.destination === 'image' && (url.pathname.startsWith('/uploads/') || url.pathname.startsWith('/img/gradients/'))) {
+    // Only our own uploads and background gradients: the worker inherits the page CSP (connect-src 'self'), so it must not fetch other origins
     event.respondWith(imageCacheFirst(request));
   }
 });

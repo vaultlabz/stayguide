@@ -5,7 +5,13 @@ export const PROPERTY_UPDATE_FIELDS = [
   'check_in_instructions', 'check_out_instructions', 'house_rules',
   'emergency_contact', 'main_image_url', 'status',
   // 2026-10-03 12:32, Phase 5 guest links
-  'direct_booking_url', 'review_url', 'return_guest_offer', 'guest_checkout_date'
+  'direct_booking_url', 'review_url', 'return_guest_offer', 'guest_checkout_date',
+  // 2026-10-03 15:29, tablet look is set by the property manager
+  'tablet_theme', 'background_image_url',
+  // 2026-10-03 16:42, tablet background style (solid / gradient presets / custom image)
+  'tablet_background',
+  // 2026-10-03 17:00, weather location + home-screen clock/temperature preferences
+  'latitude', 'longitude', 'temperature_unit', 'clock_format'
 ] as const;
 
 export const AMENITY_UPDATE_FIELDS = [

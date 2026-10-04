@@ -48,6 +48,16 @@ export interface Property {
   review_url?: string | null;
   return_guest_offer?: string | null;
   guest_checkout_date?: string | Date | null;
+  // 2026-10-03 15:29, tablet appearance (managed per property)
+  tablet_theme?: 'auto' | 'light' | 'dark';
+  background_image_url?: string | null;
+  // 2026-10-03 16:42, 'image' uses background_image_url; gradients force the dark treatment
+  // 2026-10-03 17:00, weather location + clock/temperature preferences (DECIMAL columns may arrive as strings from MySQL)
+  latitude?: number | string | null;
+  longitude?: number | string | null;
+  temperature_unit?: 'F' | 'C';
+  clock_format?: '12h' | '24h';
+  tablet_background?: string; // 'solid' | 'image' | a gradient slug from public/js/tablet-backgrounds.js
   status: 'active' | 'inactive';
   created_at: Date;
   updated_at: Date;
