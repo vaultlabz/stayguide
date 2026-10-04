@@ -433,8 +433,8 @@
       "title": "G1: Content management: restaurants, how-to videos, local info, announcements (+ PMS import adapter design)",
       "description": "Logged at /stop 2026-10-03",
       "complexity": 8,
-      "completionDate": null,
-      "status": "pending",
+      "completionDate": "2026-10-03 22:39",
+      "status": "done",
       "priority": "high",
       "trelloCardId": null,
       "context": {

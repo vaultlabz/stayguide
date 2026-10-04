@@ -3,6 +3,7 @@ import path from 'path';
 import { AuthController } from '../controllers/AuthController';
 import { PropertyController } from '../controllers/PropertyController';
 import { DeviceController } from '../controllers/DeviceController';
+import { ContentController } from '../controllers/ContentController';
 import { authenticateToken, requireCompanyAdmin } from '../middleware/auth';
 import { uploadPropertyImage, uploadAmenityImage } from '../middleware/upload';
 
@@ -18,6 +19,7 @@ const router = express.Router({ mergeParams: true });
 const authController = new AuthController();
 const propertyController = new PropertyController();
 const deviceController = new DeviceController();
+const contentController = new ContentController();
 
 // Company admin login
 router.get('/login', (req: express.Request<CompanyParams>, res) => {
@@ -69,6 +71,15 @@ router.get('/properties/:propertySlug/amenities', propertyController.getAmenitie
 router.post('/properties/:propertySlug/amenities', propertyController.createAmenity.bind(propertyController));
 router.put('/properties/:propertySlug/amenities/:amenityId', propertyController.updateAmenity.bind(propertyController));
 router.delete('/properties/:propertySlug/amenities/:amenityId', propertyController.deleteAmenity.bind(propertyController));
+
+// 2026-10-03 22:25, G1 guide content (restaurants, videos, local info, announcements, welcome)
+// NOTE: /order must be registered before /:id
+router.get('/properties/:propertySlug/content', contentController.getAll.bind(contentController));
+router.post('/properties/:propertySlug/content/:type', contentController.create.bind(contentController));
+router.put('/properties/:propertySlug/content/:type/order', contentController.reorder.bind(contentController));
+router.put('/properties/:propertySlug/content/:type/:id', contentController.update.bind(contentController));
+router.delete('/properties/:propertySlug/content/:type/:id', contentController.remove.bind(contentController));
+router.put('/properties/:propertySlug/welcome', contentController.setWelcome.bind(contentController));
 
 // 2026-10-03 11:39, paired tablets per property
 router.post('/properties/:propertySlug/devices/pairing-code', deviceController.createPairingCode.bind(deviceController));

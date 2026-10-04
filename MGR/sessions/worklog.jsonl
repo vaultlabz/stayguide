@@ -51,3 +51,4 @@
 {"ts":"2026-10-03 17:38","tool":"claude-code","event":"task.created","id":30,"title":"Real-device check of tablet redesign on Galaxy Tab A11+ (blur/transition performance, Fully Kiosk)"}
 {"ts":"2026-10-03 17:38","tool":"claude-code","event":"task.created","id":31,"title":"Center last row of home tiles (7 tiles wrap 4+3)"}
 {"ts":"2026-10-03 22:17","tool":"claude-code","event":"task.completed","id":35,"title":"G0: Merge design → main; move e2e suites into tests/e2e"}
+{"ts":"2026-10-03 22:39","tool":"claude-code","event":"task.completed","id":32,"title":"G1: Content management: restaurants, how-to videos, local info, announcements (+ PMS import adapter design)"}

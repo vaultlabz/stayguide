@@ -272,3 +272,9 @@
 - **title:** G0: Merge design → main; move e2e suites into tests/e2e
 - **was:** pending → **now:** done
 - **note:** PR #1 merged; e2e 386 + unit 24 pass
+
+## 2026-10-03 22:39 | claude-code | task.completed
+- **id:** 32
+- **title:** G1: Content management: restaurants, how-to videos, local info, announcements (+ PMS import adapter design)
+- **was:** pending → **now:** done
+- **note:** content-test 30/30; full regression green (440 checks)

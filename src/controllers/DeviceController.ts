@@ -3,40 +3,16 @@ import { Request, Response } from 'express';
 import { AuthRequest } from '../types';
 import { DeviceService } from '../services/DeviceService';
 import { PropertyService } from '../services/PropertyService';
-import { CompanyService } from '../services/CompanyService';
+import { resolveOwnedProperty } from '../utils/ownership'; // 2026-10-03 22:25, shared ownership check
 
 export class DeviceController {
   private deviceService = new DeviceService();
   private propertyService = new PropertyService();
-  private companyService = new CompanyService();
-
-  /** Resolve company + property from the URL and enforce company ownership. Sends the error response itself. */
-  private async resolveProperty(req: AuthRequest, res: Response) {
-    const { companySlug, propertySlug } = req.params;
-
-    const company = await this.companyService.findBySlug(companySlug);
-    if (!company) {
-      res.status(404).json({ error: 'Company not found' });
-      return null;
-    }
-
-    if (req.user?.role === 'company_admin' && req.user.company_id !== company.id) {
-      res.status(403).json({ error: 'Access denied' });
-      return null;
-    }
-
-    const property = await this.propertyService.findBySlug(company.id, propertySlug);
-    if (!property) {
-      res.status(404).json({ error: 'Property not found' });
-      return null;
-    }
-    return property;
-  }
 
   // POST /company/:companySlug/properties/:propertySlug/devices/pairing-code
   async createPairingCode(req: AuthRequest, res: Response) {
     try {
-      const property = await this.resolveProperty(req, res);
+      const property = await resolveOwnedProperty(req, res);
       if (!property) return;
 
       const name = typeof req.body?.name === 'string' ? req.body.name.trim().slice(0, 100) : undefined;
@@ -58,7 +34,7 @@ export class DeviceController {
   // GET /company/:companySlug/properties/:propertySlug/devices
   async listDevices(req: AuthRequest, res: Response) {
     try {
-      const property = await this.resolveProperty(req, res);
+      const property = await resolveOwnedProperty(req, res);
       if (!property) return;
 
       const devices = await this.deviceService.listByProperty(property.id);
@@ -82,7 +58,7 @@ export class DeviceController {
   // DELETE /company/:companySlug/properties/:propertySlug/devices/:deviceId
   async revokeDevice(req: AuthRequest, res: Response) {
     try {
-      const property = await this.resolveProperty(req, res);
+      const property = await resolveOwnedProperty(req, res);
       if (!property) return;
 
       const revoked = await this.deviceService.revoke(parseInt(req.params.deviceId), property.id);

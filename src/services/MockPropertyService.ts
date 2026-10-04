@@ -1,5 +1,5 @@
 import { Property } from '../types';
-import { mockProperties, mockRestaurants, mockAnnouncements, mockAmenities, mockDelay, MOCK_MODE } from '../utils/mock-database';
+import { mockProperties, mockRestaurants, mockAnnouncements, mockAmenities, mockVideos, mockLocalInfo, mockPropertyContent, mockDelay, MOCK_MODE } from '../utils/mock-database';
 
 export class MockPropertyService {
   async findById(id: number): Promise<Property | null> {
@@ -98,35 +98,25 @@ export class MockPropertyService {
     
     if (!property) return null;
     
-    const restaurants = mockRestaurants.filter(r => r.property_id === id);
-    const announcements = mockAnnouncements.filter(a => a.property_id === id);
+    // 2026-10-03 22:25, same filtering as the MySQL query: active rows in display order; announcements within their schedule
+    const now = Date.now();
+    const active = (rows: any[]) => rows
+      .filter(r => r.property_id === id && r.status === 'active')
+      .sort((a, b) => (a.display_order ?? 0) - (b.display_order ?? 0));
+    const announcements = mockAnnouncements.filter(a =>
+      a.property_id === id && a.status === 'active' &&
+      (!a.scheduled_start || new Date(a.scheduled_start).getTime() <= now) &&
+      (!a.scheduled_end || new Date(a.scheduled_end).getTime() >= now));
     const amenities = mockAmenities.filter(a => a.property_id === id);
-    
+    const content = mockPropertyContent.find(c => c.property_id === id);
+
     const result = {
       property,
-      content: {
-        welcome_message: 'Welcome to our beautiful property! We hope you have a wonderful stay.',
-        weather_widget: true
-      },
-      restaurants,
+      content: content ? { welcome_message: content.welcome_message, weather_widget: content.weather_widget } : {},
+      restaurants: active(mockRestaurants),
       amenities,
-      videos: [
-        {
-          id: 1,
-          title: 'How to use the smart lock',
-          video_url: 'https://youtube.com/watch?v=demo1',
-          description: 'Quick tutorial on using the electronic door lock system.'
-        }
-      ],
-      local_info: [
-        {
-          id: 1,
-          category: 'attractions',
-          title: 'Beach City Pier',
-          description: 'Historic pier with fishing, shops, and restaurants.',
-          phone: '(555) 987-6543'
-        }
-      ],
+      videos: active(mockVideos),
+      local_info: active(mockLocalInfo),
       announcements
     };
     

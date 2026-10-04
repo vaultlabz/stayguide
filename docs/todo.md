@@ -1,5 +1,32 @@
 # StayGuide SaaS Platform Development Plan
 
+## [2026-10-03] - FEATURE: Guide Content Management (G1, task #32)
+
+**What Changed:**
+- ✅ Company dashboard "Guide content" section (property panel, when editing): tabs for Welcome, Announcements, Restaurants, Local info, How-to videos. Add / edit / delete / hide, plus up/down ordering
+- ✅ API: `GET /company/:slug/properties/:propertySlug/content`, `POST|PUT|DELETE .../content/:type[/:id]`, `PUT .../content/:type/order`, `PUT .../welcome`
+- ✅ `ContentService`: one config (`CONTENT_TYPES`) defines the fields, required fields, enums, length limits, URL rules, video check and orderability for all 4 types; MySQL and mock paths
+- ✅ `src/utils/ownership.ts` (`resolveOwnedProperty`) is shared by the Device and Content controllers; `src/utils/video.ts` mirrors the tablet's `getVideoEmbed` rules on the server
+- ✅ Mock mode now has real arrays for videos, local info and the welcome text, and filters content like MySQL (active, display order, announcement schedule window)
+- ✅ Announcements are labelled live / scheduled / ended in the editor
+
+**Why:**
+- The tablet showed restaurants, videos, local info and announcements, but nothing could create them. With MySQL, those sections were always empty (2026-10-03 audit)
+
+**How:**
+- Every UPDATE/DELETE is scoped `WHERE id = ? AND property_id = ?`, so items from other properties or companies can't be touched
+- Column names come only from the config whitelist; values are bound parameters
+- Editor inputs sit inside the property form, so Enter is intercepted to avoid submitting the property
+
+**Impact:**
+- **Product**: hosts can fill in the guide themselves (required for the Free/Pro launch)
+- **Security**: validation for enums, http(s)-only URLs, playable video links and schedule order
+
+**Technical Details:**
+- New suite `tests/e2e/content-test.js` (30 checks: API rules, dashboard UI flows, and the tablet reflecting the changes, including ordering, hidden and scheduled items, and the Local Guide sheet)
+- Full regression: unit 24, offline 15, phase3 21, phase5 24, design 326, content 30, all passing
+- Not run against real MySQL (mock mode only)
+
 ## [2026-10-03] - MERGE/TESTS: Design Branch Merged into Main; E2E Suites in Repo (G0)
 
 **What Changed:**

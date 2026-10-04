@@ -537,6 +537,24 @@
                 gap: 0.5rem;
             }
         }
+
+        /* 2026-10-03 22:25, G1 guide content editor */
+        .content-help { margin: 0 0 1rem 0; color: var(--text-muted); font-size: 0.9rem; }
+        .content-tabs { display: flex; flex-wrap: wrap; gap: 0.25rem; margin-bottom: 1rem; border-bottom: 1px solid var(--border); }
+        .content-tab { background: none; border: 0; border-bottom: 2px solid transparent; padding: 0.6rem 0.8rem; color: var(--text-muted); font: inherit; font-weight: 600; cursor: pointer; margin-bottom: -1px; }
+        .content-tab[aria-selected="true"] { color: var(--text); border-bottom-color: var(--accent); }
+        .content-tab:focus-visible { outline: 2px solid var(--focus, var(--accent)); outline-offset: 2px; border-radius: 4px; }
+        .content-item { display: flex; align-items: center; gap: 0.75rem; padding: 0.65rem 0; border-bottom: 1px solid var(--border); }
+        .content-item-main { flex: 1; min-width: 0; }
+        .content-item-title { font-weight: 600; color: var(--text); overflow-wrap: anywhere; }
+        .content-item-meta { color: var(--text-muted); font-size: 0.85rem; overflow-wrap: anywhere; }
+        .content-item-actions { display: flex; gap: 0.35rem; flex-shrink: 0; }
+        .content-pill { display: inline-block; font-size: 0.75rem; font-weight: 600; padding: 0.1rem 0.5rem; border-radius: 999px; background: var(--surface-2, var(--accent-soft)); color: var(--text-muted); margin-left: 0.4rem; vertical-align: middle; }
+        .content-pill.is-live { background: var(--accent-soft); color: var(--text); }
+        .content-form { margin: 0.75rem 0 1rem; padding: 1rem; border: 1px solid var(--border); border-radius: var(--radius-sm); }
+        .content-form-actions { display: flex; gap: 0.5rem; margin-top: 0.5rem; }
+        .content-error { color: var(--danger-text); font-size: 0.9rem; margin: 0.5rem 0 0; }
+        .content-empty { color: var(--text-muted); margin: 0 0 0.75rem; }
     </style>
 </head>
 <body class="sg-app">
@@ -838,6 +856,20 @@
                 </div>
                 
                 <!-- 2026-10-03 11:39, paired tablets (only for saved properties) -->
+                <!-- 2026-10-03 22:25, G1 guide content: what guests see in the tablet/guide sheets (saved immediately, not with the form) -->
+                <div class="property-form-section" id="guide-content-section" style="display: none;">
+                    <h3>Guide content</h3>
+                    <p class="content-help">Changes save right away and reach paired tablets within 15 minutes.</p>
+                    <div class="content-tabs" role="tablist" aria-label="Guide content">
+                        <button type="button" role="tab" class="content-tab" data-tab="welcome" aria-selected="true">Welcome</button>
+                        <button type="button" role="tab" class="content-tab" data-tab="announcements" aria-selected="false">Announcements</button>
+                        <button type="button" role="tab" class="content-tab" data-tab="restaurants" aria-selected="false">Restaurants</button>
+                        <button type="button" role="tab" class="content-tab" data-tab="local-info" aria-selected="false">Local info</button>
+                        <button type="button" role="tab" class="content-tab" data-tab="videos" aria-selected="false">How-to videos</button>
+                    </div>
+                    <div id="content-panel" role="tabpanel" aria-live="polite"></div>
+                </div>
+
                 <div class="property-form-section" id="tablets-section" style="display: none;">
                     <h3>Tablets</h3>
                     <p style="margin: 0 0 1rem 0; color: var(--text-muted); font-size: 0.9rem;">
@@ -1059,6 +1091,7 @@
 
             // 2026-10-03 11:39, tablets can only be paired to a saved property
             document.getElementById('tablets-section').style.display = 'none';
+            document.getElementById('guide-content-section').style.display = 'none'; // 2026-10-03 22:25
 
             // Open slide panel
             document.getElementById('propertyPanel').classList.add('open');
@@ -1246,6 +1279,9 @@
 
                 // 2026-10-03 11:39, show paired tablets for this property
                 document.getElementById('tablets-section').style.display = 'block';
+                // 2026-10-03 22:25, G1 guide content editor
+                document.getElementById('guide-content-section').style.display = 'block';
+                loadGuideContent();
                 document.getElementById('pairing-code-display').style.display = 'none';
                 loadDevices();
                 
@@ -1268,6 +1304,269 @@
                 el.textContent = `Last ${days} days: ${stats.book} booking scans · ${stats.showcase} other-property scans · ${stats.review} review scans`;
             } catch (error) {
                 el.textContent = '';
+            }
+        }
+
+        // 2026-10-03 22:25, G1 guide content editor (config-driven; mirrors CONTENT_TYPES in src/services/ContentService.ts)
+        const CONTENT_UI = {
+            announcements: {
+                label: 'announcement', orderable: false,
+                title: i => i.title,
+                meta: i => [i.type, i.scheduled_start ? 'from ' + new Date(i.scheduled_start).toLocaleString() : '', i.scheduled_end ? 'until ' + new Date(i.scheduled_end).toLocaleString() : ''].filter(Boolean).join(' · '),
+                fields: [
+                    { key: 'title', label: 'Title', type: 'text', required: true, max: 255 },
+                    { key: 'message', label: 'Message', type: 'textarea', required: true },
+                    { key: 'type', label: 'Style', type: 'select', options: [['info', 'Info'], ['warning', 'Warning'], ['urgent', 'Urgent']] },
+                    { key: 'scheduled_start', label: 'Show from (optional)', type: 'datetime-local' },
+                    { key: 'scheduled_end', label: 'Show until (optional)', type: 'datetime-local' },
+                    { key: 'status', label: 'Status', type: 'select', options: [['active', 'Active'], ['draft', 'Draft'], ['inactive', 'Hidden']] }
+                ]
+            },
+            restaurants: {
+                label: 'restaurant', orderable: true,
+                title: i => i.name,
+                meta: i => [i.category && i.category !== 'all' ? i.category : '', i.distance, i.rating ? '★ ' + i.rating : ''].filter(Boolean).join(' · '),
+                fields: [
+                    { key: 'name', label: 'Name', type: 'text', required: true, max: 255 },
+                    { key: 'description', label: 'Why guests love it', type: 'textarea' },
+                    { key: 'category', label: 'Best for', type: 'select', options: [['all', 'Any time'], ['breakfast', 'Breakfast'], ['lunch', 'Lunch'], ['dinner', 'Dinner'], ['drinks', 'Drinks']] },
+                    { key: 'distance', label: 'Distance', type: 'text', max: 50, placeholder: '0.3 miles' },
+                    { key: 'rating', label: 'Rating (0–5)', type: 'number', min: 0, max: 5, step: 0.1 },
+                    { key: 'google_maps_url', label: 'Google Maps link', type: 'url' },
+                    { key: 'image_url', label: 'Image URL', type: 'url' },
+                    { key: 'status', label: 'Status', type: 'select', options: [['active', 'Active'], ['inactive', 'Hidden']] }
+                ]
+            },
+            'local-info': {
+                label: 'place', orderable: true,
+                title: i => i.title,
+                meta: i => [i.category, i.phone, i.address].filter(Boolean).join(' · '),
+                fields: [
+                    { key: 'title', label: 'Name', type: 'text', required: true, max: 255 },
+                    { key: 'category', label: 'Category', type: 'select', required: true, options: [['attractions', 'Attraction'], ['grocery', 'Grocery'], ['pharmacy', 'Pharmacy'], ['transportation', 'Transportation'], ['emergency', 'Emergency'], ['other', 'Other']] },
+                    { key: 'description', label: 'Description', type: 'textarea' },
+                    { key: 'address', label: 'Address', type: 'text' },
+                    { key: 'phone', label: 'Phone', type: 'text', max: 50 },
+                    { key: 'website_url', label: 'Website', type: 'url' },
+                    { key: 'google_maps_url', label: 'Google Maps link', type: 'url' },
+                    { key: 'status', label: 'Status', type: 'select', options: [['active', 'Active'], ['inactive', 'Hidden']] }
+                ]
+            },
+            videos: {
+                label: 'video', orderable: true,
+                title: i => i.title,
+                meta: i => i.video_url,
+                fields: [
+                    { key: 'title', label: 'Title', type: 'text', required: true, max: 255 },
+                    { key: 'video_url', label: 'YouTube or Vimeo link', type: 'url', required: true, placeholder: 'https://youtu.be/…' },
+                    { key: 'description', label: 'Description', type: 'textarea' },
+                    { key: 'status', label: 'Status', type: 'select', options: [['active', 'Active'], ['inactive', 'Hidden']] }
+                ]
+            }
+        };
+        let guideContent = null;
+        let activeContentTab = 'welcome';
+
+        function contentBasePath() {
+            const slug = document.getElementById('propertyForm').dataset.editingSlug;
+            return `/company/${companySlug}/properties/${encodeURIComponent(slug)}`;
+        }
+
+        async function loadGuideContent() {
+            const panel = document.getElementById('content-panel');
+            try {
+                guideContent = await apiCall(`${contentBasePath()}/content`);
+                renderContentTab(activeContentTab);
+            } catch (error) {
+                panel.innerHTML = `<p class="content-error">Failed to load guide content: ${escapeHtml(error.message)}</p>`;
+            }
+        }
+
+        document.querySelectorAll('.content-tab').forEach(tab => {
+            tab.addEventListener('click', () => renderContentTab(tab.dataset.tab));
+        });
+
+        // Inputs live inside the property <form>: Enter must not submit the whole property
+        document.getElementById('content-panel').addEventListener('keydown', e => {
+            if (e.key === 'Enter' && e.target.tagName !== 'TEXTAREA') e.preventDefault();
+        });
+
+        function toLocalInput(value) {
+            if (!value) return '';
+            const d = new Date(value);
+            if (Number.isNaN(d.getTime())) return '';
+            const pad = n => String(n).padStart(2, '0');
+            return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
+        }
+
+        function renderContentTab(tab) {
+            activeContentTab = tab;
+            document.querySelectorAll('.content-tab').forEach(t => t.setAttribute('aria-selected', String(t.dataset.tab === tab)));
+            const panel = document.getElementById('content-panel');
+            if (!guideContent) return;
+
+            if (tab === 'welcome') {
+                panel.innerHTML = `
+                    <div class="form-group">
+                        <label class="form-label" for="welcome-message">Welcome message (shown under the clock)</label>
+                        <textarea id="welcome-message" class="form-textarea" maxlength="2000" placeholder="Welcome! We hope you have a wonderful stay."></textarea>
+                    </div>
+                    <div class="content-form-actions"><button type="button" class="btn btn-primary btn-small" onclick="saveWelcome()">Save welcome message</button></div>
+                    <p class="content-error" id="content-error" hidden></p>`;
+                document.getElementById('welcome-message').value = guideContent.welcome_message || '';
+                return;
+            }
+
+            const ui = CONTENT_UI[tab];
+            const items = guideContent[tab] || [];
+            const rows = items.map((item, index) => {
+                // Show what guests actually see: scheduled/ended announcements aren't live yet/anymore
+                let pill = item.status, live = item.status === 'active';
+                if (tab === 'announcements' && live) {
+                    const now = Date.now();
+                    if (item.scheduled_start && new Date(item.scheduled_start).getTime() > now) { pill = 'scheduled'; live = false; }
+                    else if (item.scheduled_end && new Date(item.scheduled_end).getTime() < now) { pill = 'ended'; live = false; }
+                    else pill = 'live';
+                }
+                const order = ui.orderable ? `
+                    <button type="button" class="btn btn-secondary btn-small" aria-label="Move up" ${index === 0 ? 'disabled' : ''} onclick="moveContent('${tab}', ${Number(item.id)}, -1)">↑</button>
+                    <button type="button" class="btn btn-secondary btn-small" aria-label="Move down" ${index === items.length - 1 ? 'disabled' : ''} onclick="moveContent('${tab}', ${Number(item.id)}, 1)">↓</button>` : '';
+                return `
+                    <div class="content-item">
+                        <div class="content-item-main">
+                            <div class="content-item-title">${escapeHtml(ui.title(item))}<span class="content-pill ${live ? 'is-live' : ''}">${escapeHtml(pill)}</span></div>
+                            <div class="content-item-meta">${escapeHtml(ui.meta(item) || '')}</div>
+                        </div>
+                        <div class="content-item-actions">
+                            ${order}
+                            <button type="button" class="btn btn-secondary btn-small" onclick="openContentForm('${tab}', ${Number(item.id)})">Edit</button>
+                            <button type="button" class="btn btn-danger btn-small" onclick="deleteContent('${tab}', ${Number(item.id)})">Delete</button>
+                        </div>
+                    </div>`;
+            }).join('');
+
+            panel.innerHTML = `
+                ${items.length ? rows : `<p class="content-empty">No ${ui.label}s yet.</p>`}
+                <div id="content-form-slot"></div>
+                <button type="button" class="btn btn-secondary btn-small" id="content-add-btn" onclick="openContentForm('${tab}', null)">+ Add ${ui.label}</button>`;
+        }
+
+        function openContentForm(tab, id) {
+            const ui = CONTENT_UI[tab];
+            const item = id ? (guideContent[tab] || []).find(i => i.id === id) : null;
+            const slot = document.getElementById('content-form-slot');
+            const form = document.createElement('div');
+            form.className = 'content-form';
+            form.innerHTML = `<h4 style="margin: 0 0 0.75rem;">${item ? 'Edit' : 'Add'} ${escapeHtml(ui.label)}</h4>`;
+
+            ui.fields.forEach(f => {
+                const group = document.createElement('div');
+                group.className = 'form-group';
+                const inputId = `content-field-${f.key}`;
+                const label = document.createElement('label');
+                label.className = 'form-label';
+                label.htmlFor = inputId;
+                label.textContent = f.label + (f.required ? ' *' : '');
+                let input;
+                if (f.type === 'textarea') {
+                    input = document.createElement('textarea');
+                    input.className = 'form-textarea';
+                } else if (f.type === 'select') {
+                    input = document.createElement('select');
+                    input.className = 'form-input';
+                    f.options.forEach(([value, text]) => input.add(new Option(text, value)));
+                } else {
+                    input = document.createElement('input');
+                    input.className = 'form-input';
+                    input.type = f.type;
+                    ['min', 'max', 'step', 'placeholder'].forEach(k => { if (f[k] !== undefined && !(k === 'max' && f.type === 'text')) input[k] = f[k]; });
+                    if (f.type === 'text' && f.max) input.maxLength = f.max;
+                }
+                input.id = inputId;
+                input.dataset.field = f.key;
+                if (f.required) input.required = true;
+                const value = item ? item[f.key] : undefined;
+                if (f.type === 'datetime-local') input.value = toLocalInput(value);
+                else if (value !== undefined && value !== null) input.value = value;
+                group.append(label, input);
+                form.appendChild(group);
+            });
+
+            const actions = document.createElement('div');
+            actions.className = 'content-form-actions';
+            actions.innerHTML = `
+                <button type="button" class="btn btn-primary btn-small" onclick="saveContentForm('${tab}', ${id ? Number(id) : 'null'})">${item ? 'Save' : 'Add'}</button>
+                <button type="button" class="btn btn-secondary btn-small" onclick="renderContentTab('${tab}')">Cancel</button>`;
+            const error = document.createElement('p');
+            error.className = 'content-error';
+            error.id = 'content-error';
+            error.hidden = true;
+            form.append(actions, error);
+
+            slot.replaceChildren(form);
+            document.getElementById('content-add-btn').hidden = true;
+            form.querySelector('input, textarea, select').focus();
+        }
+
+        function showContentError(message) {
+            const el = document.getElementById('content-error');
+            if (el) { el.textContent = message; el.hidden = false; el.style.color = ''; }
+        }
+
+        async function saveContentForm(tab, id) {
+            const body = {};
+            document.querySelectorAll('#content-form-slot [data-field]').forEach(input => {
+                const value = input.value.trim();
+                if (input.type === 'datetime-local') body[input.dataset.field] = value ? new Date(value).toISOString() : null;
+                else body[input.dataset.field] = value;
+            });
+            try {
+                if (id) {
+                    await apiCall(`${contentBasePath()}/content/${tab}/${id}`, { method: 'PUT', body: JSON.stringify(body) });
+                } else {
+                    await apiCall(`${contentBasePath()}/content/${tab}`, { method: 'POST', body: JSON.stringify(body) });
+                }
+                await loadGuideContent();
+            } catch (error) {
+                showContentError(error.message);
+            }
+        }
+
+        async function deleteContent(tab, id) {
+            const item = (guideContent[tab] || []).find(i => i.id === id);
+            if (!confirm(`Delete "${item ? CONTENT_UI[tab].title(item) : 'this item'}"? Guests will no longer see it.`)) return;
+            try {
+                await apiCall(`${contentBasePath()}/content/${tab}/${id}`, { method: 'DELETE' });
+                await loadGuideContent();
+            } catch (error) {
+                alert(`Failed to delete: ${error.message}`);
+            }
+        }
+
+        async function moveContent(tab, id, direction) {
+            const ids = (guideContent[tab] || []).map(i => i.id);
+            const from = ids.indexOf(id), to = from + direction;
+            if (from < 0 || to < 0 || to >= ids.length) return;
+            [ids[from], ids[to]] = [ids[to], ids[from]];
+            try {
+                await apiCall(`${contentBasePath()}/content/${tab}/order`, { method: 'PUT', body: JSON.stringify({ ids }) });
+                await loadGuideContent();
+            } catch (error) {
+                alert(`Failed to reorder: ${error.message}`);
+            }
+        }
+
+        async function saveWelcome() {
+            try {
+                const result = await apiCall(`${contentBasePath()}/welcome`, {
+                    method: 'PUT',
+                    body: JSON.stringify({ welcome_message: document.getElementById('welcome-message').value })
+                });
+                guideContent.welcome_message = result.welcome_message;
+                const el = document.getElementById('content-error');
+                el.textContent = 'Saved.'; el.hidden = false; el.style.color = 'var(--text-muted)';
+            } catch (error) {
+                showContentError(error.message);
             }
         }
 

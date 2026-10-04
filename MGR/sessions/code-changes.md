@@ -11,3 +11,4 @@
 2026-10-03 13:34 | claude-code | Follow-ups: deps update, announcements, undefined-bind fixes; package.json, src/services/*, src/views/tablet-app.html
 2026-10-03 17:53 | claude-code | Session end: handoff, tasks #32-34, MEMORY decisions; MGR/, .mgr/memory/MEMORY.md
 2026-10-03 17:38 | claude-code | Design branch: tablet redesign with Figma gradients, icon home, clock/weather, transitions
+2026-10-03 22:39 | claude-code | G1 guide content management; ContentService, ContentController, ownership/video utils, dashboard editor, content-test

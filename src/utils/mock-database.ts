@@ -220,7 +220,7 @@ export const mockAmenities = [
 ];
 
 // Mock Restaurants
-export const mockRestaurants = [
+export const mockRestaurants: any[] = [
   {
     id: 1,
     property_id: 1,
@@ -250,16 +250,53 @@ export const mockRestaurants = [
 ];
 
 // Mock Announcements
-export const mockAnnouncements = [
+export const mockAnnouncements: any[] = [
   {
     id: 1,
     property_id: 1,
     title: 'Weekly Pool Cleaning',
     message: 'Pool cleaning service will be performed every Wednesday from 9:00 AM to 11:00 AM. Pool will be temporarily unavailable during this time.',
     type: 'info',
+    scheduled_start: null,
+    scheduled_end: null,
     status: 'active',
+    created_by: 2,
     created_at: new Date()
   }
+];
+
+// 2026-10-03 22:25, mock how-to videos, local info and welcome text (were hard-coded in MockPropertyService)
+export const mockVideos: any[] = [
+  {
+    id: 1,
+    property_id: 1,
+    title: 'How to use the smart lock',
+    video_url: 'https://youtube.com/watch?v=demo1',
+    thumbnail_url: null,
+    description: 'Quick tutorial on using the electronic door lock system.',
+    display_order: 1,
+    status: 'active'
+  }
+];
+
+export const mockLocalInfo: any[] = [
+  {
+    id: 1,
+    property_id: 1,
+    category: 'attractions',
+    title: 'Beach City Pier',
+    description: 'Historic pier with fishing, shops, and restaurants.',
+    address: null,
+    phone: '(555) 987-6543',
+    website_url: null,
+    google_maps_url: null,
+    display_order: 1,
+    status: 'active'
+  }
+];
+
+export const mockPropertyContent: any[] = [
+  { id: 1, property_id: 1, welcome_message: 'Welcome to our beautiful property! We hope you have a wonderful stay.', weather_widget: true }
 ];
 
 // 2026-10-03 12:32, Mock link clicks (direct-booking / review QR scans)
