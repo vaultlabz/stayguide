@@ -215,3 +215,31 @@
 ## 2026-10-03 17:53 | claude-code | task.created
 - **id:** 34
 - **title:** Remove or regenerate stale yarn.lock
+
+## 2026-10-03 22:08 | claude-code | task.created
+- **id:** 35
+- **title:** G0: Merge design → main; move e2e suites into tests/e2e
+
+## 2026-10-03 22:08 | claude-code | task.created
+- **id:** 36
+- **title:** G2: Free tier phone/web guide link (/g/:token, mobile layout, Wi-Fi toggle)
+
+## 2026-10-03 22:08 | claude-code | task.created
+- **id:** 37
+- **title:** G3: Plans, entitlements, self-serve signup, Stripe Billing (cards + ACH, bank-transfer invoices)
+
+## 2026-10-03 22:08 | claude-code | task.created
+- **id:** 38
+- **title:** G5: Marketing site pricing section + signup CTAs
+
+## 2026-10-03 22:08 | claude-code | task.created
+- **id:** 39
+- **title:** G4: Section analytics (tile opens, video plays, QR shows)
+
+## 2026-10-03 22:08 | claude-code | task.created
+- **id:** 40
+- **title:** G6: Generic AIO hardware enablement (/tablet/diagnostics + vetting checklist)
+
+## 2026-10-03 22:08 | claude-code | task.created
+- **id:** 41
+- **title:** G7: Field/maintenance web app (Ops add-on) — own plan before build

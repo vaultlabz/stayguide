@@ -376,7 +376,7 @@
     {
       "id": 32,
       "creationDate": "2026-10-03 17:53",
-      "title": "Content management: restaurants, how-to videos, local info, announcements (+ PMS import adapter design)",
+      "title": "G1: Content management: restaurants, how-to videos, local info, announcements (+ PMS import adapter design)",
       "description": "Logged at /stop 2026-10-03",
       "complexity": 8,
       "completionDate": null,
@@ -419,6 +419,118 @@
         "doing": "Deleting yarn.lock (npm is the package manager)",
         "achieve": "no installs from outdated vulnerable versions",
         "according": "dependency update 2026-10-03"
+      }
+    },
+    {
+      "id": 35,
+      "creationDate": "2026-10-03 22:08",
+      "title": "G0: Merge design → main; move e2e suites into tests/e2e",
+      "description": "Guest product plan (PRD v1.0 follow-up), see ~/.claude/plans/lets-discuss-this-i-robust-panda.md",
+      "complexity": 4,
+      "completionDate": null,
+      "status": "pending",
+      "priority": "high",
+      "trelloCardId": null,
+      "context": {
+        "doing": "Merging the redesign and persisting browser tests",
+        "achieve": "one main branch with the redesign and repeatable tests",
+        "according": "Guest product plan (PRD v1.0 follow-up), see ~/.claude/plans/lets-discuss-this-i-robust-panda.md"
+      }
+    },
+    {
+      "id": 36,
+      "creationDate": "2026-10-03 22:08",
+      "title": "G2: Free tier phone/web guide link (/g/:token, mobile layout, Wi-Fi toggle)",
+      "description": "Guest product plan (PRD v1.0 follow-up), see ~/.claude/plans/lets-discuss-this-i-robust-panda.md",
+      "complexity": 6,
+      "completionDate": null,
+      "status": "pending",
+      "priority": "high",
+      "trelloCardId": null,
+      "context": {
+        "doing": "Building a tokenized public guest guide",
+        "achieve": "Free tier users get a phone guide without a tablet",
+        "according": "Guest product plan (PRD v1.0 follow-up), see ~/.claude/plans/lets-discuss-this-i-robust-panda.md"
+      }
+    },
+    {
+      "id": 37,
+      "creationDate": "2026-10-03 22:08",
+      "title": "G3: Plans, entitlements, self-serve signup, Stripe Billing (cards + ACH, bank-transfer invoices)",
+      "description": "Guest product plan (PRD v1.0 follow-up), see ~/.claude/plans/lets-discuss-this-i-robust-panda.md",
+      "complexity": 9,
+      "completionDate": null,
+      "status": "pending",
+      "priority": "high",
+      "trelloCardId": null,
+      "context": {
+        "doing": "Adding signup, plan gating and Stripe subscriptions at locked pricing",
+        "achieve": "hosts can sign up and pay without a sales call",
+        "according": "Guest product plan (PRD v1.0 follow-up), see ~/.claude/plans/lets-discuss-this-i-robust-panda.md"
+      }
+    },
+    {
+      "id": 38,
+      "creationDate": "2026-10-03 22:08",
+      "title": "G5: Marketing site pricing section + signup CTAs",
+      "description": "Guest product plan (PRD v1.0 follow-up), see ~/.claude/plans/lets-discuss-this-i-robust-panda.md",
+      "complexity": 4,
+      "completionDate": null,
+      "status": "pending",
+      "priority": "medium",
+      "trelloCardId": null,
+      "context": {
+        "doing": "Publishing locked tiers and hardware bundles on the landing page",
+        "achieve": "the website sells the product",
+        "according": "Guest product plan (PRD v1.0 follow-up), see ~/.claude/plans/lets-discuss-this-i-robust-panda.md"
+      }
+    },
+    {
+      "id": 39,
+      "creationDate": "2026-10-03 22:08",
+      "title": "G4: Section analytics (tile opens, video plays, QR shows)",
+      "description": "Guest product plan (PRD v1.0 follow-up), see ~/.claude/plans/lets-discuss-this-i-robust-panda.md",
+      "complexity": 5,
+      "completionDate": null,
+      "status": "pending",
+      "priority": "medium",
+      "trelloCardId": null,
+      "context": {
+        "doing": "Recording guest interactions per section",
+        "achieve": "Pro hosts see what guests use",
+        "according": "Guest product plan (PRD v1.0 follow-up), see ~/.claude/plans/lets-discuss-this-i-robust-panda.md"
+      }
+    },
+    {
+      "id": 40,
+      "creationDate": "2026-10-03 22:08",
+      "title": "G6: Generic AIO hardware enablement (/tablet/diagnostics + vetting checklist)",
+      "description": "Guest product plan (PRD v1.0 follow-up), see ~/.claude/plans/lets-discuss-this-i-robust-panda.md",
+      "complexity": 4,
+      "completionDate": null,
+      "status": "pending",
+      "priority": "medium",
+      "trelloCardId": null,
+      "context": {
+        "doing": "Building a device diagnostics page and vetting doc",
+        "achieve": "generic Android all-in-ones can be qualified before stocking",
+        "according": "Guest product plan (PRD v1.0 follow-up), see ~/.claude/plans/lets-discuss-this-i-robust-panda.md"
+      }
+    },
+    {
+      "id": 41,
+      "creationDate": "2026-10-03 22:08",
+      "title": "G7: Field/maintenance web app (Ops add-on) — own plan before build",
+      "description": "Guest product plan (PRD v1.0 follow-up), see ~/.claude/plans/lets-discuss-this-i-robust-panda.md",
+      "complexity": 10,
+      "completionDate": null,
+      "status": "pending",
+      "priority": "medium",
+      "trelloCardId": null,
+      "context": {
+        "doing": "Planning a PWA for techs, vendors and cleaners managed from the dashboard",
+        "achieve": "property managers can dispatch and monitor anyone they hire",
+        "according": "Guest product plan (PRD v1.0 follow-up), see ~/.claude/plans/lets-discuss-this-i-robust-panda.md"
       }
     }
   ]

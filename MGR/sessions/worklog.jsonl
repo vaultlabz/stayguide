@@ -37,3 +37,10 @@
 {"ts":"2026-10-03 17:53","tool":"claude-code","event":"task.created","id":32,"title":"Content management: restaurants, how-to videos, local info, announcements (+ PMS import adapter design)"}
 {"ts":"2026-10-03 17:53","tool":"claude-code","event":"task.created","id":33,"title":"Clearer pairing errors (expired vs used vs invalid code)"}
 {"ts":"2026-10-03 17:53","tool":"claude-code","event":"task.created","id":34,"title":"Remove or regenerate stale yarn.lock"}
+{"ts":"2026-10-03 22:08","tool":"claude-code","event":"task.created","id":35,"title":"G0: Merge design → main; move e2e suites into tests/e2e"}
+{"ts":"2026-10-03 22:08","tool":"claude-code","event":"task.created","id":36,"title":"G2: Free tier phone/web guide link (/g/:token, mobile layout, Wi-Fi toggle)"}
+{"ts":"2026-10-03 22:08","tool":"claude-code","event":"task.created","id":37,"title":"G3: Plans, entitlements, self-serve signup, Stripe Billing (cards + ACH, bank-transfer invoices)"}
+{"ts":"2026-10-03 22:08","tool":"claude-code","event":"task.created","id":38,"title":"G5: Marketing site pricing section + signup CTAs"}
+{"ts":"2026-10-03 22:08","tool":"claude-code","event":"task.created","id":39,"title":"G4: Section analytics (tile opens, video plays, QR shows)"}
+{"ts":"2026-10-03 22:08","tool":"claude-code","event":"task.created","id":40,"title":"G6: Generic AIO hardware enablement (/tablet/diagnostics + vetting checklist)"}
+{"ts":"2026-10-03 22:08","tool":"claude-code","event":"task.created","id":41,"title":"G7: Field/maintenance web app (Ops add-on) — own plan before build"}
