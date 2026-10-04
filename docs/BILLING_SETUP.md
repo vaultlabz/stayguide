@@ -74,6 +74,19 @@ APP_BASE_URL=https://<your-host>     # used for Checkout success/cancel and port
 
 Keep keys in the server's environment (Plesk → Node.js → environment variables), never in the repo or chat.
 
+## Sandbox status (2026-10-04)
+
+- The sandbox is **Wingu Digital (test mode)**: 7 StayGuide prices created with `npm run stripe:setup`; the keys are in the local git-ignored `.env`
+- Verified end to end with the real Stripe sandbox and `stripe listen`:
+  - Checkout with the 4242 card → webhook → Pro · Active
+  - pairing unlocked
+  - second property → quantity 2
+  - cancel → Free
+  - Checkout offers Card + US bank account (ACH)
+- **Stripe CLI on Intel Macs:** Homebrew needs current Xcode Command Line Tools to build it. Instead, install the official binary from GitHub (`gh release download --repo stripe/stripe-cli --pattern 'stripe_*_mac-os_x86_64.tar.gz'`), check it against `stripe-mac-checksums.txt`, and copy it to `/usr/local/bin`
+- For local webhooks, `stripe listen --api-key <test key> --print-secret` gives the `STRIPE_WEBHOOK_SECRET`, so `stripe login` isn't required
+- The sandbox has a few test customers and cancelled subscriptions from this verification ("Sandbox Villas", "Sandbox Check"). They're harmless; delete them in the dashboard if you like
+
 ## 6. Test before going live
 
 1. `stripe listen --forward-to localhost:3000/billing/webhook`, then use the printed `whsec_...` as `STRIPE_WEBHOOK_SECRET`

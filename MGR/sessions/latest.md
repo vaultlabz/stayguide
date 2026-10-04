@@ -46,3 +46,10 @@
 - Gradients extracted via Figma MCP (file vvZxGSsNrWLCILQJkV3aaY) and pre-rendered to public/img/gradients/*.webp
 - Verified: tsc/build, design suite 326/326, regression 15/21/24; live Open-Meteo weather + geocode OK; not yet on a real Tab A11+
 - Open: notify "muse" agent (unknown target); center 4+3 tile row; real-device check; merge design → main when approved
+
+2026-10-04 00:00
+## Checkpoint (claude-code)
+- Stripe sandbox (Wingu Digital, test mode) wired: 7 prices via npm run stripe:setup; test key + CLI webhook secret in git-ignored .env
+- Stripe CLI 1.53.0 installed from official GitHub release (checksum verified); Homebrew failed on outdated CLT (Intel Mac)
+- Real sandbox E2E: Checkout 4242 → webhook → Pro active → pairing → qty 2 → cancel → Free; 4 webhooks delivered, all 200
+- Next: G5 marketing pricing section
