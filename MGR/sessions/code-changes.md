@@ -14,3 +14,4 @@
 2026-10-03 22:39 | claude-code | G1 guide content management; ContentService, ContentController, ownership/video utils, dashboard editor, content-test
 2026-10-03 23:04 | claude-code | G2 free-tier phone/web guide link; guest-link routes/controller, tablet-app guest mode, dashboard section, migration, tests
 2026-10-03 23:31 | claude-code | G3 plans/entitlements, self-serve signup, Stripe Billing (Checkout+ACH, invoices, portal, webhooks), billing page, BILLING_SETUP.md
+2026-10-04 00:24 | claude-code | G5 marketing pricing section (server-rendered from plans.ts), signup CTAs, FAQ, JSON-LD; landing.html, pricing-html.ts

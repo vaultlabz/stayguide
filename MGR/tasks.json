@@ -529,8 +529,8 @@
       "title": "G5: Marketing site pricing section + signup CTAs",
       "description": "Guest product plan (PRD v1.0 follow-up), see ~/.claude/plans/lets-discuss-this-i-robust-panda.md",
       "complexity": 4,
-      "completionDate": null,
-      "status": "pending",
+      "completionDate": "2026-10-04 00:24",
+      "status": "done",
       "priority": "medium",
       "trelloCardId": null,
       "context": {

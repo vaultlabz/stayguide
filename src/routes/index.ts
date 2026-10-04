@@ -9,12 +9,14 @@ import adminAmenityRoutes from './admin-amenities';
 import deviceRoutes from './device';
 import linkRoutes from './links';
 import guestLinkRoutes from './guest-link';
+import { renderLanding } from '../utils/pricing-html';
 
 const router = express.Router();
 
 // Marketing/Landing page routes
+// 2026-10-04 00:12, G5: pricing section is rendered server-side from src/config/plans.ts
 router.get('/', (req, res) => {
-  res.sendFile(path.join(__dirname, '../views/landing.html'));
+  res.type('html').send(renderLanding(path.join(__dirname, '../views')));
 });
 
 // 2026-10-03 23:06, G3 self-serve signup page

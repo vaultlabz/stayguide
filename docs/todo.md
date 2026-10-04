@@ -1,5 +1,29 @@
 # StayGuide SaaS Platform Development Plan
 
+## [2026-10-04] - FEATURE: Marketing Pricing Section + Signup CTAs (G5, task #38)
+
+**What Changed:**
+- ✅ Pricing section on `/`, rendered server-side from `src/config/plans.ts` (same source as billing): Free / Pro (monthly ⇄ annual toggle, savings computed) / Portfolio, tablet kits (Desk, Wall, Signature), payment methods and proration fine print
+- ✅ Short FAQ (tablet needed?, offline, cancel, payment methods) and schema.org Product/Offer JSON-LD + meta description
+- ✅ Calls to action point to `/signup` (`?plan=pro|portfolio` from the plan cards); nav: Pricing · Sign in · Start free; admin login moved to the footer
+- ✅ Removed inaccurate copy: "connection fees" (old pricing) and "integrated helpdesk" (not built, task #17), replaced with the phone guide link and book-direct/review features
+- ✅ Footer year updated
+
+**Why:**
+- PRD screen priority: marketing site > tablet > dashboard; the site must sell the self-serve plans built in G3
+
+**How:**
+- `renderLanding()` fills the `<!-- PRICING -->` placeholder (cached in production); prices work without JS and are crawlable
+- `data-period` on the section + a small script toggles monthly/annual; defaults to monthly without JS
+
+**Impact:**
+- **Conversion**: one path from landing → pricing → signup → billing
+- **Accuracy**: prices can't drift from what Stripe bills
+
+**Technical Details:**
+- New suite `tests/e2e/pricing-test.js` (16 checks: server HTML prices, no stale claims, JSON-LD, toggle, CTAs → signup with plan, FAQ, no horizontal scroll at 1280/390 in light and dark)
+- Full regression: 554 checks passing
+
 ## [2026-10-03] - FEATURE: Plans, Self-Serve Signup and Stripe Billing (G3, task #37)
 
 **What Changed:**

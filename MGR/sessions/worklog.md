@@ -290,3 +290,9 @@
 - **title:** G3: Plans, entitlements, self-serve signup, Stripe Billing (cards + ACH, bank-transfer invoices)
 - **was:** pending → **now:** done
 - **note:** billing-test 62/62 vs fake Stripe; full regression green (538 checks); awaiting real Stripe keys
+
+## 2026-10-04 00:24 | claude-code | task.completed
+- **id:** 38
+- **title:** G5: Marketing site pricing section + signup CTAs
+- **was:** pending → **now:** done
+- **note:** pricing-test 16/16; full regression 554
