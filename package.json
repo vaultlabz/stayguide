@@ -11,7 +11,9 @@
     "dev": "nodemon src/index.ts",
     "build": "tsc && cp -r src/views dist/",
     "build:clean": "rm -rf dist && npm run build",
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "test": "npm run test:unit && npm run test:e2e",
+    "test:unit": "ts-node tests/e2e/unit-test.ts",
+    "test:e2e": "node tests/e2e/offline-test.js && node tests/e2e/phase3-test.js && node tests/e2e/phase5-test.js && node tests/e2e/design-test.js"
   },
   "keywords": [
     "rental",
@@ -45,6 +47,7 @@
     "@types/node": "^20.4.5",
     "@types/qrcode": "^1.5.6",
     "nodemon": "^3.0.1",
+    "playwright-core": "^1.63.0",
     "ts-node": "^10.9.1",
     "typescript": "^5.1.6"
   }

@@ -1,5 +1,29 @@
 # StayGuide SaaS Platform Development Plan
 
+## [2026-10-03] - MERGE/TESTS: Design Branch Merged into Main; E2E Suites in Repo (G0)
+
+**What Changed:**
+- ✅ Merged `design` → `main` (PR #1): design system, light/dark themes, tablet redesign (icon home, glass UI, 8 Figma gradients, clock/weather, Wi-Fi QR, transitions + blur)
+- ✅ mgr logs merged by union; `MGR/tasks.json` merged by id (main #32–#41, design #28–#31)
+- ✅ Browser suites moved from the session scratchpad into `tests/e2e/` with a shared `helpers.js`, committed fixtures, and git-ignored `tests/e2e/output/`
+- ✅ New scripts: `npm run test:unit`, `npm run test:e2e`, `npm test`; dev dependency `playwright-core`
+
+**Why:**
+- Plan phase G0: one main branch with the redesign before building G1–G7
+- Tests lived in a temporary folder and would have been lost
+
+**How:**
+- `PLAYWRIGHT_CHROMIUM_PATH` selects a local Chromium/headless shell; otherwise Playwright's download is used
+- The offline suite now uploads its own fixture image (uploads/ is git-ignored)
+
+**Impact:**
+- **Quality**: 410 automated checks runnable by anyone with the repo
+- **Process**: future phases extend these suites
+
+**Technical Details:**
+- Results on merged main: unit 24/24, offline 15/15, phase3 21/21, phase5 24/24, design 326/326
+- Deploy migrations now: 2026-10-03_property_main_image, _devices, _guest_links, _tablet_theme, _tablet_background, _tablet_home
+
 ## [2026-10-03] - FEATURE: Tablet redesign round 2 - icon-only home, glass UI, Baltic Rose / Rich Bistre, clock + weather
 
 **What Changed:**

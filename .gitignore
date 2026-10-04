@@ -17,3 +17,6 @@ public/uploads/**
 .claude/settings.local.json
 .DS_Store
 *.log
+
+# 2026-10-03 22:09, e2e screenshots/output
+tests/e2e/output/

@@ -266,3 +266,9 @@
 ## 2026-10-03 17:38 | claude-code | task.created
 - **id:** 31
 - **title:** Center last row of home tiles (7 tiles wrap 4+3)
+
+## 2026-10-03 22:17 | claude-code | task.completed
+- **id:** 35
+- **title:** G0: Merge design → main; move e2e suites into tests/e2e
+- **was:** pending → **now:** done
+- **note:** PR #1 merged; e2e 386 + unit 24 pass

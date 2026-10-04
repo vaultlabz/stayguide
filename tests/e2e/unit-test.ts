@@ -1,0 +1,11 @@
+import { wifiQrPayload } from '../../src/utils/wifi';
+import { weatherCondition, geocodeCandidates } from '../../src/utils/weather';
+let pass = 0, fail = 0;
+const eq = (name: string, a: unknown, b: unknown) => { const ok = JSON.stringify(a) === JSON.stringify(b); ok ? pass++ : fail++; console.log(`${ok ? 'PASS' : 'FAIL'} ${name}${ok ? '' : ' got ' + JSON.stringify(a) + ' want ' + JSON.stringify(b)}`); };
+eq('wifi plain', wifiQrPayload('Home', 'pass123'), 'WIFI:T:WPA;S:Home;P:pass123;;');
+eq('wifi escapes ; , : " \\ in ssid and password', wifiQrPayload('A;B,C:D"E\\F', 'p;w,d:"\\x'), 'WIFI:T:WPA;S:A\\;B\\,C\\:D\\"E\\\\F;P:p\\;w\\,d\\:\\"\\\\x;;');
+eq('wifi open network', wifiQrPayload('Cafe', ''), 'WIFI:T:nopass;S:Cafe;;');
+eq('wifi no ssid', wifiQrPayload('', 'x'), null);
+for (const [code, want] of [[0,'clear'],[1,'clear'],[2,'partly'],[3,'cloudy'],[45,'fog'],[48,'fog'],[51,'rain'],[57,'rain'],[61,'rain'],[67,'rain'],[71,'snow'],[77,'snow'],[80,'rain'],[82,'rain'],[85,'snow'],[86,'snow'],[95,'storm'],[99,'storm'],[999,'cloudy']] as const) eq(`weather code ${code}`, weatherCondition(code), want);
+eq('geocode candidates', geocodeCandidates('456 Ocean Drive, Beach City, CA 90210'), ['90210', 'Beach City', '456 Ocean Drive, Beach City, CA 90210']);
+console.log(`\n${pass}/${pass + fail} unit checks passed`); process.exit(fail ? 1 : 0);
