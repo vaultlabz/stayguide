@@ -1,5 +1,35 @@
 # StayGuide SaaS Platform Development Plan
 
+## [2026-10-03] - FEATURE: Free-Tier Phone/Web Guide Link (G2, task #36)
+
+**What Changed:**
+- ✅ Public guide at `/g/:token`: the same guide as the tablet in a phone layout, with no login or device. `GET /g/:token/content`, `/weather`, and `POST /g/:token/report`
+- ✅ Per-property random token (32 chars, ~192 bits), created on first use and rotatable. Rotating kills the old link immediately
+- ✅ "Show the Wi-Fi password on the guest link" toggle (default on). The in-house tablet always shows it
+- ✅ Phone mode: tap buttons instead of QR codes (Book Again / review / other properties, tracked as `utm_medium=guest_link`), a "Copy password" button for Wi-Fi, no kiosk idle reset, no service worker, a "Powered by StayGuide" footer
+- ✅ Dashboard "Guest link (phone guide)" section: link + Copy/Open, printable QR, Wi-Fi toggle, Rotate
+- ✅ Reports from the link: property comes from the token, `source = 'guest_link'`, 5 per hour per IP+link
+- ✅ Phone layout polish: left-aligned header, weather under the clock, a lone last tile spans the row
+- ✅ Migration `2026-10-03_guest_link.sql` (properties token + toggle, guest_reports.source, link_clicks.medium += guest_link)
+- ✅ Test infra: older e2e suites now exit non-zero on any FAIL; the design suite accepts any `sg-images-*` cache version
+
+**Why:**
+- The locked Free tier ($0, 1 property) is a phone/web guide; content was device-only since Phase 1
+
+**How:**
+- `resolveGuestLink` middleware validates the token format before lookup and requires an active property + company
+- `sendPropertyContent(..., 'guest_link')` strips the token and, when the toggle is off, the Wi-Fi password + join QR
+- Every `/g/*` response sends `X-Robots-Tag: noindex, nofollow` and `Referrer-Policy: no-referrer`; content is `Cache-Control: no-store`
+
+**Impact:**
+- **Product**: hosts can send a guide link in booking messages with no hardware
+- **Privacy**: the link isn't indexed, doesn't leak through Referer, and can be rotated; Wi-Fi exposure is host-controlled
+
+**Technical Details:**
+- New suite `tests/e2e/guest-link-test.js` (36 checks); full regression: unit 24, offline 15, phase3 21, phase5 24, design 326, content 30, guest-link 36
+- Plan gating (Free = guest link only, Pro = tablet) arrives in G3; the "Powered by" footer shows for all for now
+- Not run against real MySQL
+
 ## [2026-10-03] - FEATURE: Guide Content Management (G1, task #32)
 
 **What Changed:**

@@ -278,3 +278,9 @@
 - **title:** G1: Content management: restaurants, how-to videos, local info, announcements (+ PMS import adapter design)
 - **was:** pending → **now:** done
 - **note:** content-test 30/30; full regression green (440 checks)
+
+## 2026-10-03 23:04 | claude-code | task.completed
+- **id:** 36
+- **title:** G2: Free tier phone/web guide link (/g/:token, mobile layout, Wi-Fi toggle)
+- **was:** pending → **now:** done
+- **note:** guest-link-test 36/36; full regression green (476 checks)

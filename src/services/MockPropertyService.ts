@@ -16,6 +16,18 @@ export class MockPropertyService {
     return null;
   }
 
+  // 2026-10-03 22:42, G2 public guide link
+  async findByGuestLinkToken(token: string): Promise<Property | null> {
+    if (!MOCK_MODE) return null;
+    return (mockProperties.find((p: any) => p.guest_link_token === token) as unknown as Property) || null;
+  }
+
+  async setGuestLinkToken(id: number, token: string): Promise<void> {
+    if (!MOCK_MODE) return;
+    const property: any = mockProperties.find(p => p.id === id);
+    if (property) property.guest_link_token = token;
+  }
+
   async findBySlug(companyId: number, slug: string): Promise<Property | null> {
     if (!MOCK_MODE) return null;
     

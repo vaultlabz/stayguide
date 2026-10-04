@@ -104,4 +104,5 @@ const ymd = d => d.toLocaleDateString('en-CA');
   check('no page JS errors', errors.length === 0, errors.join(' | '));
   await browser.close(); kill();
   console.log(out.join('\n'));
+  process.exit(out.some(l => l.startsWith('FAIL')) ? 1 : 0); // 2026-10-03 22:42, fail the run on any FAIL
 })().catch(e => { console.error('CRASH', e); kill(); process.exit(1); });

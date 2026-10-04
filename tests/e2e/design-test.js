@@ -189,8 +189,8 @@ const SCAN = () => {
       const fg = await t.p.evaluate(() => ({ t: getComputedStyle(document.querySelector('.clock-time')).color, l: getComputedStyle(document.querySelector('.tile-label')).color }));
       const wantText = g.group === 'light' ? 'rgb(0, 0, 0)' : 'rgb(255, 255, 255)';
       check(`[${name}] ${g.group} gradient => ${g.group === 'light' ? 'dark' : 'light'} text`, fg.t === wantText && fg.l === wantText, JSON.stringify(fg));
-      const cached = await t.p.evaluate(async (file) => { await navigator.serviceWorker.ready; const c = await caches.open('sg-images-v5'); return !!(await c.match('/img/gradients/' + file)); }, g.file);
-      check(`[${name}] gradient cached by the service worker on first use (sg-images-v5)`, cached);
+      const cached = await t.p.evaluate(async (file) => { await navigator.serviceWorker.ready; const names = (await caches.keys()).filter(k => k.startsWith('sg-images-')); for (const n of names) { if (await (await caches.open(n)).match('/img/gradients/' + file)) return true; } return false; }, g.file);
+      check(`[${name}] gradient cached by the service worker on first use (sg-images-*)`, cached);
     }
     const home = await t.p.evaluate(() => { const tiles = [...document.querySelectorAll('.tile')].filter(e => e.offsetParent !== null).map(e => { const r = e.getBoundingClientRect(); return { l: e.textContent.trim(), w: Math.round(r.width), h: Math.round(r.height), b: Math.round(r.bottom) }; }); return { tiles, scrollH: document.documentElement.scrollHeight }; });
     check(`[${name}] icon-only home: 7 tiles, each >= 120px, all inside the first 1280x800 screen`, home.tiles.length === 7 && home.tiles.every(x => x.w >= 120 && x.h >= 120 && x.b <= 800), JSON.stringify(home.tiles.map(x => [x.l, x.w, x.h, x.b])) + ' scrollH ' + home.scrollH);
@@ -418,4 +418,5 @@ const SCAN = () => {
   check('no console/page errors or CSP violations', errors.length === 0, errors.slice(0, 5).join(' | '));
   await browser.close(); kill(); stub.close();
   console.log(out.join('\n')); console.log(`\n${out.filter(l => l.startsWith('PASS')).length}/${out.length} passed`);
+  process.exit(out.some(l => l.startsWith('FAIL')) ? 1 : 0); // 2026-10-03 22:42, fail the run on any FAIL
 })().catch(e => { console.error(e); kill(); process.exit(1); });

@@ -11,7 +11,9 @@ export const PROPERTY_UPDATE_FIELDS = [
   // 2026-10-03 16:42, tablet background style (solid / gradient presets / custom image)
   'tablet_background',
   // 2026-10-03 17:00, weather location + home-screen clock/temperature preferences
-  'latitude', 'longitude', 'temperature_unit', 'clock_format'
+  'latitude', 'longitude', 'temperature_unit', 'clock_format',
+  // 2026-10-03 22:42, G2 (guest_link_token is never client-writable; see PropertyService.setGuestLinkToken)
+  'guest_link_show_wifi'
 ] as const;
 
 export const AMENITY_UPDATE_FIELDS = [

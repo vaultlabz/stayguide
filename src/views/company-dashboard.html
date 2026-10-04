@@ -555,6 +555,14 @@
         .content-form-actions { display: flex; gap: 0.5rem; margin-top: 0.5rem; }
         .content-error { color: var(--danger-text); font-size: 0.9rem; margin: 0.5rem 0 0; }
         .content-empty { color: var(--text-muted); margin: 0 0 0.75rem; }
+
+        /* 2026-10-03 22:42, G2 guest link section */
+        .guest-link-row { display: flex; gap: 1.25rem; align-items: flex-start; flex-wrap: wrap; }
+        .guest-link-qr { width: 132px; height: 132px; padding: 8px; background: #fff; border-radius: var(--radius-sm); flex-shrink: 0; }
+        .guest-link-qr svg { width: 100%; height: 100%; display: block; }
+        .guest-link-controls { flex: 1; min-width: 260px; display: flex; flex-direction: column; gap: 0.6rem; align-items: flex-start; }
+        .guest-link-controls > div { width: 100%; }
+        .guest-link-toggle { display: flex; gap: 0.5rem; align-items: center; color: var(--text); font-size: 0.95rem; }
     </style>
 </head>
 <body class="sg-app">
@@ -856,6 +864,26 @@
                 </div>
                 
                 <!-- 2026-10-03 11:39, paired tablets (only for saved properties) -->
+                <!-- 2026-10-03 22:42, G2 public phone/web guide link (saved immediately) -->
+                <div class="property-form-section" id="guest-link-section" style="display: none;">
+                    <h3>Guest link (phone guide)</h3>
+                    <p class="content-help">Send this link in your booking messages. Guests open the guide on their phone; no app or tablet needed. Anyone with the link can see the guide, so rotate it if it gets shared publicly.</p>
+                    <div class="guest-link-row">
+                        <div class="guest-link-qr" id="guest-link-qr" aria-label="QR code for the guest link"></div>
+                        <div class="guest-link-controls">
+                            <label class="form-label" for="guest-link-url">Link</label>
+                            <div style="display: flex; gap: 0.5rem;">
+                                <input type="text" id="guest-link-url" class="form-input" readonly style="flex: 1;">
+                                <button type="button" class="btn btn-secondary btn-small" id="guest-link-copy" onclick="copyGuestLink()">Copy</button>
+                                <a class="btn btn-secondary btn-small" id="guest-link-open" target="_blank" rel="noopener noreferrer">Open</a>
+                            </div>
+                            <label class="guest-link-toggle"><input type="checkbox" id="guest-link-show-wifi" onchange="saveGuestLinkWifi()"> Show the Wi-Fi password on the guest link</label>
+                            <button type="button" class="btn btn-secondary btn-small" onclick="rotateGuestLink()">Rotate link</button>
+                            <p class="content-error" id="guest-link-status" hidden></p>
+                        </div>
+                    </div>
+                </div>
+
                 <!-- 2026-10-03 22:25, G1 guide content: what guests see in the tablet/guide sheets (saved immediately, not with the form) -->
                 <div class="property-form-section" id="guide-content-section" style="display: none;">
                     <h3>Guide content</h3>
@@ -1092,6 +1120,7 @@
             // 2026-10-03 11:39, tablets can only be paired to a saved property
             document.getElementById('tablets-section').style.display = 'none';
             document.getElementById('guide-content-section').style.display = 'none'; // 2026-10-03 22:25
+            document.getElementById('guest-link-section').style.display = 'none'; // 2026-10-03 22:42
 
             // Open slide panel
             document.getElementById('propertyPanel').classList.add('open');
@@ -1282,6 +1311,9 @@
                 // 2026-10-03 22:25, G1 guide content editor
                 document.getElementById('guide-content-section').style.display = 'block';
                 loadGuideContent();
+                // 2026-10-03 22:42, G2 guest link
+                document.getElementById('guest-link-section').style.display = 'block';
+                loadGuestLink();
                 document.getElementById('pairing-code-display').style.display = 'none';
                 loadDevices();
                 
@@ -1304,6 +1336,65 @@
                 el.textContent = `Last ${days} days: ${stats.book} booking scans · ${stats.showcase} other-property scans · ${stats.review} review scans`;
             } catch (error) {
                 el.textContent = '';
+            }
+        }
+
+        // 2026-10-03 22:42, G2 public phone/web guide link
+        function guestLinkPath() {
+            const slug = document.getElementById('propertyForm').dataset.editingSlug;
+            return `/company/${companySlug}/properties/${encodeURIComponent(slug)}/guest-link`;
+        }
+
+        function renderGuestLink(link) {
+            document.getElementById('guest-link-url').value = link.url;
+            document.getElementById('guest-link-open').href = link.url;
+            document.getElementById('guest-link-qr').innerHTML = link.qr_svg; // server-generated SVG from our own URL
+            document.getElementById('guest-link-show-wifi').checked = !!link.show_wifi;
+        }
+
+        function guestLinkStatus(message, isError) {
+            const el = document.getElementById('guest-link-status');
+            el.textContent = message; el.hidden = false;
+            el.style.color = isError ? '' : 'var(--text-muted)';
+        }
+
+        async function loadGuestLink() {
+            document.getElementById('guest-link-status').hidden = true;
+            try {
+                renderGuestLink(await apiCall(guestLinkPath()));
+            } catch (error) {
+                guestLinkStatus(`Failed to load guest link: ${error.message}`, true);
+            }
+        }
+
+        async function copyGuestLink() {
+            const url = document.getElementById('guest-link-url').value;
+            try { await navigator.clipboard.writeText(url); guestLinkStatus('Link copied.'); }
+            catch { document.getElementById('guest-link-url').select(); guestLinkStatus('Press ⌘C / Ctrl+C to copy.'); }
+        }
+
+        async function saveGuestLinkWifi() {
+            const checkbox = document.getElementById('guest-link-show-wifi');
+            const slug = document.getElementById('propertyForm').dataset.editingSlug;
+            try {
+                await apiCall(`/company/${companySlug}/properties/${encodeURIComponent(slug)}`, {
+                    method: 'PUT',
+                    body: JSON.stringify({ guest_link_show_wifi: checkbox.checked })
+                });
+                guestLinkStatus(checkbox.checked ? 'Wi-Fi password is shown on the guest link.' : 'Wi-Fi password is hidden on the guest link.');
+            } catch (error) {
+                checkbox.checked = !checkbox.checked;
+                guestLinkStatus(`Failed to save: ${error.message}`, true);
+            }
+        }
+
+        async function rotateGuestLink() {
+            if (!confirm('Create a new guest link? The current link stops working immediately, so you will need to send guests the new one.')) return;
+            try {
+                renderGuestLink(await apiCall(`${guestLinkPath()}/rotate`, { method: 'POST' }));
+                guestLinkStatus('New link created. The old link no longer works.');
+            } catch (error) {
+                guestLinkStatus(`Failed to rotate: ${error.message}`, true);
             }
         }
 

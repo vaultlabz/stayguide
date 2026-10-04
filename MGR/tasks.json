@@ -497,8 +497,8 @@
       "title": "G2: Free tier phone/web guide link (/g/:token, mobile layout, Wi-Fi toggle)",
       "description": "Guest product plan (PRD v1.0 follow-up), see ~/.claude/plans/lets-discuss-this-i-robust-panda.md",
       "complexity": 6,
-      "completionDate": null,
-      "status": "pending",
+      "completionDate": "2026-10-03 23:04",
+      "status": "done",
       "priority": "high",
       "trelloCardId": null,
       "context": {

@@ -58,6 +58,9 @@ export interface Property {
   temperature_unit?: 'F' | 'C';
   clock_format?: '12h' | '24h';
   tablet_background?: string; // 'solid' | 'image' | a gradient slug from public/js/tablet-backgrounds.js
+  // 2026-10-03 22:42, G2 public guide link
+  guest_link_token?: string | null;
+  guest_link_show_wifi?: boolean | number;
   status: 'active' | 'inactive';
   created_at: Date;
   updated_at: Date;

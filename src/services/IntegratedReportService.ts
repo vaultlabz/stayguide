@@ -15,6 +15,7 @@ export interface GuestReport {
   status: 'new' | 'acknowledged' | 'in_progress' | 'resolved' | 'closed';
   location?: string;
   urgency_level: 'not_urgent' | 'same_day' | 'immediate';
+  source?: 'tablet' | 'guest_link'; // 2026-10-03 22:42
   guest_ip?: string;
   resolved_at?: Date | null;
   resolved_by?: number | null;
@@ -39,8 +40,8 @@ export class IntegratedReportService {
       INSERT INTO guest_reports (
         property_id, amenity_id, guest_name, guest_room, guest_phone,
         category, title, description, priority, status, location,
-        urgency_level, guest_ip, admin_notified
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        urgency_level, source, guest_ip, admin_notified
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     `;
     
     const values = [
@@ -56,6 +57,7 @@ export class IntegratedReportService {
       reportData.status || 'new',
       reportData.location || null,
       reportData.urgency_level,
+      reportData.source || 'tablet', // 2026-10-03 22:42
       reportData.guest_ip || null,
       reportData.admin_notified || false
     ];

@@ -315,14 +315,19 @@ export class PropertyController {
     }
   }
 
-  private async sendPropertyContent(req: Request, res: Response, company: { name: string; slug: string; logo_url?: string }, property: Property) {
+  // 2026-10-03 22:42, mode 'guest_link' = public phone guide: honors the Wi-Fi visibility toggle and never echoes the link token
+  private async sendPropertyContent(req: Request, res: Response, company: { name: string; slug: string; logo_url?: string }, property: Property, mode: 'tablet' | 'guest_link' = 'tablet') {
     const propertyWithContent = await this.propertyService.getPropertyWithContent(property.id);
+    const publicProperty: any = { ...(propertyWithContent?.property || property) };
+    delete publicProperty.guest_link_token;
+    const hideWifi = mode === 'guest_link' && (property.guest_link_show_wifi === false || property.guest_link_show_wifi === 0);
+    if (hideWifi) publicProperty.wifi_password = null;
 
     // 2026-10-03 12:32, Phase 5: direct-booking / review QR codes for the tablet
     const baseUrl = (process.env.APP_BASE_URL || `${req.protocol}://${req.get('host')}`).replace(/\/$/, '');
     const guestLinks = await this.linkService.buildGuestLinks(property, baseUrl);
 
-    const wifiPayload = wifiQrPayload(property.wifi_name || '', property.wifi_password);
+    const wifiPayload = hideWifi ? null : wifiQrPayload(property.wifi_name || '', property.wifi_password);
 
     console.log(`Property content retrieved for tablet: property ${property.id}`);
     res.json({
@@ -333,10 +338,35 @@ export class PropertyController {
         logo_url: company.logo_url
       },
       ...propertyWithContent,
+      property: publicProperty,
+      access: mode,
       guest_links: guestLinks,
       // 2026-10-03 17:00, "Join Wi-Fi" QR for the Wi-Fi sheet (generated server-side like the guest-link QRs)
       wifi_qr_svg: wifiPayload ? await QRCode.toString(wifiPayload, { type: 'svg', margin: 1, errorCorrectionLevel: 'M' }) : null
     });
+  }
+
+  // 2026-10-03 22:42, G2 public guide link (req.guestLink set by resolveGuestLink middleware)
+  async getGuestLinkContent(req: AuthRequest, res: Response) {
+    try {
+      const property = (req as any).guestLink.property as Property;
+      const company = await this.companyService.findById(property.company_id);
+      if (!company || company.status !== 'active') return res.status(404).json({ error: 'This guide is not available' });
+      res.setHeader('Cache-Control', 'no-store');
+      await this.sendPropertyContent(req, res, company, property, 'guest_link');
+    } catch (error) {
+      console.error('Error getting guest link content:', error);
+      res.status(500).json({ error: 'Failed to retrieve guide' });
+    }
+  }
+
+  async getGuestLinkWeather(req: AuthRequest, res: Response) {
+    try {
+      await this.sendWeather(res, (req as any).guestLink.property as Property);
+    } catch (error) {
+      console.error('Error getting guest link weather:', error);
+      res.status(500).json({ error: 'Failed to retrieve weather' });
+    }
   }
 
   // 2026-10-03 17:00, current weather for the tablet home screen (device token) and for the admin preview
@@ -455,6 +485,12 @@ export class PropertyController {
       const offer = typeof body.return_guest_offer === 'string' ? body.return_guest_offer.trim() : '';
       if (offer.length > 255) return { error: 'return_guest_offer must be 255 characters or fewer' };
       fields.return_guest_offer = offer || null;
+    }
+    // 2026-10-03 22:42, G2: show Wi-Fi password on the public guide link (boolean)
+    if (body.guest_link_show_wifi !== undefined) {
+      const v = body.guest_link_show_wifi;
+      if (typeof v !== 'boolean') return { error: 'guest_link_show_wifi must be true or false' };
+      fields.guest_link_show_wifi = v;
     }
     if (body.guest_checkout_date !== undefined) {
       const date = typeof body.guest_checkout_date === 'string' ? body.guest_checkout_date.trim() : '';

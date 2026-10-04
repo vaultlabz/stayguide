@@ -52,3 +52,4 @@
 {"ts":"2026-10-03 17:38","tool":"claude-code","event":"task.created","id":31,"title":"Center last row of home tiles (7 tiles wrap 4+3)"}
 {"ts":"2026-10-03 22:17","tool":"claude-code","event":"task.completed","id":35,"title":"G0: Merge design → main; move e2e suites into tests/e2e"}
 {"ts":"2026-10-03 22:39","tool":"claude-code","event":"task.completed","id":32,"title":"G1: Content management: restaurants, how-to videos, local info, announcements (+ PMS import adapter design)"}
+{"ts":"2026-10-03 23:04","tool":"claude-code","event":"task.completed","id":36,"title":"G2: Free tier phone/web guide link (/g/:token, mobile layout, Wi-Fi toggle)"}

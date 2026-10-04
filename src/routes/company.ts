@@ -4,6 +4,7 @@ import { AuthController } from '../controllers/AuthController';
 import { PropertyController } from '../controllers/PropertyController';
 import { DeviceController } from '../controllers/DeviceController';
 import { ContentController } from '../controllers/ContentController';
+import { GuestLinkController } from '../controllers/GuestLinkController';
 import { authenticateToken, requireCompanyAdmin } from '../middleware/auth';
 import { uploadPropertyImage, uploadAmenityImage } from '../middleware/upload';
 
@@ -20,6 +21,7 @@ const authController = new AuthController();
 const propertyController = new PropertyController();
 const deviceController = new DeviceController();
 const contentController = new ContentController();
+const guestLinkController = new GuestLinkController();
 
 // Company admin login
 router.get('/login', (req: express.Request<CompanyParams>, res) => {
@@ -80,6 +82,10 @@ router.put('/properties/:propertySlug/content/:type/order', contentController.re
 router.put('/properties/:propertySlug/content/:type/:id', contentController.update.bind(contentController));
 router.delete('/properties/:propertySlug/content/:type/:id', contentController.remove.bind(contentController));
 router.put('/properties/:propertySlug/welcome', contentController.setWelcome.bind(contentController));
+
+// 2026-10-03 22:42, G2 public phone/web guide link
+router.get('/properties/:propertySlug/guest-link', guestLinkController.get.bind(guestLinkController));
+router.post('/properties/:propertySlug/guest-link/rotate', guestLinkController.rotate.bind(guestLinkController));
 
 // 2026-10-03 11:39, paired tablets per property
 router.post('/properties/:propertySlug/devices/pairing-code', deviceController.createPairingCode.bind(deviceController));

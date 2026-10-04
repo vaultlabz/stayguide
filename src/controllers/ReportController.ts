@@ -36,7 +36,10 @@ export class ReportController {
   async createGuestReport(req: Request, res: Response): Promise<void> {
     try {
       // 2026-10-03 11:39, property comes from the paired device (authenticateDevice), never the request body
-      const property_id = (req as any).device?.property_id;
+      // 2026-10-03 22:42, ...or from the public guide link (resolveGuestLink)
+      const guestLinkProperty = (req as any).guestLink?.property;
+      const property_id = (req as any).device?.property_id ?? guestLinkProperty?.id;
+      const source: 'tablet' | 'guest_link' = guestLinkProperty ? 'guest_link' : 'tablet';
       const {
         amenity_id,
         guest_name,
@@ -103,6 +106,7 @@ export class ReportController {
         status: 'new' as const,
         location,
         urgency_level,
+        source,
         guest_ip,
         admin_notified: false
       };

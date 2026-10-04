@@ -2,7 +2,7 @@
 // Only handles the tablet's own requests; dashboard/admin traffic passes straight through.
 
 // 2026-10-03 15:38, v3: shell now includes the shared theme.css
-const VERSION = 'v5'; // 2026-10-03 17:14: gradient backgrounds are cached on first use (cache-first), shared preset list is in the shell
+const VERSION = 'v6'; // 2026-10-03 22:42: G2 guest-link styles (v5: gradients cached on first use)
 const SHELL_CACHE = `sg-shell-${VERSION}`;
 const CONTENT_CACHE = `sg-content-${VERSION}`;
 const IMAGE_CACHE = `sg-images-${VERSION}`;

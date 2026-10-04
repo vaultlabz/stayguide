@@ -35,6 +35,22 @@ export class PropertyService {
     }
   }
 
+  // 2026-10-03 22:42, G2 public guide link: look up by token; token is only ever set via setGuestLinkToken
+  async findByGuestLinkToken(token: string): Promise<Property | null> {
+    if (MOCK_MODE) {
+      return this.mockService.findByGuestLinkToken(token);
+    }
+    const [rows] = await db.execute<RowDataPacket[]>('SELECT * FROM properties WHERE guest_link_token = ?', [token]);
+    return (rows[0] as Property) || null;
+  }
+
+  async setGuestLinkToken(id: number, token: string): Promise<void> {
+    if (MOCK_MODE) {
+      return this.mockService.setGuestLinkToken(id, token);
+    }
+    await db.execute('UPDATE properties SET guest_link_token = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?', [token, id]);
+  }
+
   async findBySlug(companyId: number, slug: string): Promise<Property | null> {
     if (MOCK_MODE) {
       return this.mockService.findBySlug(companyId, slug);

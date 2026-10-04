@@ -1,7 +1,7 @@
 # StayGuide Integration Guide for Property Website Developers
 
 **Audience:** developers who build or maintain a property owner's or manager's own website (direct-booking site, brand site, or guest portal).
-**Version:** 0.2 (draft integration contract), 2026-10-03
+**Version:** 0.3 (draft integration contract), 2026-10-03
 
 > **Status:** StayGuide is in active development. Each section is labelled:
 > - **Available**: needs nothing from StayGuide; do it now.
@@ -47,6 +47,8 @@ Your site must:
 
 The manager enters these per property in the StayGuide dashboard (**Edit property → Direct Booking & Reviews**). Your job is to give them stable, deep URLs.
 
+**Phone guide (Free tier):** the same links also appear as tap buttons in the property's phone/web guide link (`/g/<token>`), tracked with `utm_medium=guest_link`.
+
 **How guests reach your site:** the tablet runs in locked kiosk mode, so it doesn't open your site itself. It shows **QR codes** that guests scan with their own phone. Each QR code points to a StayGuide redirect (`https://<stayguide-host>/r/<property-id>/book`, `/review`, or `/showcase/<other-property-id>`). The redirect counts the scan and sends the guest to your URL with the tracking parameters in section 4. Guests land on your site **on a phone**.
 
 - The **book direct** QR code shows on every paired tablet once `direct_booking_url` is set, with the `return_guest_offer` text under it.
@@ -76,7 +78,7 @@ When the redirect sends a guest to your site, it adds these parameters. Any quer
 
 ```
 ?utm_source=stayguide
-&utm_medium=qr                # scanned from the tablet screen
+&utm_medium=qr                # scanned from the tablet screen, or "guest_link" when tapped in the phone guide
 &utm_campaign=return_guest    # or "showcase" / "review"
 &utm_content=<property_slug>  # the property the guest is staying in
 &sg_click=<click_id>          # opaque StayGuide click id (currently 16 hex chars; accept up to 64)
@@ -331,5 +333,6 @@ StayGuide does not submit listings to Google. That stays with the owner's PMS or
 Contact your StayGuide account manager for API keys, sandbox access (`sg_test_…` keys against a test company), and to confirm which **Planned** features are live.
 
 **Changelog**
+- 0.3 (2026-10-03): phone guide link taps (`utm_medium=guest_link`).
 - 0.2 (2026-10-03): tablet QR links, scan redirect and tracking parameters are live (sections 3–4).
 - 0.1 (2026-10-03): first draft; Stays, Conversions and Webhooks specified as planned.

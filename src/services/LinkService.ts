@@ -8,7 +8,7 @@ import { Property } from '../types';
 import { MOCK_MODE, mockLinkClicks, mockProperties } from '../utils/mock-database';
 
 export type LinkKind = 'book' | 'review' | 'showcase';
-export type LinkMedium = 'qr' | 'tablet';
+export type LinkMedium = 'qr' | 'tablet' | 'guest_link'; // 2026-10-03 22:42, guest_link taps
 
 const CAMPAIGN: Record<LinkKind, string> = { book: 'return_guest', review: 'review', showcase: 'showcase' };
 const MAX_SHOWCASE = 3;

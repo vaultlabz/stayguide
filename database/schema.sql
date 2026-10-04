@@ -65,6 +65,8 @@ CREATE TABLE properties (
     temperature_unit ENUM('F', 'C') NOT NULL DEFAULT 'F',
     clock_format ENUM('12h', '24h') NOT NULL DEFAULT '12h',
     tablet_background ENUM('solid', 'image', 'manhattan-ice', 'apricot-storm', 'barley-titan', 'silver-cloud', 'erie-charcoal', 'burnham-stone', 'baltic-rose', 'rich-bistre') NOT NULL DEFAULT 'solid', -- 2026-10-03 16:42
+    guest_link_token VARCHAR(64) NULL UNIQUE, -- 2026-10-03 22:42, G2 public guide link
+    guest_link_show_wifi BOOLEAN NOT NULL DEFAULT TRUE,
     status ENUM('active', 'inactive') DEFAULT 'active',
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
@@ -288,6 +290,7 @@ CREATE TABLE guest_reports (
     status ENUM('new', 'acknowledged', 'in_progress', 'resolved', 'closed') DEFAULT 'new',
     location VARCHAR(255), -- e.g., "Kitchen", "Bathroom", "Living Room", "Pool Area"
     urgency_level ENUM('not_urgent', 'same_day', 'immediate') DEFAULT 'not_urgent',
+    source ENUM('tablet', 'guest_link') NOT NULL DEFAULT 'tablet', -- 2026-10-03 22:42
     guest_ip VARCHAR(45), -- For tracking/analytics
     resolved_at TIMESTAMP NULL,
     resolved_by INT NULL, -- References users.id when resolved
@@ -387,7 +390,7 @@ CREATE TABLE link_clicks (
     property_id INT NOT NULL,
     kind ENUM('book', 'review', 'showcase') NOT NULL,
     target_property_id INT NULL,
-    medium ENUM('qr', 'tablet') NOT NULL DEFAULT 'qr',
+    medium ENUM('qr', 'tablet', 'guest_link') NOT NULL DEFAULT 'qr', -- 2026-10-03 22:42 guest_link added
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
 
     FOREIGN KEY (property_id) REFERENCES properties(id) ON DELETE CASCADE,

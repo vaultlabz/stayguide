@@ -24,7 +24,8 @@ const notAvailable = (res: express.Response) =>
 async function handleScan(req: express.Request, res: express.Response, kind: LinkKind, targetId: number | null) {
   try {
     const propertyId = parseInt(req.params.propertyId);
-    const medium: LinkMedium = req.query.m === 'tablet' ? 'tablet' : 'qr';
+    // 2026-10-03 22:42, m=link marks taps from the phone guide link
+    const medium: LinkMedium = req.query.m === 'tablet' ? 'tablet' : req.query.m === 'link' ? 'guest_link' : 'qr';
 
     const property = Number.isInteger(propertyId) ? await propertyService.findById(propertyId) : null;
     if (!property || property.status !== 'active') return notAvailable(res);

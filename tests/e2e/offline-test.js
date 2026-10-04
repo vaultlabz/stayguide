@@ -102,4 +102,5 @@ function stopServer(p) { try { process.kill(-p.pid); } catch {} try { execSync('
   await browser.close();
   stopServer(server);
   console.log(results.join('\n'));
+  process.exit(results.some(l => l.startsWith('FAIL')) ? 1 : 0); // 2026-10-03 22:42, fail the run on any FAIL
 })().catch(e => { console.error('TEST CRASHED:', e); try { execSync('lsof -ti tcp:' + H.PORT + ' -sTCP:LISTEN | xargs kill 2>/dev/null'); } catch {} process.exit(1); });

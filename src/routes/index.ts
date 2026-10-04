@@ -8,6 +8,7 @@ import reportRoutes from './reports';
 import adminAmenityRoutes from './admin-amenities';
 import deviceRoutes from './device';
 import linkRoutes from './links';
+import guestLinkRoutes from './guest-link';
 
 const router = express.Router();
 
@@ -21,6 +22,9 @@ router.use(deviceRoutes);
 
 // 2026-10-03 12:32, QR scan redirects for direct booking / reviews
 router.use(linkRoutes);
+
+// 2026-10-03 22:42, G2 public phone/web guide link
+router.use(guestLinkRoutes);
 
 // Main admin routes
 router.use('/admin', adminRoutes);

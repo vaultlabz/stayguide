@@ -129,6 +129,8 @@
             <button type="button" class="tile" data-sheet="book" onclick="openSheet('book')"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3.5" y="5" width="17" height="15.5" rx="2.5"/><path d="M3.5 10h17M8 3v4M16 3v4"/><path d="M9 15l2 2 4-4"/></svg><span class="tile-label">Book Again</span></button>
             <div class="report-card"><button type="button" class="tile report-button" onclick="openReportModal()"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M14.7 6.3a4 4 0 0 0 5 5L21 12.6 12.6 21a2.1 2.1 0 0 1-3-3L18 9.6"/><path d="M14.7 6.3L9.6 11.4M5 3l4 4-2 2-4-4z"/></svg><span class="tile-label">Report an Issue</span></button></div>
             </nav>
+            <!-- 2026-10-03 22:42, G2: shown only on the phone/web guide link -->
+            <footer class="powered-by">Powered by <strong>StayGuide</strong></footer>
         </div>
     </div>
 
@@ -293,6 +295,11 @@
         //   /company/{slug}/property/{slug}        -> company-admin preview (dashboard JWT), reports disabled
         const DEVICE_TOKEN_KEY = 'stayguide_device_token';
         const isDeviceMode = window.location.pathname.replace(/\/$/, '') === '/tablet';
+        // 2026-10-03 22:42, G2 third mode: /g/{token} = public phone/web guide (no login; reports allowed; links instead of QR codes)
+        const guestLinkMatch = window.location.pathname.match(/^\/g\/([A-Za-z0-9_-]{24,64})\/?$/);
+        const guestLinkToken = guestLinkMatch ? guestLinkMatch[1] : null;
+        const isGuestLinkMode = !!guestLinkToken;
+        if (isGuestLinkMode) document.documentElement.classList.add('guest-link-mode');
         const pathParts = window.location.pathname.split('/');
         const companySlug = pathParts[2];
         const propertySlug = pathParts[4];
@@ -354,7 +361,9 @@
 
                 const url = isDeviceMode
                     ? '/device/content'
-                    : `/company/${companySlug}/property/${propertySlug}/api/content`;
+                    : isGuestLinkMode
+                        ? `/g/${guestLinkToken}/content`
+                        : `/company/${companySlug}/property/${propertySlug}/api/content`;
                 const response = await fetch(url, { headers: authHeaders() });
                 const data = await response.json();
 
@@ -362,6 +371,12 @@
                     // Token revoked or unknown: forget it and ask to pair again
                     storageRemove(DEVICE_TOKEN_KEY);
                     return showPairingScreen('This tablet is no longer paired. Enter a new code from the dashboard.');
+                }
+
+                if (!response.ok && isGuestLinkMode) {
+                    throw new Error(response.status === 404
+                        ? 'This guide link is no longer valid. Please ask your host for the current link.'
+                        : (data.error || 'Failed to load the guide'));
                 }
 
                 if (!response.ok) {
@@ -594,8 +609,19 @@
             }).join('');
 
             // 2026-10-03 17:02, Wi-Fi join QR (server-generated), home tiles only for sections that have content, clock format, weather
-            document.getElementById('wifi-qr').innerHTML = data.wifi_qr_svg
-                ? `<div class="qr-box">${data.wifi_qr_svg}</div><div class="wifi-qr-caption">Scan to join</div>` : '';
+            // 2026-10-03 22:42, phone guide: a phone can't scan its own screen, so offer copy instead of the join QR
+            if (isGuestLinkMode) {
+                document.getElementById('wifi-qr').innerHTML = property.wifi_password
+                    ? '<button type="button" class="copy-button" id="copy-wifi">Copy password</button>' : '';
+                const copyBtn = document.getElementById('copy-wifi');
+                if (copyBtn) copyBtn.addEventListener('click', async () => {
+                    try { await navigator.clipboard.writeText(property.wifi_password); copyBtn.textContent = 'Copied'; }
+                    catch { copyBtn.textContent = 'Press and hold the password to copy'; }
+                });
+            } else {
+                document.getElementById('wifi-qr').innerHTML = data.wifi_qr_svg
+                    ? `<div class="qr-box">${data.wifi_qr_svg}</div><div class="wifi-qr-caption">Scan to join</div>` : '';
+            }
             const hasInfo = ['check_in_instructions', 'check_out_instructions', 'house_rules', 'emergency_contact'].some(k => property[k]);
             setTile('house', hasInfo);
             setTile('amenities', amenities && amenities.length);
@@ -675,8 +701,8 @@
             e.preventDefault();
             document.getElementById('report-error').style.display = 'none'; // 2026-10-03 11:52
             
-            // 2026-10-03 11:39, preview mode never files real reports
-            if (!isDeviceMode) {
+            // 2026-10-03 11:39, preview mode never files real reports (2026-10-03 22:42: guest link may)
+            if (!isDeviceMode && !isGuestLinkMode) {
                 alert('Preview mode: reports are only sent from paired tablets.');
                 return;
             }
@@ -695,7 +721,7 @@
             };
             
             try {
-                const response = await fetch('/reports/guest', {
+                const response = await fetch(isGuestLinkMode ? `/g/${guestLinkToken}/report` : '/reports/guest', {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json',
@@ -738,6 +764,11 @@
             setTile('book', links && links.book);
             if (!links) { section.innerHTML = ''; return; }
             const e = escapeHtml;
+            // 2026-10-03 22:42, phone guide: tappable buttons (tracked as m=link) instead of QR codes
+            const action = (item, text, small) => isGuestLinkMode
+                ? `<a class="link-button" href="${e(item.scan_url)}?m=link" target="_blank" rel="noopener noreferrer">${e(text)}</a>`
+                : `<div class="qr-box${small ? ' qr-small' : ''}">${item.qr_svg}</div>`;
+            const verb = isGuestLinkMode ? 'Tap' : 'Scan with your phone';
             const today = new Date().toLocaleDateString('en-CA'); // YYYY-MM-DD in the tablet's time zone
             const isCheckoutDay = links.checkout_date === today;
             let html = '';
@@ -749,9 +780,9 @@
                     <div class="guest-link-card guest-link-review">
                         <div class="guest-link-text">
                             <h3>Thanks for staying with us!</h3>
-                            <p>Enjoyed your stay? Scan with your phone to leave a quick review.</p>
+                            <p>Enjoyed your stay? ${verb} to leave a quick review.</p>
                         </div>
-                        <div class="qr-box">${links.review.qr_svg}</div>
+                        ${action(links.review, 'Leave a review')}
                     </div>`;
             }
 
@@ -760,10 +791,10 @@
                     <div class="guest-link-card">
                         <div class="guest-link-text">
                             <h3>Book your next stay direct</h3>
-                            <p>Scan with your phone to book this home again${links.showcase && links.showcase.length ? ' or explore our other properties' : ''}.</p>
+                            <p>${verb} to book this home again${links.showcase && links.showcase.length ? ' or explore our other properties' : ''}.</p>
                             ${links.book.offer ? `<p class="guest-link-offer">${e(links.book.offer)}</p>` : ''}
                         </div>
-                        <div class="qr-box">${links.book.qr_svg}</div>
+                        ${action(links.book, 'Book direct')}
                     </div>`;
             }
 
@@ -774,7 +805,7 @@
                         <div class="showcase-grid">
                             ${links.showcase.map(item => `
                                 <div class="showcase-item">
-                                    <div class="qr-box qr-small">${item.qr_svg}</div>
+                                    ${action(item, 'View', true)}
                                     <div class="showcase-name">${e(item.name)}</div>
                                 </div>`).join('')}
                         </div>
@@ -961,11 +992,12 @@
             window.scrollTo(0, 0);
         }
         function resetIdle() {
+            if (isGuestLinkMode) return; // 2026-10-03 22:42
             clearTimeout(idleTimer);
             idleTimer = setTimeout(goHome, IDLE_MS);
         }
         ['pointerdown', 'keydown', 'touchstart', 'wheel'].forEach(name => document.addEventListener(name, resetIdle, { passive: true, capture: true }));
-        resetIdle();
+        resetIdle(); // 2026-10-03 22:42, no-op on the phone guide (no kiosk idle reset on a guest's own phone)
 
         // 2026-10-03 17:02, clock: updates on the minute boundary, uses the tablet's local time zone
         let clockFormat = '12h';
@@ -1017,7 +1049,9 @@
         }
 
         async function loadWeather() {
-            const url = isDeviceMode ? '/device/weather' : `/company/${companySlug}/property/${propertySlug}/api/weather`;
+            const url = isDeviceMode ? '/device/weather'
+                : isGuestLinkMode ? `/g/${guestLinkToken}/weather` // 2026-10-03 22:42
+                : `/company/${companySlug}/property/${propertySlug}/api/weather`;
             try {
                 const response = await fetch(url, { headers: authHeaders() });
                 if (!response.ok) throw new Error('weather ' + response.status);

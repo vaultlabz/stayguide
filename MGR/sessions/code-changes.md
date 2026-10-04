@@ -12,3 +12,4 @@
 2026-10-03 17:53 | claude-code | Session end: handoff, tasks #32-34, MEMORY decisions; MGR/, .mgr/memory/MEMORY.md
 2026-10-03 17:38 | claude-code | Design branch: tablet redesign with Figma gradients, icon home, clock/weather, transitions
 2026-10-03 22:39 | claude-code | G1 guide content management; ContentService, ContentController, ownership/video utils, dashboard editor, content-test
+2026-10-03 23:04 | claude-code | G2 free-tier phone/web guide link; guest-link routes/controller, tablet-app guest mode, dashboard section, migration, tests
