@@ -10,6 +10,8 @@ Until `STRIPE_SECRET_KEY` is set, billing endpoints return **503 "Billing is not
 
 ## 1. Create Products and Prices (test mode first)
 
+**Shortcut for the sandbox:** with a test key in `.env`, run `npm run stripe:setup`. It creates all seven prices below (idempotent, using `lookup_key`s like `stayguide_pro_monthly`), refuses live keys, and prints the `STRIPE_PRICE_*` lines for `.env`. The sandbox was set up this way on 2026-10-03.
+
 | Env var | Product | Price | Type |
 |---|---|---|---|
 | `STRIPE_PRICE_PRO_MONTHLY` | StayGuide Pro | **$9.99** per property / month | Recurring, per unit (quantity = properties) |
