@@ -9,3 +9,4 @@
 2026-10-03 12:36 | claude-code | Phase 5 direct-booking/review QR codes, /r scan redirects, link stats, integration guide v0.2
 2026-10-03 12:50 | claude-code | Dependency security updates (prod audit 0), sharp 0.35 + Node>=20.9, undefined-bind fixes, tablet announcements
 2026-10-03 13:34 | claude-code | Follow-ups: deps update, announcements, undefined-bind fixes; package.json, src/services/*, src/views/tablet-app.html
+2026-10-03 17:38 | claude-code | Design branch: tablet redesign with Figma gradients, icon home, clock/weather, transitions
