@@ -269,6 +269,9 @@ export const mockAnnouncements: any[] = [
   }
 ];
 
+// 2026-10-04 00:26, G4 mock section analytics
+export const mockSectionEvents: any[] = [];
+
 // 2026-10-03 23:06, G3 mock billing state
 export const mockStripeEvents: Set<string> = new Set();
 export const mockHardwareOrders: any[] = [];

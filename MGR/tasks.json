@@ -545,8 +545,8 @@
       "title": "G4: Section analytics (tile opens, video plays, QR shows)",
       "description": "Guest product plan (PRD v1.0 follow-up), see ~/.claude/plans/lets-discuss-this-i-robust-panda.md",
       "complexity": 5,
-      "completionDate": null,
-      "status": "pending",
+      "completionDate": "2026-10-04 00:40",
+      "status": "done",
       "priority": "medium",
       "trelloCardId": null,
       "context": {

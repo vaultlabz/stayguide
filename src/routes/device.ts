@@ -5,6 +5,7 @@ import { DeviceController } from '../controllers/DeviceController';
 import { PropertyController } from '../controllers/PropertyController';
 import { authenticateDevice } from '../middleware/auth';
 import { rateLimit } from '../middleware/rate-limit';
+import { AnalyticsController } from '../controllers/AnalyticsController';
 
 const router = express.Router();
 const deviceController = new DeviceController();
@@ -27,5 +28,10 @@ router.post('/device/pair', pairLimiter, deviceController.pair.bind(deviceContro
 
 router.get('/device/weather', authenticateDevice, propertyController.getDeviceWeather.bind(propertyController));
 router.get('/device/content', authenticateDevice, propertyController.getDeviceContent.bind(propertyController));
+
+// 2026-10-04 00:26, G4 section analytics from paired tablets (60 batches/min per device)
+const analyticsController = new AnalyticsController();
+const deviceEventsLimiter = rateLimit({ windowMs: 60 * 1000, max: 60, key: (req: any) => `devevents:${req.device?.id}`, message: 'Too many events' });
+router.post('/device/events', authenticateDevice, deviceEventsLimiter, analyticsController.deviceEvents.bind(analyticsController));
 
 export default router;

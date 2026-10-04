@@ -13,7 +13,7 @@
     "build:clean": "rm -rf dist && npm run build",
     "test": "npm run test:unit && npm run test:e2e",
     "test:unit": "ts-node tests/e2e/unit-test.ts",
-    "test:e2e": "node tests/e2e/offline-test.js && node tests/e2e/phase3-test.js && node tests/e2e/phase5-test.js && node tests/e2e/design-test.js && node tests/e2e/content-test.js && node tests/e2e/guest-link-test.js && node tests/e2e/billing-test.js && node tests/e2e/pricing-test.js",
+    "test:e2e": "node tests/e2e/offline-test.js && node tests/e2e/phase3-test.js && node tests/e2e/phase5-test.js && node tests/e2e/design-test.js && node tests/e2e/content-test.js && node tests/e2e/guest-link-test.js && node tests/e2e/billing-test.js && node tests/e2e/pricing-test.js && node tests/e2e/analytics-test.js",
     "stripe:setup": "node scripts/stripe-sandbox-setup.js"
   },
   "keywords": [

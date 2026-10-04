@@ -6,6 +6,7 @@ import { DeviceController } from '../controllers/DeviceController';
 import { ContentController } from '../controllers/ContentController';
 import { GuestLinkController } from '../controllers/GuestLinkController';
 import { BillingPlanController } from '../controllers/BillingPlanController';
+import { AnalyticsController } from '../controllers/AnalyticsController';
 import { authenticateToken, requireCompanyAdmin } from '../middleware/auth';
 import { uploadPropertyImage, uploadAmenityImage } from '../middleware/upload';
 
@@ -24,6 +25,7 @@ const deviceController = new DeviceController();
 const contentController = new ContentController();
 const guestLinkController = new GuestLinkController();
 const billingPlanController = new BillingPlanController();
+const analyticsController = new AnalyticsController();
 
 // Company admin login
 router.get('/login', (req: express.Request<CompanyParams>, res) => {
@@ -84,6 +86,10 @@ router.put('/properties/:propertySlug/content/:type/order', contentController.re
 router.put('/properties/:propertySlug/content/:type/:id', contentController.update.bind(contentController));
 router.delete('/properties/:propertySlug/content/:type/:id', contentController.remove.bind(contentController));
 router.put('/properties/:propertySlug/welcome', contentController.setWelcome.bind(contentController));
+
+// 2026-10-04 00:26, G4 section analytics
+router.get('/analytics/summary', analyticsController.companySummary.bind(analyticsController));
+router.get('/properties/:propertySlug/analytics', analyticsController.propertySummary.bind(analyticsController));
 
 // 2026-10-03 23:06, G3 self-serve billing (Stripe)
 router.get('/billing/status', billingPlanController.status.bind(billingPlanController));

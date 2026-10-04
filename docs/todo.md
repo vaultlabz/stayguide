@@ -1,5 +1,30 @@
 # StayGuide SaaS Platform Development Plan
 
+## [2026-10-04] - FEATURE: Section Analytics (G4, task #39)
+
+**What Changed:**
+- ✅ Tablet and phone guide record what guests do: visits, sheet opens (Wi-Fi, house info, amenities, videos, local guide, book again), video plays, Wi-Fi copies, book/review link taps, report opens/submissions
+- ✅ `POST /device/events` (device token) and `POST /g/:token/events` (guide link): batched (≤50), whitelisted section/action pairs, rate limited 60/min
+- ✅ Stored only for Pro/Portfolio (Free: acknowledged, nothing kept). New `section_events` table: **no IP or user agent**
+- ✅ Dashboard: "Guest activity" section per property (visits split tablet/phone, 30-day trend, what guests did); the "Guest visits (30 days)" stat card replaces the old "Tablet Views" TODO placeholder
+- ✅ `GET /company/:slug/properties/:propertySlug/analytics?days=7|30|90` and `GET /company/:slug/analytics/summary`
+
+**Why:**
+- PRD: section analytics is a Pro feature; hosts need to see what guests actually use
+
+**How:**
+- A tablet "visit" = the first tap after the kiosk returned home (kiosks reload content every 15 min, so page loads would inflate counts); a phone visit = opening the guide
+- Client batches every 20s / at 20 events / on page hide (fetch keepalive), retries on failure, never tracks in admin preview
+- The dashboard fetches analytics directly, so Free shows an upgrade note instead of a dialog
+
+**Impact:**
+- **Product**: Pro value hosts can see; informs which content to improve
+- **Privacy**: aggregate counts only, no personal data
+
+**Technical Details:**
+- Migration `2026-10-04_section_events.sql`; the older `analytics` table (with IP columns) stays unused
+- New suite `tests/e2e/analytics-test.js` (19 checks); full regression 573 passing
+
 ## [2026-10-04] - FEATURE: Marketing Pricing Section + Signup CTAs (G5, task #38)
 
 **What Changed:**

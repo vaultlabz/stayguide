@@ -296,3 +296,9 @@
 - **title:** G5: Marketing site pricing section + signup CTAs
 - **was:** pending → **now:** done
 - **note:** pricing-test 16/16; full regression 554
+
+## 2026-10-04 00:40 | claude-code | task.completed
+- **id:** 39
+- **title:** G4: Section analytics (tile opens, video plays, QR shows)
+- **was:** pending → **now:** done
+- **note:** analytics-test 19/19; full regression 573

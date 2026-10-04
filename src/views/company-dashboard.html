@@ -563,6 +563,16 @@
         .guest-link-controls { flex: 1; min-width: 260px; display: flex; flex-direction: column; gap: 0.6rem; align-items: flex-start; }
         .guest-link-controls > div { width: 100%; }
         .guest-link-toggle { display: flex; gap: 0.5rem; align-items: center; color: var(--text); font-size: 0.95rem; }
+
+        /* 2026-10-04 00:26, G4 guest activity */
+        .activity-kpis { display: flex; gap: 1.5rem; flex-wrap: wrap; margin-bottom: 1rem; }
+        .activity-kpi strong { display: block; font-size: 1.6rem; color: var(--text); }
+        .activity-kpi span { color: var(--text-muted); font-size: 0.85rem; }
+        .activity-chart { width: 100%; height: 64px; display: block; margin-bottom: 1rem; color: var(--accent); }
+        .activity-table { width: 100%; border-collapse: collapse; font-size: 0.9rem; }
+        .activity-table th, .activity-table td { text-align: left; padding: 0.4rem 0.3rem; border-bottom: 1px solid var(--border); }
+        .activity-table th { color: var(--text-muted); font-weight: 600; font-size: 0.8rem; }
+        .activity-table td.num, .activity-table th.num { text-align: right; font-variant-numeric: tabular-nums; }
     </style>
 </head>
 <body class="sg-app">
@@ -607,7 +617,7 @@
             </div>
             <div class="stat-card">
                 <div class="stat-number" id="tablet-views">-</div>
-                <div class="stat-label">Tablet Views</div>
+                <div class="stat-label">Guest visits (30 days)</div><!-- 2026-10-04 00:26 -->
             </div>
         </div>
 
@@ -864,6 +874,12 @@
                 </div>
                 
                 <!-- 2026-10-03 11:39, paired tablets (only for saved properties) -->
+                <!-- 2026-10-04 00:26, G4 guest activity (Pro) -->
+                <div class="property-form-section" id="activity-section" style="display: none;">
+                    <h3>Guest activity <span class="content-help" style="font-weight: 400;">last 30 days</span></h3>
+                    <div id="activity-body"><p class="content-help">Loading…</p></div>
+                </div>
+
                 <!-- 2026-10-03 22:42, G2 public phone/web guide link (saved immediately) -->
                 <div class="property-form-section" id="guest-link-section" style="display: none;">
                     <h3>Guest link (phone guide)</h3>
@@ -1104,7 +1120,7 @@
             document.getElementById('total-properties').textContent = totalProperties;
             document.getElementById('active-properties').textContent = activeProperties;
             document.getElementById('monthly-cost').textContent = monthlyCost; // 2026-10-03 23:06, placeholder until loadPlanCost() fills it
-            document.getElementById('tablet-views').textContent = '-'; // TODO: Implement analytics
+            loadVisitsCard(); // 2026-10-04 00:26, G4 (was a TODO placeholder)
             loadPlanCost(); // 2026-10-03 23:06
         }
         
@@ -1131,6 +1147,7 @@
             document.getElementById('tablets-section').style.display = 'none';
             document.getElementById('guide-content-section').style.display = 'none'; // 2026-10-03 22:25
             document.getElementById('guest-link-section').style.display = 'none'; // 2026-10-03 22:42
+            document.getElementById('activity-section').style.display = 'none'; // 2026-10-04 00:26
 
             // Open slide panel
             document.getElementById('propertyPanel').classList.add('open');
@@ -1324,6 +1341,9 @@
                 // 2026-10-03 22:42, G2 guest link
                 document.getElementById('guest-link-section').style.display = 'block';
                 loadGuestLink();
+                // 2026-10-04 00:26, G4 guest activity
+                document.getElementById('activity-section').style.display = 'block';
+                loadActivity(propertySlug);
                 document.getElementById('pairing-code-display').style.display = 'none';
                 loadDevices();
                 
@@ -1346,6 +1366,62 @@
                 el.textContent = `Last ${days} days: ${stats.book} booking scans · ${stats.showcase} other-property scans · ${stats.review} review scans`;
             } catch (error) {
                 el.textContent = '';
+            }
+        }
+
+        // 2026-10-04 00:26, G4 guest activity (Pro). Uses fetch directly so a Free plan shows a note, not an upgrade dialog.
+        const ACTIVITY_LABELS = {
+            'wifi:open': 'Wi-Fi opened', 'wifi:copy': 'Wi-Fi password copied', 'house:open': 'House info opened',
+            'amenities:open': 'Amenities opened', 'videos:open': 'How-to videos opened', 'videos:play': 'Videos played',
+            'guide:open': 'Local guide opened', 'book:open': 'Book again opened', 'book:tap': 'Book/review links tapped',
+            'report:open': 'Report form opened', 'report:submit': 'Reports sent'
+        };
+
+        async function fetchActivity(path) {
+            const response = await fetch(path, { headers: { Authorization: `Bearer ${authToken}` } });
+            const data = await response.json();
+            return { status: response.status, data };
+        }
+
+        async function loadActivity(propertySlug) {
+            const body = document.getElementById('activity-body');
+            try {
+                const { status, data } = await fetchActivity(`/company/${companySlug}/properties/${encodeURIComponent(propertySlug)}/analytics?days=30`);
+                if (status === 402) {
+                    body.innerHTML = `<p class="content-help">See which sections guests use on the tablet and phone guide. Part of Pro. <a href="/company/${encodeURIComponent(companySlug)}/billing">Upgrade</a></p>`;
+                    return;
+                }
+                if (status !== 200) throw new Error(data.error || 'Failed to load');
+                const max = Math.max(1, ...data.daily.map(d => d.visits));
+                const w = 300, h = 60, step = w / Math.max(1, data.daily.length - 1);
+                const points = data.daily.map((d, i) => `${(i * step).toFixed(1)},${(h - (d.visits / max) * (h - 6) - 3).toFixed(1)}`).join(' ');
+                const rows = data.sections.map(r => `
+                    <tr><td>${escapeHtml(ACTIVITY_LABELS[r.section + ':' + r.action] || r.section + ' ' + r.action)}</td>
+                        <td class="num">${r.tablet}</td><td class="num">${r.guest_link}</td><td class="num"><strong>${r.total}</strong></td></tr>`).join('');
+                body.innerHTML = `
+                    <div class="activity-kpis">
+                        <div class="activity-kpi"><strong>${data.visits.total}</strong><span>visits</span></div>
+                        <div class="activity-kpi"><strong>${data.visits.tablet}</strong><span>on the tablet</span></div>
+                        <div class="activity-kpi"><strong>${data.visits.guest_link}</strong><span>on phones</span></div>
+                    </div>
+                    <svg class="activity-chart" viewBox="0 0 ${w} ${h}" preserveAspectRatio="none" role="img" aria-label="Daily visits, last ${data.days} days">
+                        <polyline points="${points}" fill="none" stroke="currentColor" stroke-width="2" vector-effect="non-scaling-stroke" stroke-linejoin="round"></polyline>
+                    </svg>
+                    ${rows ? `<table class="activity-table"><thead><tr><th>What guests did</th><th class="num">Tablet</th><th class="num">Phone</th><th class="num">Total</th></tr></thead><tbody>${rows}</tbody></table>`
+                           : '<p class="content-help">No guest activity yet. It appears here once guests use the tablet or phone guide.</p>'}`;
+            } catch (error) {
+                body.innerHTML = `<p class="content-error">Failed to load guest activity: ${escapeHtml(error.message)}</p>`;
+            }
+        }
+
+        async function loadVisitsCard() {
+            const el = document.getElementById('tablet-views');
+            try {
+                const { status, data } = await fetchActivity(`/company/${companySlug}/analytics/summary?days=30`);
+                el.textContent = status === 200 && data.available ? String(data.visits.total) : 'Pro';
+                el.title = status === 200 && data.available ? 'Guest visits in the last 30 days (tablet + phone)' : 'Guest analytics are part of Pro';
+            } catch {
+                el.textContent = '-';
             }
         }
 

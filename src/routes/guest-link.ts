@@ -6,6 +6,7 @@ import { PropertyController } from '../controllers/PropertyController';
 import { ReportController } from '../controllers/ReportController';
 import { PropertyService } from '../services/PropertyService';
 import { rateLimit } from '../middleware/rate-limit';
+import { AnalyticsController } from '../controllers/AnalyticsController';
 
 const router = express.Router();
 const propertyController = new PropertyController();
@@ -51,5 +52,10 @@ router.get('/g/:token', (req, res) => {
 router.get('/g/:token/content', readLimiter, resolveGuestLink, propertyController.getGuestLinkContent.bind(propertyController));
 router.get('/g/:token/weather', readLimiter, resolveGuestLink, propertyController.getGuestLinkWeather.bind(propertyController));
 router.post('/g/:token/report', reportLimiter, resolveGuestLink, reportController.createGuestReport.bind(reportController));
+
+// 2026-10-04 00:26, G4 section analytics from the phone guide (60 batches/min per IP + link)
+const analyticsController = new AnalyticsController();
+const eventsLimiter = rateLimit({ windowMs: 60 * 1000, max: 60, key: req => `glevents:${req.ip}:${req.params.token}`, message: 'Too many events' });
+router.post('/g/:token/events', eventsLimiter, resolveGuestLink, analyticsController.guestLinkEvents.bind(analyticsController));
 
 export default router;

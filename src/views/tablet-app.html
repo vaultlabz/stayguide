@@ -318,6 +318,48 @@
             return adminToken ? { 'Authorization': `Bearer ${adminToken}` } : {};
         }
 
+        document.addEventListener('click', e => {
+            if (e.target.closest && e.target.closest('#guest-links-section .link-button')) track('book', 'tap'); // 2026-10-04 00:26
+        });
+
+        // 2026-10-04 00:26, G4 section analytics: batched, no personal data, never in admin preview
+        const trackingEnabled = isDeviceMode || isGuestLinkMode;
+        let eventQueue = [];
+        function track(section, action) {
+            if (!trackingEnabled) return;
+            eventQueue.push({ section, action });
+            if (eventQueue.length > 200) eventQueue = eventQueue.slice(-200);
+            if (eventQueue.length >= 20) flushEvents();
+        }
+        async function flushEvents(keepalive) {
+            if (!eventQueue.length || (isDeviceMode && !storageGet(DEVICE_TOKEN_KEY))) return;
+            const batch = eventQueue.splice(0, 50);
+            try {
+                const response = await fetch(isDeviceMode ? '/device/events' : `/g/${guestLinkToken}/events`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json', ...authHeaders() },
+                    body: JSON.stringify({ events: batch }),
+                    keepalive: !!keepalive
+                });
+                if (response.status >= 500) eventQueue.unshift(...batch); // retry later
+            } catch {
+                eventQueue.unshift(...batch); // offline: retry later
+            }
+        }
+        if (trackingEnabled) {
+            setInterval(flushEvents, 20 * 1000);
+            document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'hidden') flushEvents(true); });
+            window.addEventListener('pagehide', () => flushEvents(true));
+        }
+        // A "visit": opening the phone guide, or the first tap on the tablet after it returned home
+        let visitActive = false;
+        function startVisit() {
+            if (visitActive || !loadedContent) return;
+            visitActive = true;
+            track('home', 'visit');
+        }
+        if (isDeviceMode) document.addEventListener('pointerdown', startVisit, { capture: true, passive: true });
+
         function showPairingScreen(message) {
             document.getElementById('loading').style.display = 'none';
             document.getElementById('content').style.display = 'none';
@@ -398,6 +440,7 @@
                 }
 
                 loadedContent = data;
+                if (isGuestLinkMode) startVisit(); // 2026-10-04 00:26
                 document.documentElement.classList.toggle('show-branding', !!data.show_branding); // 2026-10-03 23:06
                 displayPropertyContent(data);
                 document.getElementById('error').style.display = 'none';
@@ -628,6 +671,7 @@
                     ? '<button type="button" class="copy-button" id="copy-wifi">Copy password</button>' : '';
                 const copyBtn = document.getElementById('copy-wifi');
                 if (copyBtn) copyBtn.addEventListener('click', async () => {
+                    track('wifi', 'copy'); // 2026-10-04 00:26
                     try { await navigator.clipboard.writeText(property.wifi_password); copyBtn.textContent = 'Copied'; }
                     catch { copyBtn.textContent = 'Press and hold the password to copy'; }
                 });
@@ -660,6 +704,7 @@
         let availableAmenities = [];
         
         function openReportModal() {
+            track('report', 'open'); // 2026-10-04 00:26
             showLayer(document.getElementById('reportModal'), 'block');
             document.body.style.overflow = 'hidden'; // Prevent background scrolling
             
@@ -756,6 +801,7 @@
                     // Show success message
                     document.getElementById('reportForm').style.display = 'none';
                     document.getElementById('reportSuccess').style.display = 'block';
+                    track('report', 'submit'); // 2026-10-04 00:26
                 } else {
                     showReportError('Error submitting report: ' + (result.error || 'Unknown error'));
                 }
@@ -864,6 +910,7 @@
             player.innerHTML = '';
 
             const embed = navigator.onLine === false ? null : getVideoEmbed(video.video_url);
+            if (embed) track('videos', 'play'); // 2026-10-04 00:26
             if (!embed) {
                 const message = document.createElement('p');
                 message.className = 'video-unavailable';
@@ -948,6 +995,7 @@
 
         function openSheet(id) {
             if (!SHEET_IDS.includes(id)) return;
+            track(id, 'open'); // 2026-10-04 00:26
             if (openSheetId) closeSheet(true);
             sheetOpener = document.activeElement;
             openSheetId = id;
@@ -999,6 +1047,7 @@
         const IDLE_MS = Number(window.SG_IDLE_MS) || 2 * 60 * 1000;
         let idleTimer = null;
         function goHome() {
+            visitActive = false; // 2026-10-04 00:26, next tap starts a new visit
             if (isShown('videoModal')) closeVideoModal();
             if (isShown('reportModal')) closeReportModal();
             closeSheet(true);
