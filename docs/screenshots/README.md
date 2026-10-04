@@ -2,6 +2,8 @@
 
 # StayGuide design screenshots
 
+> **New since the redesign (2026-10-04):** see [`new-screens/`](new-screens/) and the handoff [`docs/TRINITY_DESIGN_UPDATE.md`](../TRINITY_DESIGN_UPDATE.md).
+
 These were captured on 2026-10-03 from the `design` branch in mock mode with headless Chromium. The tablet shots are at 1280×800 CSS px, which is a Galaxy Tab A11+ in landscape. They come from automated tests, not from a real device.
 
 ## Tablet: current redesign (`tablet/`)
