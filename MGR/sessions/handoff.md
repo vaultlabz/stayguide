@@ -11,7 +11,7 @@ The guest product (plan G0–G6) is complete and pushed. Next: **configure the S
 Each pending task in `MGR/tasks.json` has `context`: doing, achieve, according.
 
 - [ ] (42) — Stripe dashboard config: Bank transfers, Customer Portal plan switching + cancel at period end, StayGuide branding — *high*
-- [ ] (45) — Verify on real MySQL: apply the 10 migrations to staging and run the e2e suites against it — *high*
+- [ ] (45) — Verify on real MySQL: apply the 9 migrations to staging (order in database/migrations/README.md) and run the e2e suites against it — *high*
 - [ ] (41) — G7: Field/maintenance web app (Ops add-on): own plan before build
 - [ ] (43) — Trinity design pass on new screens (docs/TRINITY_DESIGN_UPDATE.md)
 - [ ] (44) — Company sign-in screen (replace prompt())
@@ -51,5 +51,5 @@ Each pending task in `MGR/tasks.json` has `context`: doing, achieve, according.
 - Tests: `PLAYWRIGHT_CHROMIUM_PATH=~/Library/Caches/ms-playwright/chromium_headless_shell-1234/chrome-headless-shell-mac-x64/chrome-headless-shell npm test`. The suites start their own server on port 3917 (billing also uses 3919 for a fake Stripe)
 - `.env` (git-ignored) holds the Stripe **test** key, webhook secret (from `stripe listen --print-secret`) and price IDs. Never use the live key in ~/Desktop/ctrl/master.txt
 - Local webhooks: `stripe listen --api-key <test key> --forward-to localhost:3000/billing/webhook`
-- Migrations to apply (10): property_main_image, devices, guest_links, tablet_theme, tablet_background, tablet_home, guest_link, plans_billing, section_events (in `database/migrations/`, by date)
+- Migrations to apply (9): follow the order in database/migrations/README.md (filename order is wrong for same-date files)
 - Existing companies are grandfathered as Pro (`subscription_status = 'legacy'`) by the plans_billing migration

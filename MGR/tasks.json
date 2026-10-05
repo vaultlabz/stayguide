@@ -638,7 +638,7 @@
     {
       "id": 45,
       "creationDate": "2026-10-05 08:20",
-      "title": "Verify on real MySQL: apply the 10 migrations to a staging DB and run the e2e suites against it",
+      "title": "Verify on real MySQL: apply the 9 migrations (order: database/migrations/README.md) to a staging DB and run the e2e suites against it",
       "description": "Logged at /stop 2026-10-05",
       "complexity": 5,
       "completionDate": null,
