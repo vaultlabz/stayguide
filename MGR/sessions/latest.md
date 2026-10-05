@@ -53,3 +53,8 @@
 - Stripe CLI 1.53.0 installed from official GitHub release (checksum verified); Homebrew failed on outdated CLT (Intel Mac)
 - Real sandbox E2E: Checkout 4242 → webhook → Pro active → pairing → qty 2 → cancel → Free; 4 webhooks delivered, all 200
 - Next: G5 marketing pricing section
+
+2026-10-05 08:20
+## Session end (claude-code)
+- Summary: PRD v1.0 reviewed → guest-product plan G0–G6 shipped on main (merge design, content mgmt, phone guide link, plans/signup/Stripe billing incl. real sandbox E2E, marketing pricing, section analytics, tablet diagnostics); Trinity design update with screenshots; tasks #42–#46 added; handoff overwritten
+- Files: src/config/plans.ts, src/services/{Content,Entitlement,StripeBilling,Analytics}Service.ts, src/controllers/{Content,GuestLink,BillingPlan,Signup,Analytics}Controller.ts, src/routes/{guest-link,company,device,api,index,admin}.ts, src/utils/{ownership,video,pricing-html}.ts, src/views/{tablet-app,company-dashboard,company-billing,signup,landing,tablet-diagnostics}.html, public/{sw.js,css/tablet-app.css}, database/{schema.sql,migrations/*}, scripts/stripe-sandbox-setup.js, tests/e2e/*, docs/{BILLING_SETUP,KIOSK_SETUP,INTEGRATION_GUIDE,TRINITY_DESIGN_UPDATE,todo}.md

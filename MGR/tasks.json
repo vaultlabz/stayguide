@@ -586,6 +586,86 @@
         "achieve": "property managers can dispatch and monitor anyone they hire",
         "according": "Guest product plan (PRD v1.0 follow-up), see ~/.claude/plans/lets-discuss-this-i-robust-panda.md"
       }
+    },
+    {
+      "id": 42,
+      "creationDate": "2026-10-05 08:20",
+      "title": "Stripe dashboard config: enable Bank transfers, Customer Portal plan switching + cancel at period end, StayGuide branding (sandbox shows Wingu Digital)",
+      "description": "Logged at /stop 2026-10-05",
+      "complexity": 2,
+      "completionDate": null,
+      "status": "pending",
+      "priority": "high",
+      "trelloCardId": null,
+      "context": {
+        "doing": "Configuring the Stripe account settings the code expects",
+        "achieve": "checkout, invoices and the portal match the locked plans and brand",
+        "according": "docs/BILLING_SETUP.md §2–3, sandbox verification 2026-10-04"
+      }
+    },
+    {
+      "id": 43,
+      "creationDate": "2026-10-05 08:20",
+      "title": "Trinity design pass on new screens (error/empty states, upgrade modal, billing states, pricing visuals)",
+      "description": "Logged at /stop 2026-10-05",
+      "complexity": 5,
+      "completionDate": null,
+      "status": "pending",
+      "priority": "medium",
+      "trelloCardId": null,
+      "context": {
+        "doing": "Handing the new screens to Trinity for design",
+        "achieve": "new self-serve screens reach the luxury redesign standard",
+        "according": "docs/TRINITY_DESIGN_UPDATE.md"
+      }
+    },
+    {
+      "id": 44,
+      "creationDate": "2026-10-05 08:20",
+      "title": "Company sign-in screen (replace prompt() for company identifier: email → company → password)",
+      "description": "Logged at /stop 2026-10-05",
+      "complexity": 4,
+      "completionDate": null,
+      "status": "pending",
+      "priority": "medium",
+      "trelloCardId": null,
+      "context": {
+        "doing": "Building a proper sign-in flow",
+        "achieve": "hosts can sign in without knowing their company slug",
+        "according": "Trinity update priority #2"
+      }
+    },
+    {
+      "id": 45,
+      "creationDate": "2026-10-05 08:20",
+      "title": "Verify on real MySQL: apply the 10 migrations to a staging DB and run the e2e suites against it",
+      "description": "Logged at /stop 2026-10-05",
+      "complexity": 5,
+      "completionDate": null,
+      "status": "pending",
+      "priority": "high",
+      "trelloCardId": null,
+      "context": {
+        "doing": "Testing every phase against MySQL instead of mock mode",
+        "achieve": "no schema/query surprises at first deploy",
+        "according": "all phases were verified in mock mode only"
+      }
+    },
+    {
+      "id": 46,
+      "creationDate": "2026-10-05 08:20",
+      "title": "Production deploy prep: HTTPS, Node ≥ 20.9, APP_BASE_URL, TRUST_PROXY=1, live Stripe keys + webhook endpoint, migrations",
+      "description": "Logged at /stop 2026-10-05",
+      "complexity": 4,
+      "completionDate": null,
+      "status": "pending",
+      "priority": "medium",
+      "trelloCardId": null,
+      "context": {
+        "doing": "Preparing the Plesk host for launch",
+        "achieve": "the self-serve product can go live safely",
+        "according": "deploy notes in docs/todo.md entries and BILLING_SETUP.md"
+      }
     }
   ]
 }

@@ -308,3 +308,23 @@
 - **title:** G6: Generic AIO hardware enablement (/tablet/diagnostics + vetting checklist)
 - **was:** pending → **now:** done
 - **note:** diagnostics-test 11/11; vetting checklist in KIOSK_SETUP.md
+
+## 2026-10-05 08:20 | claude-code | task.created
+- **id:** 42
+- **title:** Stripe dashboard config: enable Bank transfers, Customer Portal plan switching + cancel at period end, StayGuide branding (sandbox shows Wingu Digital)
+
+## 2026-10-05 08:20 | claude-code | task.created
+- **id:** 43
+- **title:** Trinity design pass on new screens (error/empty states, upgrade modal, billing states, pricing visuals)
+
+## 2026-10-05 08:20 | claude-code | task.created
+- **id:** 44
+- **title:** Company sign-in screen (replace prompt() for company identifier: email → company → password)
+
+## 2026-10-05 08:20 | claude-code | task.created
+- **id:** 45
+- **title:** Verify on real MySQL: apply the 10 migrations to a staging DB and run the e2e suites against it
+
+## 2026-10-05 08:20 | claude-code | task.created
+- **id:** 46
+- **title:** Production deploy prep: HTTPS, Node ≥ 20.9, APP_BASE_URL, TRUST_PROXY=1, live Stripe keys + webhook endpoint, migrations

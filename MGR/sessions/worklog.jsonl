@@ -57,3 +57,8 @@
 {"ts":"2026-10-04 00:24","tool":"claude-code","event":"task.completed","id":38,"title":"G5: Marketing site pricing section + signup CTAs"}
 {"ts":"2026-10-04 00:40","tool":"claude-code","event":"task.completed","id":39,"title":"G4: Section analytics (tile opens, video plays, QR shows)"}
 {"ts":"2026-10-04 01:01","tool":"claude-code","event":"task.completed","id":40,"title":"G6: Generic AIO hardware enablement (/tablet/diagnostics + vetting checklist)"}
+{"ts":"2026-10-05 08:20","tool":"claude-code","event":"task.created","id":42,"title":"Stripe dashboard config: enable Bank transfers, Customer Portal plan switching + cancel at period end, StayGuide branding (sandbox shows Wingu Digital)"}
+{"ts":"2026-10-05 08:20","tool":"claude-code","event":"task.created","id":43,"title":"Trinity design pass on new screens (error/empty states, upgrade modal, billing states, pricing visuals)"}
+{"ts":"2026-10-05 08:20","tool":"claude-code","event":"task.created","id":44,"title":"Company sign-in screen (replace prompt() for company identifier: email → company → password)"}
+{"ts":"2026-10-05 08:20","tool":"claude-code","event":"task.created","id":45,"title":"Verify on real MySQL: apply the 10 migrations to a staging DB and run the e2e suites against it"}
+{"ts":"2026-10-05 08:20","tool":"claude-code","event":"task.created","id":46,"title":"Production deploy prep: HTTPS, Node ≥ 20.9, APP_BASE_URL, TRUST_PROXY=1, live Stripe keys + webhook endpoint, migrations"}
