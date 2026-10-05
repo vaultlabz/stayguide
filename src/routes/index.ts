@@ -12,8 +12,9 @@ import linkRoutes from './links';
 const router = express.Router();
 
 // Marketing/Landing page routes
+// 2026-10-05, serve Trinity's Ivory House marketing design (also used for GitHub Pages at /index.html)
 router.get('/', (req, res) => {
-  res.sendFile(path.join(__dirname, '../views/landing.html'));
+  res.sendFile(path.join(__dirname, '../../index.html'));
 });
 
 // 2026-10-03 11:39, paired tablets: /tablet, /device/pair, /device/content
