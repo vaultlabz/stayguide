@@ -37,7 +37,7 @@ Each pending task in `MGR/tasks.json` has `context`: doing, achieve, according.
 ## Next
 
 1. In Stripe (test mode): enable Bank transfers, configure the Customer Portal, set StayGuide branding (#42)
-2. Stand up a MySQL staging DB, apply `database/migrations/*` in date order, run `npm test` against it (#45)
+2. Stand up a MySQL staging DB, apply `database/migrations/*` in the order listed in database/migrations/README.md, run `npm test` against it (#45)
 3. Plan G7 (maintenance/field app): decide the Ops price, vendor access model, checklists, photo storage, notifications, offline needs
 4. Send Trinity the update link (contact channel unknown; ask the user)
 
