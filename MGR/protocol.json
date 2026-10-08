@@ -1,26 +1,30 @@
 {
-  "version": 2,
+  "version": 3,
   "mgr": "0.1.0",
-  "initialized_at": "2026-10-03T10:58:07-06:00",
+  "initialized_at": "1791482137",
   "root": "MGR",
   "project_slug": "stayguide",
   "layout": {
-    "tasks": "MGR/tasks.json",
+    "tasks": "MGR/projects/stayguide/tasks.json",
     "memory": ".mgr/memory/MEMORY.md",
-    "session_logs": "MGR/sessions/",
-    "session_handoff": "MGR/sessions/handoff.md",
-    "session_worklog": "MGR/sessions/worklog.md",
-    "todo_notes": "MGR/todo/notes.txt",
-    "rules": ".clauderules"
+    "session_logs": "MGR/projects/stayguide/sessions/",
+    "session_handoff": "MGR/projects/stayguide/sessions/handoff.md",
+    "session_worklog": "MGR/projects/stayguide/sessions/worklog.md",
+    "todo_notes": "MGR/projects/stayguide/todo/notes.txt",
+    "rules": ".clauderules",
+    "projects_subdir": "MGR/projects/",
+    "project_slug": "stayguide"
   },
   "conventions": {
     "code_change_comment": "// YYYY-MM-DD HH:MM, description",
     "log_entry_prefix": "YYYY-MM-DD HH:MM",
     "append_only": [
-      "MGR/todo/notes.txt",
-      "MGR/sessions/latest.md",
-      "MGR/sessions/worklog.md",
-      "MGR/sessions/worklog.jsonl"
+      "MGR/projects/stayguide/todo/notes.txt",
+      "MGR/projects/stayguide/sessions/latest.md",
+      "MGR/projects/stayguide/sessions/worklog.md",
+      "MGR/projects/stayguide/sessions/worklog.jsonl",
+      "MGR/projects/stayguide/sessions/code-changes.md",
+      "MGR/projects/stayguide/sessions/code-changes.jsonl"
     ]
   }
 }

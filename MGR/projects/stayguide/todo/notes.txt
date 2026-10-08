@@ -1,0 +1,75 @@
+# Todo notes — APPEND ONLY (mgr never overwrites this file)
+#
+# Add new blocks at the END of the file.
+# Start each block with a timestamp line, then mgr notes format:
+#
+# YYYY-MM-DD HH:MM
+# // project-name
+# # page / role
+# - pending task
+# x - completed task
+
+2026-10-03 10:58 initialized
+
+2026-10-08 07:59
+// stayguide
+# dashboards (admin + company)
+x - Admin: Edit company, real Total Properties / Monthly Revenue tiles
+x - Admin billing: CSV export of invoices
+x - Invoice PDF download + PDF attached to invoice emails
+x - Helpdesk: company tickets + super-admin inbox with internal notes
+x - Company help guide page
+x - Live Guest reports card (replaced fake Recent Activity)
+x - Single /login page (replaced the company-slug prompt)
+x - Separate admin session; logout no longer wipes the tablet pairing
+- Admin dashboard: Properties & Amenities management section (#12)
+- Real-time notifications for urgent issues (#13)
+- Advanced analytics dashboards (#14)
+- Trinity design pass on the new screens: Ops, helpdesk, billing states (#43)
+# email + security
+x - Real email via nodemailer (SMTP) incl. urgent guest-report emails
+x - proxy-addr security fix (production dependencies: 0 advisories)
+- Put SMTP credentials + SUPPORT_EMAIL in .env (still mock)
+# ops add-on (G7, docs/G7_OPS_PLAN.md)
+x - S1 field workers: invites, onboarding, email sign-in codes, /maint app
+x - S2 work orders: lifecycle, cost approval, board, guest report to work order
+x - S3 on site: encrypted access codes, QR check-in/out, private photos
+x - S4 checklists: templates, photo steps, review queue
+x - S5 offline queue + web push + installable app
+x - S6 vendor insurance certificates + expiry reminders
+x - S7 time & pay: corrections with history, CSV exports
+x - S8 preventive schedules, overdue/unassigned digests, admin Ops metrics
+x - S9 Ops billing on Stripe (subscription item)
+- Choose the Ops price: OPS_PRICE_MONTHLY, npm run stripe:setup, STRIPE_PRICE_OPS_MONTHLY
+- Set OPS_SECRET_KEY (openssl rand -hex 32) and VAPID keys (npx web-push generate-vapid-keys)
+# tablet
+- Real-device check on Galaxy Tab A11+ (#30)
+- Center the last row of home tiles, 7 tiles wrap 4+3 (#31)
+- Clearer pairing errors: expired vs used vs invalid code (#33)
+# landing
+- Replace placeholder hero-devices image (another brand's UI) with hero-devices-stayguide
+# release
+x - Commit work on branch feature/g7-ops (c194330, fe31191)
+- Merge / PR feature/g7-ops into main
+- Verify on real MySQL: apply 17 migrations, run the test suites (#45)
+- Production deploy prep: HTTPS, Node >= 20.9, APP_BASE_URL, TRUST_PROXY, live Stripe + webhook, migrations (#46)
+- Stripe dashboard: bank transfers, Customer Portal, StayGuide branding (#42)
+- Remove or regenerate stale yarn.lock (#34)
+- External API v1 (#25); native manager app (#16)
+
+2026-10-08 09:18
+// stayguide
+# tablet
+x - Center the last row of home tiles (#31)
+x - Clearer pairing errors: expired vs used vs invalid code (#33)
+# landing
+x - Replace placeholder hero-devices image with the StayGuide mockup (regenerated)
+# release
+x - Remove stale yarn.lock (#34)
+
+2026-10-08 12:15
+// stayguide
+# release
+x - Verify on real MySQL: 18 migrations match schema.sql, 20/20 suites pass (#45, npm run test:mysql)
+x - Fixed MySQL-only bugs: session time zone UTC, DECIMAL as numbers, DATE as strings
+- Apply the 18 migrations on the production server (#46)

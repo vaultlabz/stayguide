@@ -19,3 +19,5 @@
 2026-10-04 01:01 | claude-code | G6 /tablet/diagnostics + AIO vetting checklist; tablet-diagnostics.html, device.ts, KIOSK_SETUP.md
 2026-10-05 08:20 | claude-code | Session end: handoff, tasks #42-46, memory decisions (pricing, AIO, Stripe sandbox, Trinity); MGR/, .mgr/memory/MEMORY.md
 2026-10-08 07:55 | claude-code | Wired dashboard functions, helpdesk, email, invoice PDF; G7 Ops add-on S1-S9; src/controllers, src/services, src/views, database/migrations, tests/e2e
+2026-10-08 11:07 | claude-code | #31 tile row centered, #33 pairing errors, StayGuide hero mockup, yarn.lock removed; public/css/tablet-app.css, src/views/landing.html, DeviceService/Controller
+2026-10-08 12:15 | claude-code | #45 real-MySQL verification: UTC session, DECIMAL numbers, DATE strings in src/utils/database.ts; seed + test:mysql runner; schema.sql index names; phone tile flex-grow

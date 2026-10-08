@@ -328,3 +328,19 @@
 ## 2026-10-05 08:20 | claude-code | task.created
 - **id:** 46
 - **title:** Production deploy prep: HTTPS, Node ≥ 20.9, APP_BASE_URL, TRUST_PROXY=1, live Stripe keys + webhook endpoint, migrations
+
+## 2026-10-08 09:18 | claude-code | task.completed
+- **id:** 31
+- **title:** Center last row of home tiles (7 tiles wrap 4+3)
+
+## 2026-10-08 09:18 | claude-code | task.completed
+- **id:** 33
+- **title:** Clearer pairing errors (expired vs used vs invalid code)
+
+## 2026-10-08 09:18 | claude-code | task.completed
+- **id:** 34
+- **title:** Remove or regenerate stale yarn.lock
+
+## 2026-10-08 12:15 | claude-code | task.completed
+- **id:** 45
+- **title:** Verify on real MySQL: apply the 18 migrations (order: database/migrations/README.md) to a staging DB and run the e2e suites against it

@@ -80,3 +80,24 @@
   - Replace the placeholder `public/img/hero-devices.{png,webp}` (another brand's UI) with `hero-devices-stayguide.*` before launch
   - Merge/PR `feature/g7-ops` → main when ready
 - Note: in-code `// 2026-10-08 HH:MM` stamps added after ~07:00 today are approximate (some read later than the real time)
+
+2026-10-08 11:07
+## Checkpoint (claude-code)
+- /go: copied the 2026-10-08 08:12 handoff (written outside the repo while Desktop access was blocked) into the handoff file
+- #31 done: tablet tiles flex + centered; Report tile (inside .report-card) gets the same basis, all 7 tiles 263 px (design-test 326/326)
+- #33 done: PAIRING_FORMAT/EXPIRED/USED/INVALID errors + migration 2026-10-08_device_pairing_reasons.sql (step 18); phase3-test green
+- Landing hero now /img/hero-devices-stayguide.* (regenerated, centered tiles); placeholder hero-devices.* (other brand) git rm'd; pricing-test 16/16
+- #34 done: yarn.lock git rm'd
+- tasks.json (#31/#33/#34 done, #45 → 18 migrations), worklog, notes.txt, docs/todo.md updated. Not committed yet
+- Next: #45 real MySQL (stayguide_dev, 18 migrations, suites with MOCK_DATABASE=false)
+- Note: mgr upgraded the protocol to v3 at ~11:00 (MGR/projects/stayguide/); task/worklog/notes edits above carried over. Stray copy of this entry left at old path MGR/sessions/latest.md
+
+2026-10-08 12:15
+## Checkpoint (claude-code)
+- #45 done: pre-migration schema + 18 migrations == fresh schema.sql on MySQL 9.3 (3 index names aligned in schema.sql)
+- Real-MySQL bugs fixed in src/utils/database.ts: session time_zone '+00:00' (NOW() vs UTC JS dates off by the offset), decimalNumbers (DECIMAL came back as strings), dateStrings DATE
+- New: scripts/seed-mysql-from-mock.js, scripts/test-mysql.js, npm run test:mysql; suites honor TEST_MOCK_DATABASE
+- #31 follow-up: phone tiles flex-grow so a lone last tile spans the row
+- Results: MySQL 20/20 suites; mock npm test all green (unit 24/24, design 326/326, …)
+- Local DBs: stayguide_dev (test target), stayguide_migtest (can be dropped)
+- Not committed. Next: commit on feature/g7-ops, PR → main, #46 deploy prep

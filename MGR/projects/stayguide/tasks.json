@@ -417,8 +417,8 @@
       "title": "Center last row of home tiles (7 tiles wrap 4+3)",
       "description": "From design review 2026-10-03",
       "complexity": 1,
-      "completionDate": null,
-      "status": "pending",
+      "completionDate": "2026-10-08 09:18",
+      "status": "done",
       "priority": "low",
       "trelloCardId": null,
       "context": {
@@ -449,8 +449,8 @@
       "title": "Clearer pairing errors (expired vs used vs invalid code)",
       "description": "Logged at /stop 2026-10-03",
       "complexity": 2,
-      "completionDate": null,
-      "status": "pending",
+      "completionDate": "2026-10-08 09:18",
+      "status": "done",
       "priority": "low",
       "trelloCardId": null,
       "context": {
@@ -465,8 +465,8 @@
       "title": "Remove or regenerate stale yarn.lock",
       "description": "Logged at /stop 2026-10-03",
       "complexity": 1,
-      "completionDate": null,
-      "status": "pending",
+      "completionDate": "2026-10-08 09:18",
+      "status": "done",
       "priority": "low",
       "trelloCardId": null,
       "context": {
@@ -652,11 +652,11 @@
     {
       "id": 45,
       "creationDate": "2026-10-05 08:20",
-      "title": "Verify on real MySQL: apply the 17 migrations (order: database/migrations/README.md) to a staging DB and run the e2e suites against it",
-      "description": "Logged at /stop 2026-10-05",
+      "title": "Verify on real MySQL: apply the 18 migrations (order: database/migrations/README.md) to a staging DB and run the e2e suites against it",
+      "description": "Logged at /stop 2026-10-05 Done 2026-10-08 12:15 on local MySQL 9.3: migrated schema == fresh schema.sql; 20/20 suites pass via npm run test:mysql. Server apply is part of #46.",
       "complexity": 5,
-      "completionDate": null,
-      "status": "pending",
+      "completionDate": "2026-10-08 12:15",
+      "status": "done",
       "priority": "high",
       "trelloCardId": null,
       "context": {
