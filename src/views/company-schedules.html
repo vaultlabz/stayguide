@@ -1,0 +1,204 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Schedules - StayGuide</title>
+    <!-- 2026-10-08 11:50, G7 Ops stage 8: preventive maintenance schedules (recurring jobs created ahead of time) -->
+    <link rel="stylesheet" href="/css/theme.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap">
+    <link rel="stylesheet" href="/css/helpdesk.css">
+    <link rel="stylesheet" href="/css/admin-kit.css">
+    <script src="/js/theme.js"></script>
+    <style>
+        table { width: 100%; border-collapse: collapse; font-size: 0.93rem; }
+        th, td { text-align: left; padding: 0.6rem 0.5rem; border-bottom: 1px solid var(--border); vertical-align: middle; }
+        th { color: var(--text-muted); font-weight: 600; font-size: 0.82rem; }
+        tr.paused td { color: var(--text-muted); }
+        .table-wrap { overflow-x: auto; }
+        .row-actions { display: flex; gap: 0.6rem; flex-wrap: wrap; }
+        .grid-2 { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 0 1rem; }
+        .grid-3 { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 0 1rem; }
+        dialog { margin: auto; border: 1px solid var(--border); border-radius: var(--radius-lg); background: var(--surface); color: var(--text); padding: 1.5rem; width: min(680px, calc(100vw - 32px)); max-height: calc(100vh - 48px); }
+        dialog::backdrop { background: rgb(0 0 0 / 0.4); }
+        [data-show] { display: none; }
+        @media (max-width: 700px) { .grid-2, .grid-3 { grid-template-columns: 1fr; } }
+    </style>
+</head>
+<body class="sg-app snow">
+    <div class="header">
+        <div class="logo">StayGuide</div>
+        <nav class="nav-links" aria-label="Main">
+            <a href="#" data-path="dashboard">Dashboard</a>
+            <a href="#" data-path="ops" class="active">Work orders</a>
+            <a href="#" data-path="team">Team</a>
+            <a href="#" data-path="billing">Billing</a>
+            <a href="#" data-path="helpdesk">Support</a>
+            <a href="#" data-path="help">Help</a>
+        </nav>
+        <div class="user-info"><div data-theme-toggle></div><button class="btn btn-secondary" onclick="logout()">Logout</button></div>
+    </div>
+
+    <main class="container">
+        <div class="page-head">
+            <div>
+                <a href="#" data-path="ops" class="muted">← Work orders</a>
+                <h1>Schedules</h1>
+                <p class="lead">Recurring jobs (filter changes, inspections, deep cleans). StayGuide creates each job a few days before it is due and assigns your default person when they can take it.</p>
+            </div>
+            <button class="btn btn-primary" type="button" id="new-btn" hidden onclick="openEditor(null)">New schedule</button>
+        </div>
+        <div id="notices"></div>
+        <section id="upgrade" class="card" hidden><p class="muted">Schedules are part of the Ops add-on. <a href="#" data-path="helpdesk?new=1">Contact StayGuide support</a> to switch it on.</p></section>
+
+        <div id="page" hidden>
+            <section class="card">
+                <div class="table-wrap"><table><thead><tr><th>Schedule</th><th>Property</th><th>Repeats</th><th>Next due</th><th>Default person</th><th></th></tr></thead><tbody id="rows"></tbody></table></div>
+            </section>
+            <form class="card" id="tz-form" style="display:flex;gap:0.75rem;align-items:end;flex-wrap:wrap">
+                <div class="form-group" style="margin:0;min-width:260px"><label for="tz">Company time zone (job windows use it)</label><input id="tz" list="tz-list" required><datalist id="tz-list"></datalist></div>
+                <button class="btn btn-secondary" type="submit">Save time zone</button>
+            </form>
+        </div>
+    </main>
+
+    <dialog id="editor">
+        <form id="editor-form">
+            <h2 id="editor-title">New schedule</h2>
+            <div class="form-group"><label for="s-title">Title</label><input id="s-title" maxlength="255" required placeholder="Replace HVAC filter"></div>
+            <div class="grid-3">
+                <div class="form-group"><label for="s-property">Property</label><select id="s-property" required></select></div>
+                <div class="form-group"><label for="s-type">Type</label><select id="s-type"><option value="maintenance">Maintenance</option><option value="inspection">Inspection</option><option value="cleaning">Cleaning</option><option value="ad_hoc">Other</option></select></div>
+                <div class="form-group"><label for="s-priority">Priority</label><select id="s-priority"><option value="low">Low</option><option value="medium" selected>Medium</option><option value="high">High</option></select></div>
+            </div>
+            <div class="grid-3">
+                <div class="form-group"><label for="s-rec">Repeats</label>
+                    <select id="s-rec"><option value="monthly">Monthly</option><option value="weekly">Weekly</option><option value="every_n_days">Every N days</option></select></div>
+                <div class="form-group" data-show="monthly"><label for="s-mday">Day of the month</label><input id="s-mday" type="number" min="1" max="28" value="1"></div>
+                <div class="form-group" data-show="weekly"><label for="s-wday">Weekday</label>
+                    <select id="s-wday"><option value="0">Monday</option><option value="1">Tuesday</option><option value="2">Wednesday</option><option value="3">Thursday</option><option value="4">Friday</option><option value="5">Saturday</option><option value="6">Sunday</option></select></div>
+                <div class="form-group" data-show="every_n_days"><label for="s-int">Every … days</label><input id="s-int" type="number" min="1" max="365" value="90"></div>
+                <div class="form-group"><label for="s-start">Starting</label><input id="s-start" type="date"></div>
+            </div>
+            <div class="grid-3">
+                <div class="form-group"><label for="s-time">Window starts</label><input id="s-time" type="time" value="09:00" required></div>
+                <div class="form-group"><label for="s-hours">Window length (hours)</label><input id="s-hours" type="number" min="1" max="12" value="4" required></div>
+                <div class="form-group"><label for="s-lead">Create the job … days ahead</label><input id="s-lead" type="number" min="0" max="30" value="3" required></div>
+            </div>
+            <div class="grid-2">
+                <div class="form-group"><label for="s-assignee">Default person</label><select id="s-assignee"></select></div>
+                <div class="form-group"><label for="s-checklist">Checklist</label><select id="s-checklist"></select></div>
+            </div>
+            <div class="form-group"><label for="s-desc">Description</label><textarea id="s-desc" maxlength="5000" style="min-height:80px"></textarea></div>
+            <div class="actions"><button class="btn btn-primary" type="submit">Save</button><button class="btn btn-secondary" type="button" onclick="this.closest('dialog').close()">Cancel</button></div>
+        </form>
+    </dialog>
+
+    <script>
+        const base = `/company/${location.pathname.split('/')[2]}`;
+        let authToken = null;
+        try { authToken = localStorage.getItem('stayguide_token'); } catch {}
+        if (!authToken) location.href = `${base}/login`;
+        document.querySelectorAll('[data-path]').forEach(a => { a.href = `${base}/${a.dataset.path}`; });
+        const WD = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
+        const nth = n => n + ([1, 21].includes(n) ? 'st' : [2, 22].includes(n) ? 'nd' : [3, 23].includes(n) ? 'rd' : 'th');
+        let schedules = [], current = null;
+
+        const esc = v => String(v ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+        async function apiCall(endpoint, options = {}) {
+            const response = await fetch(base + endpoint, { ...options, headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${authToken}` } });
+            if (response.status === 401) { logout(); return null; }
+            const data = await response.json();
+            if (!response.ok) { const err = new Error(data.error || 'Request failed'); err.status = response.status; throw err; }
+            return data;
+        }
+        function notice(message, kind = '') {
+            const el = document.createElement('div');
+            el.className = `notice ${kind}`;
+            el.setAttribute('role', kind === 'error' ? 'alert' : 'status');
+            el.textContent = message;
+            document.getElementById('notices').replaceChildren(el);
+        }
+        function logout() { try { localStorage.removeItem('stayguide_token'); } catch {} location.href = `${base}/login`; }
+        const repeats = s => s.recurrence === 'monthly' ? `Monthly on the ${nth(s.month_day)}` : s.recurrence === 'weekly' ? `Every ${WD[s.weekday]}` : `Every ${s.interval_days} days`;
+        const dayLabel = ymd => new Date(ymd + 'T12:00:00').toLocaleDateString(undefined, { weekday: 'short', month: 'short', day: 'numeric', year: 'numeric' });
+
+        async function load() {
+            try {
+                const data = await apiCall('/ops/schedules');
+                if (!data) return;
+                schedules = data.schedules;
+                document.getElementById('page').hidden = false;
+                document.getElementById('new-btn').hidden = false;
+                if (document.activeElement?.id !== 'tz') document.getElementById('tz').value = data.timezone;
+                document.getElementById('rows').innerHTML = schedules.length ? schedules.map(s => `<tr class="${s.active ? '' : 'paused'}">
+                    <td><strong>${esc(s.title)}</strong>${s.active ? '' : ' <span class="badge">paused</span>'}<div class="muted" style="font-size:0.82rem">${esc(s.type)}${s.checklist_name ? ' · ' + esc(s.checklist_name) : ''}</div></td>
+                    <td>${esc(s.property_name)}</td><td>${repeats(s)}<div class="muted" style="font-size:0.82rem">${s.window_start_time}, ${s.window_hours} h · created ${s.lead_days} day${s.lead_days === 1 ? '' : 's'} ahead</div></td>
+                    <td>${dayLabel(s.next_due_on)}${s.last_order_id ? `<div class="muted" style="font-size:0.82rem"><a href="${base}/ops?wo=${s.last_order_id}">last job #${s.last_order_id}</a></div>` : ''}</td>
+                    <td>${s.assignee_name ? esc(s.assignee_name) : '<span class="muted">unassigned</span>'}</td>
+                    <td><div class="row-actions"><button class="btn-link" type="button" onclick="openEditor(${s.id})">Edit</button>
+                        <button class="btn-link" type="button" onclick="toggle(${s.id}, ${!s.active})">${s.active ? 'Pause' : 'Resume'}</button></div></td></tr>`).join('')
+                    : '<tr><td colspan="6" class="empty">No schedules yet.</td></tr>';
+            } catch (error) {
+                if (error.status === 402) document.getElementById('upgrade').hidden = false;
+                else notice(error.message, 'error');
+            }
+        }
+
+        async function loadRefs() {
+            try {
+                const [team, props, lists] = await Promise.all([apiCall('/ops/team'), apiCall('/properties'), apiCall('/ops/checklists')]);
+                const opt = (v, l) => `<option value="${v}">${esc(l)}</option>`;
+                document.getElementById('s-property').innerHTML = (props?.properties || []).filter(p => p.status === 'active').map(p => opt(p.id, p.name)).join('');
+                document.getElementById('s-assignee').innerHTML = '<option value="">Leave unassigned</option>' + (team?.members || []).filter(m => m.status === 'active').map(m => opt(m.user_id, `${m.first_name} ${m.last_name} (${m.worker_type})`)).join('');
+                document.getElementById('s-checklist').innerHTML = '<option value="">None</option>' + (lists?.templates || []).map(t => opt(t.id, t.name)).join('');
+            } catch {}
+            try { document.getElementById('tz-list').innerHTML = Intl.supportedValuesOf('timeZone').map(z => `<option value="${z}">`).join(''); } catch {}
+        }
+
+        function showFor(rec) { document.querySelectorAll('[data-show]').forEach(el => { el.style.display = el.dataset.show === rec ? 'grid' : 'none'; }); }
+        document.getElementById('s-rec').addEventListener('change', e => showFor(e.target.value));
+
+        function openEditor(id) {
+            current = id ? schedules.find(s => s.id === id) : null;
+            const s = current, set = (k, v) => { document.getElementById(k).value = v ?? ''; };
+            document.getElementById('editor-title').textContent = s ? `Edit ${s.title}` : 'New schedule';
+            set('s-title', s?.title); set('s-property', s?.property_id ?? document.getElementById('s-property').value); set('s-type', s?.type || 'maintenance'); set('s-priority', s?.priority || 'medium');
+            set('s-rec', s?.recurrence || 'monthly'); set('s-mday', s?.month_day || 1); set('s-wday', s?.weekday ?? 0); set('s-int', s?.interval_days || 90);
+            set('s-start', ''); set('s-time', s?.window_start_time || '09:00'); set('s-hours', s?.window_hours || 4); set('s-lead', s?.lead_days ?? 3);
+            set('s-assignee', s?.default_assignee_user_id || ''); set('s-checklist', s?.checklist_template_id || ''); set('s-desc', s?.description);
+            showFor(document.getElementById('s-rec').value);
+            document.getElementById('editor').showModal();
+        }
+
+        document.getElementById('editor-form').addEventListener('submit', async e => {
+            e.preventDefault();
+            const v = id => document.getElementById(id).value;
+            const body = { title: v('s-title'), property_id: Number(v('s-property')), type: v('s-type'), priority: v('s-priority'), recurrence: v('s-rec'),
+                month_day: Number(v('s-mday')), weekday: Number(v('s-wday')), interval_days: Number(v('s-int')), start_on: v('s-start') || undefined,
+                window_start_time: v('s-time'), window_hours: Number(v('s-hours')), lead_days: Number(v('s-lead')),
+                default_assignee_user_id: v('s-assignee') || null, checklist_template_id: v('s-checklist') || null, description: v('s-desc') };
+            try {
+                await apiCall(current ? `/ops/schedules/${current.id}` : '/ops/schedules', { method: current ? 'PUT' : 'POST', body: JSON.stringify(body) });
+                document.getElementById('editor').close();
+                await load();
+                notice('Schedule saved.', 'success');
+            } catch (error) { alert(error.message); }
+        });
+
+        async function toggle(id, active) {
+            try { await apiCall(`/ops/schedules/${id}`, { method: 'PUT', body: JSON.stringify({ active }) }); await load(); notice(active ? 'Schedule resumed.' : 'Schedule paused. No new jobs will be created.', 'success'); }
+            catch (error) { notice(error.message, 'error'); }
+        }
+
+        document.getElementById('tz-form').addEventListener('submit', async e => {
+            e.preventDefault();
+            try { const d = await apiCall('/ops/settings', { method: 'PUT', body: JSON.stringify({ timezone: document.getElementById('tz').value.trim() }) }); notice(`Time zone set to ${d.timezone}.`, 'success'); }
+            catch (error) { notice(error.message, 'error'); }
+        });
+
+        loadRefs().then(load);
+    </script>
+</body>
+</html>

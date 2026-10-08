@@ -33,6 +33,17 @@ export const PLANS: Record<PlanId, PlanDef> = {
   }
 };
 
+// 2026-10-07 18:30, G7 Ops add-on: per property per month on top of Pro/Portfolio (monthly billing only).
+// 2026-10-08 12:40, S9: the price is set before launch with OPS_PRICE_MONTHLY (USD) + STRIPE_PRICE_OPS_MONTHLY;
+// unset = not for sale yet (the super admin can still switch Ops on manually, e.g. for invoiced legacy accounts).
+export const OPS_ADDON: { name: string; unit: 'property'; readonly price: { month: number | null }; requires: PlanId[] } = {
+  name: 'Ops', unit: 'property', requires: ['pro', 'portfolio'],
+  get price() {
+    const v = Number(process.env.OPS_PRICE_MONTHLY);
+    return { month: Number.isFinite(v) && v > 0 ? v : null };
+  }
+};
+
 export type HardwareKit = 'desk' | 'wall';
 
 export const HARDWARE: Record<HardwareKit, { name: string; purchase: number; bundleMonthly: number; description: string }> = {
@@ -51,7 +62,8 @@ export const PRICE_ENV = {
   bundle_desk: 'STRIPE_PRICE_BUNDLE_DESK',
   bundle_wall: 'STRIPE_PRICE_BUNDLE_WALL',
   kit_desk: 'STRIPE_PRICE_KIT_DESK',
-  kit_wall: 'STRIPE_PRICE_KIT_WALL'
+  kit_wall: 'STRIPE_PRICE_KIT_WALL',
+  ops_month: 'STRIPE_PRICE_OPS_MONTHLY' // 2026-10-07 18:30, G7 (used from S9)
 } as const;
 
 export type PriceKey = keyof typeof PRICE_ENV;

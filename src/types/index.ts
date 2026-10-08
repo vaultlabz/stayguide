@@ -19,6 +19,10 @@ export interface Company {
   stripe_subscription_id?: string | null;
   current_period_end?: Date | string | null;
   cancel_at_period_end?: boolean | number;
+  // 2026-10-07 18:30, G7 S1 Ops add-on flag (set by the super admin until Stripe billing for Ops lands in S9)
+  ops_addon?: boolean | number;
+  ops_approval_threshold?: number | string | null;
+  timezone?: string; // 2026-10-08 10:40, G7 S8 (IANA; schedules use it for local times) // 2026-10-07 22:10, G7 S2: estimates above this wait for approval (null = never)
   created_at: Date;
   updated_at: Date;
 }
@@ -29,7 +33,7 @@ export interface User {
   password_hash: string;
   first_name: string;
   last_name: string;
-  role: 'super_admin' | 'company_admin';
+  role: 'super_admin' | 'company_admin' | 'field_worker'; // 2026-10-07 18:30, G7 S1: field_worker (company links live in company_workers)
   company_id?: number;
   status: 'active' | 'inactive';
   last_login?: Date;

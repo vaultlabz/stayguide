@@ -1,11 +1,27 @@
 import { Request, Response } from 'express';
 import { CompanyService } from '../services/CompanyService';
 import { UserService } from '../services/UserService';
-import { AuthRequest } from '../types';
+import { AuthRequest, Company } from '../types';
+// 2026-10-07 15:40, admin stats
+import { PropertyService } from '../services/PropertyService';
+import { PLANS, PlanId, billedQuantity } from '../config/plans';
+
+/** Estimated monthly revenue for one company. Legacy (grandfathered) accounts pay their manual per-property fee;
+ *  Stripe plans use plans.ts prices (annual Pro is spread over 12 months). Past-due and canceled pay nothing. */
+export function monthlyRevenueFor(company: Company, activeProperties: number): number {
+  const c = company as any;
+  const plan = (c.plan || 'free') as PlanId;
+  if (c.subscription_status === 'legacy') return activeProperties * (parseFloat(c.monthly_fee_per_property) || 0);
+  if (!['active', 'trialing'].includes(c.subscription_status) || !PLANS[plan]) return 0;
+  const qty = billedQuantity(plan, activeProperties);
+  if (plan === 'pro' && c.billing_interval === 'year') return qty * (PLANS.pro.price.year || 0) / 12;
+  return qty * PLANS[plan].price.month;
+}
 
 export class CompanyController {
   private companyService = new CompanyService();
   private userService = new UserService();
+  private propertyService = new PropertyService();
 
   async getAllCompanies(req: AuthRequest, res: Response) {
     try {
@@ -20,6 +36,24 @@ export class CompanyController {
     } catch (error) {
       console.error('Error getting companies:', error);
       res.status(500).json({ error: 'Failed to retrieve companies' });
+    }
+  }
+
+  // 2026-10-07 15:40, admin dashboard stat tiles: active properties and estimated monthly recurring revenue
+  async getStats(req: AuthRequest, res: Response) {
+    try {
+      const companies = (await this.companyService.getAllCompanies()).filter(c => c.status === 'active');
+      let totalProperties = 0;
+      let monthlyRevenue = 0;
+      for (const company of companies) {
+        const active = (await this.propertyService.getPropertiesByCompany(company.id)).filter(p => p.status === 'active').length;
+        totalProperties += active;
+        monthlyRevenue += monthlyRevenueFor(company, active);
+      }
+      res.json({ total_properties: totalProperties, monthly_revenue: Math.round(monthlyRevenue * 100) / 100 });
+    } catch (error) {
+      console.error('Error getting admin stats:', error);
+      res.status(500).json({ error: 'Failed to retrieve stats' });
     }
   }
 
@@ -162,6 +196,7 @@ export class CompanyController {
       if (updates.monthly_fee_per_property) {
         updates.monthly_fee_per_property = parseFloat(updates.monthly_fee_per_property);
       }
+      if ('ops_addon' in updates) updates.ops_addon = updates.ops_addon === true || updates.ops_addon === 'true'; // 2026-10-07 18:30
 
       const updatedCompany = await this.companyService.updateCompany(companyId, updates);
 

@@ -25,7 +25,8 @@ export const AMENITY_ADMIN_FIELDS = ['approved_by_admin', 'is_admin_managed'] as
 
 export const COMPANY_UPDATE_FIELDS = [
   'name', 'slug', 'email', 'phone', 'address', 'logo_url', 'status',
-  'connection_fee', 'monthly_fee_per_property'
+  'connection_fee', 'monthly_fee_per_property',
+  'ops_addon' // 2026-10-07 18:30, G7: super admin only (PUT /admin/companies/:id); Stripe takes over in S9
 ] as const;
 
 export const USER_UPDATE_FIELDS = [

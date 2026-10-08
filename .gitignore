@@ -20,3 +20,6 @@ public/uploads/**
 
 # 2026-10-03 22:09, e2e screenshots/output
 tests/e2e/output/
+
+# 2026-10-08 00:10, G7 private job photos (never served statically)
+storage/

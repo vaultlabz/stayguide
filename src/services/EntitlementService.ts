@@ -1,7 +1,7 @@
 // 2026-10-03 23:06, G3: what a company is allowed to do, derived from plan + subscription status.
 import { Response } from 'express';
 import { Company } from '../types';
-import { PLANS, PlanId, PlanDef } from '../config/plans';
+import { PLANS, PlanId, PlanDef, OPS_ADDON } from '../config/plans';
 import { PropertyService } from './PropertyService';
 
 /** Statuses that keep paid features on. past_due is a grace period while Stripe retries payment. */
@@ -13,13 +13,15 @@ export interface Entitlements {
   status: string | null;
   features: PlanDef['features'];
   maxProperties: number | null;
+  ops: boolean;                 // 2026-10-07 18:30, G7 Ops add-on (needs an active paid plan + the add-on)
 }
 
-export function entitlementsFor(company: Pick<Company, 'plan' | 'subscription_status'> | null | undefined): Entitlements {
+export function entitlementsFor(company: Pick<Company, 'plan' | 'subscription_status' | 'ops_addon'> | null | undefined): Entitlements {
   const subscribedPlan: PlanId = (company?.plan as PlanId) || 'free';
   const status = company?.subscription_status ?? null;
   const plan: PlanId = subscribedPlan !== 'free' && status && ACTIVE_STATUSES.has(status) ? subscribedPlan : 'free';
-  return { plan, subscribedPlan, status, features: PLANS[plan].features, maxProperties: PLANS[plan].maxProperties };
+  const ops = !!company?.ops_addon && OPS_ADDON.requires.includes(plan);
+  return { plan, subscribedPlan, status, features: PLANS[plan].features, maxProperties: PLANS[plan].maxProperties, ops };
 }
 
 export async function countActiveProperties(companyId: number): Promise<number> {

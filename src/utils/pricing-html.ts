@@ -79,7 +79,7 @@ export function renderPricingSection(): string {
     <section class="pricing" id="pricing" data-period="monthly" aria-labelledby="pricing-heading">
       <div class="section-head">
         <div class="eyebrow">Pricing</div>
-        <h2 id="pricing-heading">Priced like a guidebook. Works like a concierge.</h2>
+        <h2 id="pricing-heading">Priced like a guidebook. <span class="gold">Works like a concierge.</span></h2>
         <p>Start free with a phone guide link. Add the in-home tablet when you're ready. Cancel anytime.</p>
         <div class="billing-toggle" role="group" aria-label="Billing period">
           <button type="button" data-period="monthly" aria-pressed="true">Monthly</button>
@@ -116,12 +116,22 @@ export function renderPricingSection(): string {
     <script type="application/ld+json">${JSON.stringify(jsonLd)}</script>`;
 }
 
+// 2026-10-06 14:40, hero stats row built from plans.ts so the hero never states a price that billing doesn't charge
+export function renderHeroStats(): string {
+  const stats: Array<[string, string]> = [
+    [money(PLANS.free.price.month), 'Free for your first property'],
+    [money(PLANS.pro.price.month), 'Pro, per property / month'],
+    ['Offline', 'Tablet guide works without Wi-Fi'],
+  ];
+  return `<ul class="hero-stats" aria-label="At a glance">${stats.map(([v, l]) => `<li><b>${v}</b><span>${l}</span></li>`).join('')}</ul>`;
+}
+
 let cached: string | null = null;
 
 /** landing.html with the <!-- PRICING --> placeholder filled in. Cached in production. */
 export function renderLanding(viewsDir: string): string {
   if (cached && process.env.NODE_ENV === 'production') return cached;
-  const html = fs.readFileSync(path.join(viewsDir, 'landing.html'), 'utf8').replace('<!-- PRICING -->', renderPricingSection());
+  const html = fs.readFileSync(path.join(viewsDir, 'landing.html'), 'utf8').replace('<!-- PRICING -->', renderPricingSection()).replace('<!-- HERO_STATS -->', renderHeroStats());
   cached = html;
   return html;
 }

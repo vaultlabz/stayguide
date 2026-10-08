@@ -69,7 +69,8 @@ const SCAN = () => {
   // ---- Theme toggle on login / dashboards
   for (const [name, url, token] of [['company login', '/company/demo-rentals/login', null], ['admin login', '/admin/login', null], ['landing', '/', null], ['company dashboard', '/company/demo-rentals/dashboard', login.token], ['admin dashboard', '/admin/dashboard', alogin.token]]) {
     const ctx = await browser.newContext({ viewport: { width: 1280, height: 800 }, colorScheme: 'light' });
-    if (token) await ctx.addInitScript(t => { try { localStorage.setItem('stayguide_token', t); } catch {} }, token);
+    // 2026-10-07 17:55, admin pages use their own storage key
+    if (token) await ctx.addInitScript(([t, key]) => { try { localStorage.setItem(key, t); } catch {} }, [token, url.startsWith('/admin') ? 'stayguide_admin_token' : 'stayguide_token']);
     const p = await ctx.newPage(); watch(p, name);
     await p.goto(B + url); await sleep(1200);
     const light = await bodyBg(p);
@@ -89,7 +90,8 @@ const SCAN = () => {
     const ctx = await browser.newContext({ colorScheme: 'dark' }); const p = await ctx.newPage(); watch(p, 'osdark');
     await p.goto(B + '/company/demo-rentals/login');
     const bg = await bodyBg(p);
-    check('auto + dark OS renders dark', bg !== 'rgb(246, 244, 238)' && bg.startsWith('rgb(17'), bg);
+    // 2026-10-06 16:10, admin skin (Snow kit) dark page bg is rgb(42, 42, 42); the old teal-dark was rgb(17...)
+    check('auto + dark OS renders dark', bg !== 'rgb(246, 244, 238)' && bg !== 'rgb(255, 255, 255)' && (bg.startsWith('rgb(17') || bg === 'rgb(42, 42, 42)'), bg);
     await ctx.close();
   }
   { // storage blocked: no crash

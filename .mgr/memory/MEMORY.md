@@ -38,3 +38,11 @@ Short-lived facts agents should remember for this repo. Update as the project ev
 
 - Docs: `docs/`, `StayGuide-PRD.md`, `DEPLOYMENT_GUIDE.md`, `plesk-deploy.md`
 - Related repos:
+
+## 2026-10-07 G7 Ops decisions (user)
+- Price: per property / month on top of Pro; amount decided later (plans.ts setting)
+- Workers + vendors: accounts via manager invite → onboarding profile (vendors: company + COI expiry) → then per-job links and codes
+- Codes: access codes only during job window; QR check-in/out at property; email one-time login codes
+- v1 scope: everything in the G7 outline (incl. time tracking/pay export, vendor directory, preventive schedules)
+- Offline: read + queued updates. Notifications: email + web push (no SMS)
+- (2026-10-07, round 2) Only the property manager assigns/approves/verifies · guest details hidden from workers · cost approval above a company threshold · CSV pay export · worker app branded with the managing company's name/logo + "Powered by StayGuide". Plan: docs/G7_OPS_PLAN.md

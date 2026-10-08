@@ -1,0 +1,165 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Help - StayGuide</title>
+    <!-- 2026-10-07 16:25, company admin help guide (static; opened by the dashboard Help button). Kiosk details mirror docs/KIOSK_SETUP.md -->
+    <link rel="stylesheet" href="/css/theme.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap">
+    <link rel="stylesheet" href="/css/helpdesk.css">
+    <link rel="stylesheet" href="/css/admin-kit.css">
+    <script src="/js/theme.js"></script>
+    <style>
+        .help-layout { display: grid; grid-template-columns: 220px minmax(0, 1fr); gap: 2rem; align-items: start; }
+        .toc { position: sticky; top: 1.5rem; display: grid; gap: 0.15rem; }
+        .toc a { color: var(--text-2); text-decoration: none; padding: 0.4rem 0.6rem; border-radius: var(--radius-sm); }
+        .toc a:hover { background: var(--surface-2); color: var(--text); }
+        .help section { scroll-margin-top: 1.5rem; }
+        .help h2 { font-size: 1.25rem; margin-bottom: 0.75rem; }
+        .help p, .help li { line-height: 1.6; color: var(--text-2); }
+        .help ol, .help ul { padding-left: 1.3rem; display: grid; gap: 0.35rem; margin-bottom: 0.75rem; }
+        .help p { margin-bottom: 0.75rem; }
+        .help strong { color: var(--text); }
+        .help table { width: 100%; border-collapse: collapse; font-size: 0.95rem; }
+        .help th, .help td { text-align: left; padding: 0.55rem 0.5rem; border-bottom: 1px solid var(--border); vertical-align: top; }
+        .help th { color: var(--text-muted); font-size: 0.85rem; }
+        @media (max-width: 860px) { .help-layout { grid-template-columns: 1fr; } .toc { position: static; display: flex; flex-wrap: wrap; } }
+    </style>
+</head>
+<body class="sg-app snow">
+    <div class="header">
+        <div class="logo">StayGuide</div>
+        <nav class="nav-links" aria-label="Main">
+            <a href="#" id="dashboard-link">Dashboard</a>
+            <a href="#" id="ops-link">Work orders</a><!-- 2026-10-07 23:00, G7 S2 -->
+            <a href="#" id="team-link">Team</a><!-- 2026-10-07 19:40, G7 Ops -->
+            <a href="#" id="billing-link">Billing</a>
+            <a href="#" id="support-link">Support</a>
+            <a href="#" id="help-link" class="active" aria-current="page">Help</a>
+        </nav>
+        <div class="user-info">
+            <div data-theme-toggle></div>
+            <button class="btn btn-secondary" onclick="logout()">Logout</button>
+        </div>
+    </div>
+
+    <main class="container">
+        <div class="page-head">
+            <div>
+                <h1>Help</h1>
+                <p class="lead">How to set up a property, pair a tablet and share the guide with guests.</p>
+            </div>
+            <a class="btn btn-primary" href="#" id="ticket-btn">Contact support</a>
+        </div>
+
+        <div class="help-layout">
+            <nav class="toc card" aria-label="On this page">
+                <a href="#properties">Properties</a>
+                <a href="#content">Guide content</a>
+                <a href="#tablets">Tablets</a>
+                <a href="#guest-link">Guest link</a>
+                <a href="#reports">Guest reports</a>
+                <a href="#billing">Plans &amp; billing</a>
+                <a href="#troubleshooting">Troubleshooting</a>
+            </nav>
+
+            <div class="help">
+                <section class="card" id="properties">
+                    <h2>Properties</h2>
+                    <ol>
+                        <li>On the dashboard, click <strong>Add New Property</strong>.</li>
+                        <li>Fill in the <strong>Basic Information</strong>, <strong>WiFi &amp; Access Information</strong> and <strong>Guest Instructions</strong> (check-in, check-out, house rules, emergency contact).</li>
+                        <li>Upload a <strong>Main Property Image</strong>. It is the photo guests see first.</li>
+                        <li>Add <strong>Property Amenities</strong> so guests know what the home offers.</li>
+                    </ol>
+                    <p>Click <strong>View Tablet</strong> on a property to see exactly what the tablet shows.</p>
+                </section>
+
+                <section class="card" id="content">
+                    <h2>Guide content</h2>
+                    <p>Open a property and scroll to <strong>Guide content</strong>. Each tab is a section of the guest guide:</p>
+                    <ul>
+                        <li><strong>Welcome</strong>: a short greeting shown on the home screen.</li>
+                        <li><strong>Announcements</strong>: time-limited notices, such as pool maintenance (Pro).</li>
+                        <li><strong>Restaurants</strong> and <strong>Local info</strong>: your recommendations nearby.</li>
+                        <li><strong>How-to videos</strong>: YouTube or Vimeo links that play inside the guide.</li>
+                    </ul>
+                    <p>Use the ↑ and ↓ buttons to reorder items. Changes reach tablets within 15 minutes, or right away after a reload.</p>
+                </section>
+
+                <section class="card" id="tablets">
+                    <h2>Tablets</h2>
+                    <p>Tablets are a Pro feature. Every tablet opens the same address, <strong>/tablet</strong>, and is linked to one property by pairing.</p>
+                    <ol>
+                        <li>Open the property, go to <strong>Tablets</strong>, optionally type a name (for example <em>Living room</em>) and click <strong>Pair new tablet</strong>.</li>
+                        <li>A 6-digit code appears. It works <strong>once</strong> and expires after <strong>15 minutes</strong>.</li>
+                        <li>On the tablet's pairing screen, enter the code and tap <strong>Pair Tablet</strong>.</li>
+                        <li>The guide loads, and the dashboard shows the tablet as <em>Last seen just now</em>.</li>
+                    </ol>
+                    <p>A lost or replaced tablet: click <strong>Revoke</strong>. It loses access and clears its copy of the property on its next connection. To move a tablet, revoke it at the old property and pair it at the new one.</p>
+                    <p>For kiosk lock-down (Fully Kiosk Browser), mounting and the pre-departure checklist, ask support for the kiosk setup guide.</p>
+                </section>
+
+                <section class="card" id="guest-link">
+                    <h2>Guest link (phone guide)</h2>
+                    <p>Each property has a private link and QR code that opens the guide on a guest's phone, with no app to install. Find it under <strong>Guest link (phone guide)</strong> on the property.</p>
+                    <ul>
+                        <li>Choose whether the Wi-Fi password appears on the link.</li>
+                        <li><strong>Rotate link</strong> makes the old link and QR code stop working, for example after a guest you no longer trust has stayed.</li>
+                    </ul>
+                </section>
+
+                <section class="card" id="reports">
+                    <h2>Guest reports</h2>
+                    <p>Guests can report a problem from the tablet or the guest link. Open reports show under <strong>Guest reports</strong> on the dashboard. Set each one's status as you work on it, and mark it resolved or closed once handled. Urgent reports are also emailed to your company address.</p>
+                </section>
+
+                <section class="card" id="billing">
+                    <h2>Plans &amp; billing</h2>
+                    <ul>
+                        <li><strong>Free</strong>: one property with the phone guide link.</li>
+                        <li><strong>Pro</strong>: billed per property; adds tablets, themes, announcements and analytics.</li>
+                        <li><strong>Portfolio</strong>: Pro for every property, billed per block of 5.</li>
+                    </ul>
+                    <p>Change plan, update your card or download invoices from <strong>Billing</strong>. Removing a property stops its billing at the end of the cycle.</p>
+                </section>
+
+                <section class="card" id="troubleshooting">
+                    <h2>Troubleshooting</h2>
+                    <table>
+                        <thead><tr><th>What you see</th><th>What to do</th></tr></thead>
+                        <tbody>
+                            <tr><td>"Invalid or expired pairing code"</td><td>Generate a new code. After 10 wrong attempts from one network, pairing pauses for 15 minutes.</td></tr>
+                            <tr><td>Tablet shows the pairing screen again</td><td>It was revoked or its storage was cleared. Pair it with a new code.</td></tr>
+                            <tr><td>"You're offline" banner on the tablet</td><td>The tablet keeps showing its saved copy. Fix the Wi-Fi; it reconnects on its own.</td></tr>
+                            <tr><td>"Last seen" is hours old</td><td>Check the tablet's power and Wi-Fi, then reload or restart it.</td></tr>
+                            <tr><td>Content changes are not showing</td><td>Wait up to 15 minutes, or reload the tablet.</td></tr>
+                        </tbody>
+                    </table>
+                    <p style="margin-top: 1rem;">Still stuck? <a href="#" id="ticket-link">Open a support ticket</a>.</p>
+                </section>
+            </div>
+        </div>
+    </main>
+
+    <script>
+        const pathParts = window.location.pathname.split('/');
+        const companySlug = pathParts[1] === 'company' ? pathParts[2] : '';
+        const base = `/company/${companySlug}`;
+        document.getElementById('dashboard-link').href = `${base}/dashboard`;
+        document.getElementById('billing-link').href = `${base}/billing`;
+        document.getElementById('ops-link').href = `${base}/ops`;
+        document.getElementById('team-link').href = `${base}/team`;
+        document.getElementById('support-link').href = `${base}/helpdesk`;
+        document.getElementById('help-link').href = `${base}/help`;
+        document.getElementById('ticket-btn').href = `${base}/helpdesk?new=1`;
+        document.getElementById('ticket-link').href = `${base}/helpdesk?new=1`;
+        function logout() {
+            try { localStorage.removeItem('stayguide_token'); } catch {}
+            window.location.href = `${base}/login`;
+        }
+    </script>
+</body>
+</html>

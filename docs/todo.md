@@ -1175,3 +1175,432 @@
 -  Original tablet app features preserved
 -  Billing system calculating fees correctly
 -  URL routing working as specified
+
+## 2026-10-06 - UI: Marketing hero redesign (photo hero, gold/charcoal theme, device mockup)
+
+**What Changed:**
+- ✅ `src/views/landing.html`: full-bleed pool-photo hero with themed overlay, left-aligned Playfair headline with gold second line, gold primary and outline CTAs, a 3-item stats row, and a tablet + phone mockup on the right (stacked below the copy on phones)
+- ✅ Top bar kept intact (logo, Pricing, Sign in, theme toggle, Start free); it is transparent over the hero and turns solid (blurred) on scroll
+- ✅ Gold accent + Playfair headings carried through features, pricing, kits, FAQ and the closing CTA via scoped tokens
+- ✅ Tablet mock inside the old hero removed (replaced by the real-screen mockup)
+- ✅ `public/img/hero-pool-1620.{webp,jpg}`, `hero-pool-800.webp` (from the 1620x1080 Desktop photo; the untracked 1024px `hero-pool.jpg` is the same picture but too soft for full-bleed at 1440, left untouched and unused)
+- ⚠️ `public/img/hero-devices.{png,webp}` is a **PLACEHOLDER**: the reference image `/Users/nyse/Desktop/pos 1.png` (another brand's UI), trimmed and optimized with sharp (transparent, 1040x757). It MUST be replaced with StayGuide screens before launch (HTML comment next to the `<img>` says so)
+- ✅ Ready replacement: `public/img/hero-devices-stayguide.{png,webp}` (transparent, 1040x860, real paired-tablet and phone guest-link screens in CSS-drawn frames) rendered by `scripts/render-hero-devices.js`; swap the two paths in landing.html and set height 860
+- ✅ `src/utils/pricing-html.ts`: `renderHeroStats()` (values from `plans.ts`), gold span in the pricing heading
+- ✅ `src/index.ts`: CSP allows fonts.googleapis.com (style) and fonts.gstatic.com (font)
+- ✅ Screenshots: `docs/screenshots/landing-hero-{dark,light}-{desktop,mobile}.png`
+
+**Why:**
+- The user asked for the hero photo as background in the "Premium Concierge" look, a light/dark theme changer, and (follow-up) a tablet + phone mockup showing the real product
+- The top bar had to stay; the hero stats must be true product facts only
+
+**How:**
+- Tokens are scoped to `body.lp` (light = ivory + gold, dark = charcoal + gold) using the same three-block pattern as theme.css, so dashboard, login and tablet are untouched. Same `data-theme-toggle` + `/js/theme.js` mechanism; no second switcher
+- Overlay is `rgb(var(--ov) / alpha)` gradients driven by tokens: dark charcoal wash or ivory wash, stronger on the copy side and flat on phones, fading into `--bg` at the bottom
+- Hero photo is a `<picture>` (WebP 800/1620 + JPG fallback), preloaded, with width/height set (CLS)
+- Header is solid by default; `html.lp-js` (set in head) makes it transparent until `scrollY > 24`
+- Device mockup: the script starts a throwaway mock-mode server, pairs a tablet (1280x800) and opens the guest link (390x844 at 2x), screenshots both with a stubbed weather reading, then draws CSS bezels and screenshots with `omitBackground: true`
+- Stats: `$0` Free (PLANS.free), `$9.99` Pro per property/month (PLANS.pro), "Offline" tablet guide (documented in the FAQ)
+
+**Impact:**
+- **Brand coherence**: one gold/charcoal language from hero to pricing, in both themes
+- **Truthfulness**: no invented stats; prices come from the same config as billing
+- **Maintainability**: scoped tokens, one regeneration script for the mockup
+
+**Technical Details:**
+- Fonts: Playfair Display + Inter from Google Fonts with `display=swap`; the old system stacks remain as fallbacks
+- Light theme text: gold text `#7a5200` on ivory, AA; gold fills use dark text `#1c1408`
+- Phone capture adds `padding-top: 30px` so the drawn notch does not cover the clock
+- Design-test scans text contrast on `/` in both themes and passes (see test run in the report)
+
+## 2026-10-06 15:25 - STYLE: Tablet defaults to the Baltic Rose gradient
+
+**What Changed:**
+- ✅ `src/views/tablet-app.html`: the default look (pairing screen, nothing cached yet) is the Baltic Rose gradient instead of solid black
+- ✅ `src/utils/mock-database.ts`: both demo properties use `tablet_background: 'baltic-rose'`
+
+**Why:**
+- The user reviewed the tablet and found it plain with no style
+- Baltic Rose is one of the 8 existing Figma "Luxury Gradients" presets, so no new assets were needed
+
+**How:**
+- Changed the fallback style passed to `applyTabletLook()` on first paint
+- Changed the mock data only; the per-property manager setting still wins once content loads
+
+**Impact:**
+- **First impression**: unpaired and newly paired tablets look styled right away
+- **No schema change**: the DB default for `tablet_background` is still `'solid'`, and Free-plan properties are still forced to `'solid'` by `sendPropertyContent()` (themes are a Pro feature)
+
+**Technical Details:**
+- A tablet with a cached look in localStorage (`stayguide_tablet_look`) keeps its cached style until the property content reloads
+
+## 2026-10-06 15:35 - FEATURE: Admin dashboards restyled to the Snow Dashboard UI Kit look
+
+**What Changed:**
+- ✅ New `public/css/admin-kit.css` (dashboard-scoped skin, `body.snow`) loaded after `/css/theme.css` on: admin-login, admin-dashboard, admin-billing, invoice-detail, company-login, company-dashboard, company-billing
+- ✅ Header becomes a fixed 212px left sidebar on desktop (>=901px); below that it collapses to a static top bar with wrapping nav and a 16px gutter
+- ✅ Pastel stat tiles, flat #f7f9fb cards (16px radius, no border/shadow), black primary buttons (lavender in dark), hairline tables, Inter font (Google Fonts)
+- ✅ `scripts/screenshot-admin.js` added; screenshots in `docs/screenshots/admin-*.png`, Figma references in `admin-ref-snow-*.png`
+
+**Why:**
+- User asked for the admin dashboard to use the style of the Snow Dashboard UI Kit (Figma q0eQ9OJnErxHsHzyNAb9RH)
+
+**How:**
+- The Figma file has only a "Hello" page of flattened preview images (no layers/variables), so tokens were sampled by eye with sharp from the 1440x1024 preview renders (not exact Figma variables)
+- Re-pointed the shared semantic tokens (--bg, --surface, --text, --accent, radii, fonts) inside `body.snow`, so existing page CSS follows; layout rules nested under `body.snow.sg-app` to beat `.sg-app` rules and inline CSS
+- Dark mode reuses the shared `[data-theme]` toggle and `prefers-color-scheme` (no second switcher)
+
+**Impact:**
+- **Consistency**: all admin and company pages share one look in light and dark
+- **Isolation**: landing, tablet app and guest guide untouched (rules only match `body.snow`)
+- **No behavior change**: no IDs, forms, or JS touched; only class added to body and CSS links in head
+
+**Technical Details:**
+- Sampled: light bg #ffffff, card #f7f9fb, nav active #f2f2f2, line #e5e5e5/#cccccc, tiles #e3f5ff/#e5ecf6, ink #1c1c1c; dark bg #2a2a2a, card #353535, hover/line #3f3f3f, strong line #555555, accent lavender #c6c7f8
+- Radii 8/12/16, tiles padding 24, grid gap 28, type 14px Inter, stat value 28px/600
+- Muted text darkened to #666 / #a8a8a8 (kit uses ~40% opacity) to keep WCAG AA
+- Skipped: top bar with breadcrumb/search, right notification panel, charts, avatars, favorites list (no matching data/features)
+
+## 2026-10-07 - FEATURE: Wired up every stubbed function (admin, company, helpdesk, email, PDF, sign-in)
+
+**What Changed:**
+- ✅ Admin dashboard: **Edit** button works (it called a missing `editCompany()`). The create modal doubles as an edit modal (company fields + status; admin-user fields hidden) and saves via `PUT /admin/companies/:id`
+- ✅ Admin dashboard: **Total Properties** and **Monthly Revenue** tiles come from new `GET /admin/stats` (were hardcoded "-")
+- ✅ Admin billing: **Export** downloads a CSV of every invoice (was a "coming soon" alert)
+- ✅ Invoice detail: **Download PDF** works via new `GET /billing/:billingId/pdf` (pdfkit, `src/utils/invoice-pdf.ts`); invoice emails now attach the same PDF
+- ✅ **Helpdesk** (task #17): `src/services/HelpdeskService.ts`, `src/controllers/HelpdeskController.ts`, pages `company-helpdesk.html` (`/company/:slug/helpdesk`) and `admin-helpdesk.html` (`/admin/helpdesk`), shared `public/css/helpdesk.css`. Replaces the JSON placeholder routes and every "Helpdesk coming soon!" alert
+- ✅ **Help guide**: `company-help.html` at `/company/:slug/help` (Help button, nav link)
+- ✅ Company dashboard: hardcoded sample "Recent Activity" replaced by a live **Guest reports** card (status changes via `PUT /reports/:id/status`); Support + Help nav links; dead `deleteProperty()` stub removed
+- ✅ **Email** (task #15): nodemailer SMTP transport (was a logged simulation); urgent guest reports (priority urgent or urgency immediate) email the company; helpdesk emails support on new tickets/replies and the company on staff replies
+- ✅ **Sign-in** (task #44): `/login` page, email + password only, company resolved from the account; landing "Sign in" links point there (the slug `prompt()` is gone). Rate limited 10 / 15 min per IP
+- ✅ Fixed: overdue-notice text email used `invoice.billing_end` (undefined → "NaN days")
+- ✅ Test: `tests/e2e/admin-functions-test.js` (24 checks), added to `npm run test:e2e`
+
+**Why:**
+- The user approved the design and asked to "plug in all functions"; a sweep of the views found dead buttons, "coming soon" alerts, TODO placeholders and fake sample data
+- The user chose to build all four larger items too: invoice PDF, helpdesk, email sending, help docs
+
+**How:**
+- Helpdesk reuses the existing `helpdesk_tickets` / `helpdesk_responses` tables in `database/schema.sql` (no migration needed). The ticket's `message` is the opening message; `is_internal` responses are admin-only notes. Mock mode uses `mockHelpdeskTickets` / `mockHelpdeskResponses`
+- Ownership: company routes go through `resolveOwnedCompany()` and check `ticket.company_id`; admin routes sit behind `requireSuperAdmin`
+- Status flow: first public staff reply moves open → in_progress; a customer reply reopens resolved/closed tickets
+- Revenue estimate (`monthlyRevenueFor()` in CompanyController): legacy accounts = active properties × their manual fee; Stripe plans use `plans.ts` (annual Pro / 12); past-due/canceled count as 0
+- Emails are best-effort (never fail the request). `EMAIL_PROVIDER=mock` logs to the console; `smtp` needs `SMTP_HOST/PORT/SECURE/USER/PASS`. New tickets go to `SUPPORT_EMAIL` (falls back to `ADMIN_EMAIL`)
+
+**Impact:**
+- **No dead ends**: every button and nav link in the admin and company dashboards does something real
+- **Support loop**: companies can reach StayGuide without leaving the product, and get email replies
+- **Guest issues surface**: reports from tablets and guest links are finally visible to managers, and urgent ones are emailed
+
+**Technical Details:**
+- New deps: `nodemailer`, `pdfkit` (+ `@types/*` dev). `npm audit` findings (proxy-addr via express) predate these
+- `.env.example` documents EMAIL_PROVIDER, FROM_EMAIL, FROM_NAME, SUPPORT_EMAIL, SMTP_*
+- PDF dates use UTC so stored calendar dates are not shifted a day by the server timezone
+- CSV export quotes every cell and prefixes formula-like text (`=`, `+`, `-`, `@`) to block spreadsheet formula injection
+- Not changed: `testFunction()` on the company dashboard stays (an earlier session kept it on purpose for console debugging)
+
+## 2026-10-07 - FIX: Cleanup (security advisory, separate admin session, logout, debug code, flaky test)
+
+**What Changed:**
+- ✅ `npm audit fix`: proxy-addr 2.0.7 → 2.0.8 (critical IP-spoofing advisory, pulled in by express). Production audit now reports 0 vulnerabilities
+- ✅ Admin pages (admin-login, admin-dashboard, admin-billing, admin-helpdesk, invoice-detail) store the JWT as `stayguide_admin_token`; company pages keep `stayguide_token`. `/login` picks the key from the role; the tablet preview accepts either
+- ✅ Admin and company `logout()` no longer call `localStorage.clear()` / `sessionStorage.clear()`; they remove only their own token
+- ✅ Removed the debug `testFunction()` from the company dashboard
+- ✅ `tests/e2e/diagnostics-test.js`: a `fail` verdict is accepted when only Smoothness (fps) results fail
+- ✅ `tests/e2e/design-test.js` and `scripts/screenshot-admin.js` set the admin key for admin pages
+
+**Why:**
+- Signing into one dashboard silently signed the other out in every tab (one shared key)
+- `localStorage.clear()` on logout also erased the theme choice and, on the same origin, a paired tablet's device token (the tablet then asked to be paired again)
+- The diagnostics test failed on a busy dev machine (24 fps headless) although the page behaved correctly
+
+**How:**
+- String-level key rename in the admin views; role-based key in `login.html`
+- Logout keeps the existing `removeItem` calls and drops the two `clear()` calls
+
+**Impact:**
+- **Testing**: admin and company dashboards can stay open side by side in one browser
+- **Tablets**: logging out of a dashboard on the same browser no longer unpairs a tablet
+- **CI signal**: the diagnostics suite no longer fails on slow hosts
+
+**Technical Details:**
+- Existing admin sessions under the old key are not migrated: admins sign in once more
+- Remaining `npm audit` findings: 3 high in nodemon → chokidar → braces (dev-only file watcher); the only offered fix downgrades nodemon to 1.14.10, so it was not applied
+
+## 2026-10-07 - FEATURE: G7 Ops stage 1 (foundations: workers, invites, onboarding, worker sign-in)
+
+**What Changed:**
+- ✅ Migration `database/migrations/2026-10-07_ops_foundations.sql` (+ `schema.sql`, README step 10): `users.role` gains `field_worker`; `companies.ops_addon`; new `company_workers`, `worker_invites`, `login_codes`
+- ✅ `src/services/WorkerService.ts`: memberships (one account, several companies), invites (create / resend / cancel / accept), email sign-in codes, last sign-in
+- ✅ `src/controllers/OpsController.ts` + routes: manager Team API `/company/:slug/ops/{team,invites,workers}` (402 without Ops); worker API `/maint/api/{invite/:token, invite/:token/accept, login, login-code, login-code/verify, me}`
+- ✅ Pages: `company-team.html` (`/company/:slug/team`, Team nav link on all company pages), `maint.html` (`/maint` worker app: sign in by email code or password, companies, jobs placeholder), `maint-invite.html` (`/maint/invite/:token` onboarding); `public/css/maint.css`
+- ✅ `plans.ts`: `OPS_ADDON` (per property, price TBD = null, needs Pro/Portfolio) + `PRICE_ENV.ops_month`; `EntitlementService` adds `ops`
+- ✅ Super admin: "Ops add-on" checkbox in the Edit company dialog (manual until S9 billing); demo-rentals has it on in mock mode
+- ✅ `EmailOptions.fromName`: invites go out as "<Company> via StayGuide"
+- ✅ `requireFieldWorker` middleware; `tests/e2e/ops-s1-test.js` (39 checks) in `npm run test:e2e`
+
+**Why:**
+- Stage 1 of the approved G7 plan (`docs/G7_OPS_PLAN.md`): everyone else in Ops (work orders, checklists, time) hangs off worker accounts and company memberships
+
+**How:**
+- Invite tokens: 32 random bytes (base64url), only SHA-256 stored, 7 days, single use; a new invite or resend replaces the old link. Accepting proves the email (link was mailed there), so it signs the worker in
+- Sign-in codes: 6 digits, HMAC(JWT_SECRET) stored, 10 minutes, 5 attempts, single use; a new code voids older ones; the request endpoint answers the same for unknown emails
+- Rate limits: password 10 / 15 min per IP, code request 5 / 15 min per IP+email, verify 10 / 15 min per IP, invite pages 20 / 15 min per IP
+- Isolation: worker JWTs carry `role: field_worker`; dashboards' `requireCompanyAdmin` / `requireSuperAdmin` reject them and `/login` refuses worker accounts; `/maint/api/me` rejects admin tokens. Admin emails cannot be invited
+- Code-only workers get an unusable random password; an invite never changes an existing account's password
+- Worker token key: `stayguide_maint_token`
+
+**Impact:**
+- **Managers** can build their team today; **workers** can onboard and sign in on a phone
+- **Multi-company vendors** keep one account; each company sees only its own members
+
+**Technical Details:**
+- Worker app header shows the managing company (logo or initial) when the worker has one active company; footer "Powered by StayGuide"; theme switch moved to the footer (the floating one covered the header button at 390 px)
+- A membership counts as active only when the membership, the company and its Ops entitlement are all active
+- Not yet: jobs (S2), access codes / QR / photos (S3), push + offline (S5), vendor COI (S6)
+
+## 2026-10-07 - FEATURE: G7 Ops stage 2 (work orders: lifecycle, cost approval, board, worker jobs)
+
+**What Changed:**
+- ✅ Migration `2026-10-07_ops_work_orders.sql` (+ `schema.sql`, README step 11): `work_orders`, append-only `work_order_events`, `companies.ops_approval_threshold` (default 250, NULL = never ask)
+- ✅ `src/services/WorkOrderService.ts`: create / edit / `transition()` (assign, estimate, approve, reject, start, submit, verify, bounce, cancel, comment), events, guest report → work order, resolve linked report on verify
+- ✅ `src/controllers/WorkOrderController.ts`: manager API `/company/:slug/ops/work-orders[...]`, `/ops/settings`, `/ops/work-orders/from-report/:reportId`; worker API `/maint/api/jobs[/:id[/:action]]` (rate limited 60/min per worker); email notifications for every hand-off
+- ✅ `company-ops.html` (`/company/:slug/ops`, "Work orders" in every company nav): 5-column board, filters, threshold setting, create dialog, detail dialog with actions + history + comments; inline reason form (no `prompt()`)
+- ✅ Dashboard Guest reports: "Create work order" per open report (Ops only); opens the board on that order
+- ✅ Urgent guest reports (priority urgent / urgency immediate) auto-create an unassigned urgent work order (actor = system) when the company has Ops; the urgent email links to it
+- ✅ Worker app `/maint`: Today / Upcoming / Done lists, job detail (company branding, property + Maps link, window, details, guest report summary), start, estimate, submit, message the manager, history; deep link `?job=`
+- ✅ Mock: 2 demo jobs for Demo Rentals (one assigned to Terry Tech)
+- ✅ `tests/e2e/ops-s2-test.js` (45 checks) in `npm run test:e2e`; dialog centering fix on Team + board (`* { margin: 0 }` reset removed native centering)
+
+**Why:**
+- Stage 2 of the approved G7 plan: managers dispatch and verify work; workers see and update only their own jobs
+
+**How:**
+- Rules live in `WorkOrderService.transition()`; every change writes `work_order_events` (actor + time). Managers: assign/approve/reject/verify/bounce/cancel. Assigned worker: start/estimate/submit. Both: comment
+- Cost approval: an estimate above the threshold and above any approved amount → `awaiting_approval` (start blocked); approve returns to where the job was (from the `approval_requested` event's `resume`); reject → `new`, unassigned, estimate cleared. Pre-approval when creating/assigning. Submitted cost > approved × 1.1 (or > threshold with no approval) is flagged `over_budget`
+- Privacy: the worker API returns `workerView()` + `reportSummary()` only: no guest name, phone, room or IP; the worker's history shows "You" / the company name instead of the manager's or other workers' names
+- Access: worker jobs require an active membership, an active company and the Ops entitlement; managers reach only their company's orders and properties; assignees must be active team members
+
+**Impact:**
+- **Managers** get a working dispatch board with approvals and a full audit trail
+- **Workers** can run a job end to end on a phone
+- **Guests' urgent problems** become jobs immediately
+
+**Technical Details:**
+- Board polls every 30 s while no dialog is open
+- Verifying an order linked to a guest report sets that report to `resolved` (only that report; amenity-wide auto-close is not used)
+- Not yet: access codes, QR check-in, photos (S3); checklists (S4); offline + push (S5)
+
+## 2026-10-08 - FEATURE: G7 Ops stage 3 (on site: access codes, QR check-in/out, private photos)
+
+**What Changed:**
+- ✅ Migration `2026-10-07_ops_on_site.sql` (+ `schema.sql`, README step 12): `property_access` (encrypted code + notes), `work_orders.access_code_override_enc`, `property_qr_tokens`, `work_order_photos`, `time_entries`
+- ✅ `src/utils/secret-box.ts`: AES-256-GCM `seal`/`open` + HMAC `sign` (key `OPS_SECRET_KEY`; dev falls back to a key derived from JWT_SECRET with a warning; production refuses to start without it)
+- ✅ `src/services/OnSiteService.ts` + `src/controllers/OnSiteController.ts` (extends `WorkOrderController`, whose helpers became `protected`)
+- ✅ Manager API: `/company/:slug/ops/access[/:propertyId]` (GET/PUT), `/ops/access/:propertyId/qr` (GET = current/create, POST = replace), `PUT /ops/work-orders/:id/access` (per-job code); board section "Property access & QR stickers"; job dialog shows photos, time on site, per-job code
+- ✅ Printable sticker `/company/:slug/ops/qr/:propertyId` (`company-ops-qr.html`, black on white, print hides controls)
+- ✅ Worker API: `POST /maint/api/jobs/:id/access` (audited reveal), `/check-in`, `/check-out`, `/photos` (multipart), `DELETE /photos/:photoId`, `POST /maint/api/scan/:token`; page `/maint/scan/:token` (`maint-scan.html`) incl. sign-in-then-continue
+- ✅ Photos: re-encoded with sharp (auto-rotate, ≤1600 px, WebP q80, EXIF/GPS stripped), stored under `OPS_STORAGE_DIR` (default `storage/ops`, git-ignored, outside `public/`), served only via `/ops-photo/:id?e=&s=` signed URLs valid 1 hour
+- ✅ Start checks in (button); submit checks out; cancel / reassign / unassign closes the open check-in (`method_out = system`)
+- ✅ `tests/e2e/ops-s3-test.js` (52 checks) in `npm run test:e2e`; S2 test expects the new check-in/out events
+
+**Why:**
+- Stage 3 of the approved G7 plan: workers need a way in only while they have a job, managers need proof of presence and photos
+
+**How:**
+- Access codes live in their own table so no property query (dashboard, tablet `/device/content`, guest link) can return them; work orders strip the per-job ciphertext in `normalize()` and expose only `has_access_override`
+- Reveal rule (`accessState`): job assigned or in progress, and now within window start − 30 min … window end + 30 min (no end = 12 h); no window → only once the job is started. Every reveal writes an `access_viewed` event; responses are `Cache-Control: no-store`; the job detail never contains the code
+- QR: token = 24 random bytes; stored as SHA-256 (lookup) + sealed copy (reprint). Scan picks the worker's job at that property (asks when there are several), toggles check-in/out, starts an assigned job, and accepts check-in only within window ± 60 min. One open check-in per worker
+- Limits: reveal 30 / 15 min per worker, scan 30 / 15 min per IP, job actions 60 / min, photos 15 MB input, 40 per job; workers can remove their own photos until they submit
+
+**Impact:**
+- **Security**: lockbox codes are encrypted, time-boxed, never cached and audited
+- **Proof of work**: check-in/out times and before/after photos on every job
+- **Privacy**: photos are private, metadata-free and only reachable through expiring links
+
+**Technical Details:**
+- Production needs `OPS_SECRET_KEY` (`openssl rand -hex 32`); changing it makes existing codes and stickers unreadable (re-enter codes, reprint stickers)
+- Back up `OPS_STORAGE_DIR` with the database
+- The job-photo upload filter also accepts `application/octet-stream` (some phones send HEIC that way); sharp rejects anything that is not an image
+- Location on check-in is not collected (plan: opt-in, later)
+
+## 2026-10-08 - FEATURE: G7 Ops stage 4 (checklists, photo steps, review queue)
+
+**What Changed:**
+- ✅ Migration `2026-10-08_ops_checklists.sql` (+ `schema.sql`, README step 13): `checklist_templates`, `checklist_template_items`, `work_order_checklist`, `work_orders.checklist_template_id`
+- ✅ `src/services/ChecklistService.ts`; `src/controllers/ChecklistController.ts` (extends `OnSiteController`)
+- ✅ Manager API: `/company/:slug/ops/checklists[/:templateId]` (list / create / edit / archive via `active`), `PUT /ops/work-orders/:id/checklist`, `GET /ops/review`; `POST /ops/work-orders` accepts `checklist_template_id`; bounce accepts `reopen_item_ids`
+- ✅ Worker API: `POST /maint/api/jobs/:id/checklist/:itemId { done, note? }`; photo upload accepts `checklist_item_id`
+- ✅ Pages: `company-checklists.html` (`/company/:slug/checklists`: list, editor with ↑/↓ reorder, photo flag, archive/restore); board: Checklists button, checklist picker on create, checklist in the job dialog (attach/change while untouched), review queue above the board (checklist progress, photos, time on site, Verify), Send back with "reopen steps"
+- ✅ Worker app: checklist card with progress; photo steps have a camera button that uploads and ticks the step; Submit shows what is still open
+- ✅ Mock: "Turnover clean" (6 steps, 3 with photo) and "Monthly safety inspection" templates for Demo Rentals
+- ✅ Fixed: creating a work order through the API without `assignee_user_id` failed with "Invalid assignee"
+- ✅ `tests/e2e/ops-s4-test.js` (36 checks) in `npm run test:e2e`; `.btn-link` style in `helpdesk.css`
+
+**Why:**
+- Stage 4 of the approved G7 plan: cleanings and inspections need repeatable steps and photo proof before the manager signs off
+
+**How:**
+- A job gets its own copy of the template's steps when attached, so later template edits never change it; a checklist can be attached, changed or removed only until the first step is ticked and never after submit
+- Steps can be ticked only while the job is in progress; a photo step can only be ticked once a photo is linked to it; deleting that photo un-ticks it
+- `WorkOrderService.transition('submit')` refuses while any step is open (message lists the first three); `bounce` with `reopen_item_ids` un-ticks those steps and clears their photo link (the photo stays in the job's photos)
+- Every tick / untick is an event (`step_done` / `step_undone`, note = step text)
+
+**Impact:**
+- **Consistent turnovers**: the same steps every time, with photos where they matter
+- **Faster sign-off**: one review queue with checklist, photos, time and cost side by side
+- **Precise send-backs**: the worker sees exactly which steps to redo
+
+**Technical Details:**
+- Templates are per company, capped at 60 steps; archived templates stay on jobs that already use them
+- Review queue lists submitted jobs oldest first
+
+## 2026-10-08 - FEATURE: G7 Ops stage 5 (offline worker app, web push, install)
+
+**What Changed:**
+- ✅ Migration `2026-10-08_ops_offline_push.sql` (+ `schema.sql`, README step 14): `client_ops` (idempotent replays), `push_subscriptions`, `work_order_events.client_created_at`
+- ✅ `src/middleware/client-ops.ts` (`idempotentOp`) on every worker POST under `/maint/api/jobs/...`; `src/utils/request-context.ts` (AsyncLocalStorage) carries the phone time to events and check-in/out times
+- ✅ `src/services/PushService.ts` (web-push, VAPID) + `/maint/api/push` (GET key/state), `/push/subscribe`, `/push/unsubscribe`; every worker notification (`tellWorker`) is now email + push
+- ✅ `public/maint-sw.js` (scope `/maint`, separate from the tablet's `sw.js`), `public/maint-manifest.json`, served no-cache from `src/index.ts`
+- ✅ `public/js/maint-offline.js` (`SGOffline`): IndexedDB outbox incl. photos, ordered replay, failures list, cached-data wipe, push on/off, install prompt
+- ✅ Worker app: offline / waiting / failed banner, "Waiting to send" on the job, "This phone" card (notifications, install / iPhone Add to Home Screen hint); access code and photo removal need a connection; sign-out warns about unsent updates and clears saved job data
+- ✅ `tests/e2e/ops-s5-test.js` (31 checks: replay, device time, push to a local HTTPS fake push service incl. 410 cleanup, offline queue in Chromium) in `npm run test:e2e`
+
+**Why:**
+- Stage 5 of the approved G7 plan: field workers lose signal in basements, garages and rural properties; new jobs should reach them without email
+
+**How:**
+- Each update gets a UUID (`X-Client-Op-Id`) and the phone time (`X-Client-Created-At`). The server stores the first 2xx/4xx result per user + id (bound to method + path); a resend returns it with `X-Client-Op-Replayed: 1`. 5xx is not stored, so it is retried. Phone times older than 48 h or in the future fall back to the server clock; check-out never precedes its check-in
+- The page queues when offline (or the request fails at the network level) and keeps order: if anything is waiting, new updates queue behind it. Replay stops at the first network error, 5xx, 401/403 or "in progress"; 4xx results are dropped from the queue and listed for the worker
+- Service worker: shell network-first; `/maint/api/me`, `/jobs`, `/jobs/:id` network-first with the last good copy offline (`X-SG-Offline`, `X-SG-Cached-At`); POSTs, the access code and photos are never cached
+- Push: dev generates temporary VAPID keys; production has push off until `VAPID_PUBLIC_KEY` / `VAPID_PRIVATE_KEY` are set. Subscriptions only to known push services (FCM, Mozilla, Apple, Windows) to prevent SSRF; `PUSH_ALLOW_ANY_ENDPOINT=true` (tests, never in production) allows a local fake. 404/410 deletes the subscription; max 10 devices per worker
+
+**Impact:**
+- **No lost work**: updates and photos made without signal arrive in order, exactly once, with the real time
+- **Faster dispatch**: workers get a push the moment a job is assigned, approved, sent back or commented on
+- **Feels like an app**: installable from the browser, opens offline
+
+**Technical Details:**
+- Background Sync is not used (no iOS support); the page sends on `online`, on open and every 30 s
+- iPhone: web push only works from the Home Screen app (iOS 16.4+); the app explains this
+- Production setup: `npx web-push generate-vapid-keys` → `VAPID_PUBLIC_KEY`, `VAPID_PRIVATE_KEY`, `VAPID_SUBJECT`
+
+## 2026-10-08 - FEATURE: G7 Ops stage 6 (vendor profiles, insurance certificates, reminders)
+
+**What Changed:**
+- ✅ Migration `2026-10-08_ops_vendors.sql` (+ `schema.sql`, README step 15): `vendor_profiles` (business name, license, insurer, certificate file + expiry, confirmation, reminder level)
+- ✅ `src/services/VendorService.ts` (`coiStatus`, `dueAlert`, certificate storage + signed links); `src/jobs/ops-scheduler.ts` (`runOpsChecks`, hourly, `OPS_SCHEDULER=off` disables) started from `src/index.ts`; `POST /admin/ops/run-checks` (super admin) runs it now
+- ✅ Worker API: `GET /maint/api/profile`, `PUT /maint/api/profile/vendor`, `POST /maint/api/profile/certificate` (multipart `file` + `expires_on`, 10 MB); `GET /ops-file/coi/:userId/:file` signed link (1 h)
+- ✅ Manager API: Team members now include `vendor` (details + certificate status + link); `PUT /company/:slug/ops/workers/:userId/coi` (`verify: true` or `expires_on`, which also confirms)
+- ✅ Team page: Insurance column (until / days left / expired / none, View, Confirm, Change date), expired / expiring / missing banners. Board: vendors with an expired certificate are disabled in "Assign to"
+- ✅ Worker app: "Your business & insurance" card for vendors and contractors (status, view, upload PDF/photo + expiry, business details); `/maint?profile=1` (reminder emails) scrolls to it
+- ✅ `tests/e2e/ops-s6-test.js` (38 checks) in `npm run test:e2e`
+
+**Why:**
+- Stage 6 of the approved G7 plan: managers must not send uninsured vendors into guests' homes, and certificates lapse quietly
+
+**How:**
+- Certificate states: missing / valid / expiring (≤ 30 days) / expired (after the expiry date; valid through the date itself). Calendar dates, compared as Y-M-D
+- `WorkOrderController.checkAssignee` refuses vendors (type `vendor`) whose certificate is expired, on create and assign; contractors and missing certificates only show warnings
+- PDFs must start with `%PDF-` and are stored as uploaded; images are re-encoded to WebP (metadata stripped). Files live under `OPS_STORAGE_DIR/coi/<user>`; a new upload replaces (and deletes) the old file, so old links stop working
+- Reminders: levels 30 → 7 → expired, each sent once (vendor email + push, plus an email to every active company they work for); the level resets when the date changes or a new certificate is uploaded
+- A vendor's upload or date change clears "confirmed"; a manager's date correction counts as confirming
+
+**Impact:**
+- **Compliance**: expired insurance blocks new work automatically
+- **No chasing**: vendors and managers get reminders before the certificate lapses
+- **One certificate per vendor** across all the companies they work for
+
+**Technical Details:**
+- One profile per worker account (not per company); every company the vendor works for sees the same certificate
+- The scheduler is in-process (single Node instance); stage 8 adds preventive schedules and overdue alerts to it
+
+## 2026-10-08 - FEATURE: G7 Ops stage 7 (time & pay: review, audited corrections, pay export)
+
+**What Changed:**
+- ✅ Migration `2026-10-08_ops_time.sql` (+ `schema.sql`, README step 16): `time_entries.method_in` adds `manual`; `created_by`, `edited`, `voided_at`, `void_reason`; new `time_entry_edits` (before/after + reason)
+- ✅ `src/services/TimeService.ts` (range in the manager's time zone, totals with hourly rates, overlap / 24 h / future checks, add / edit / close / void, history, CSV); `src/controllers/TimeController.ts` (extends `ChecklistController`)
+- ✅ Manager API: `GET /company/:slug/ops/time?from&to&tz&user_id&property_id`, `GET /ops/time/export` (`kind=summary` for the pay summary), `POST /ops/time`, `PUT /ops/time/:id`, `POST /ops/time/:id/void`, `GET /ops/time/:id/history`
+- ✅ Page `company-time.html` (`/company/:slug/time`, "Time & pay" button on the board): filters, totals per person (hours × rate), entries (QR / app / added by manager, corrected, voided, on site), Correct / Check out / Void / History dialogs, Add time, two CSV exports
+- ✅ Worker API `GET /maint/api/time?tz` and a "Your hours" card (this week / last week) in the worker app
+- ✅ `OnSiteService.minutesOf` ignores voided entries
+- ✅ `tests/e2e/ops-s7-test.js` (33 checks) in `npm run test:e2e`
+
+**Why:**
+- Stage 7 of the approved G7 plan: pay people for the time they were on site, and fix forgotten check-ins/outs without losing the trail
+
+**How:**
+- Ranges are calendar days in the browser's IANA zone (`tz`), converted to UTC instants with an Intl-based offset (DST-safe); at most 93 days
+- Every manager change needs a reason (≤ 500 chars) and writes `time_entry_edits` (action added / edited / closed / voided, before and after) plus a `time_*` event on the job
+- Checks: check-out after check-in, nothing in the future, ≤ 24 h per entry, no overlap with another non-voided entry of the same person; a closed entry can't be reopened
+- Totals count closed, non-voided entries; open entries are flagged ("still checked in"). Amounts use the current hourly rate from the Team page (rates are not snapshotted)
+- CSV: UTF-8 BOM, RFC 4180 quoting, formula-like text prefixed with `'`; times in the manager's zone; voided entries left out
+
+**Impact:**
+- **Payroll-ready**: one click to a per-person pay summary or a line-by-line time sheet
+- **Fair corrections**: every change is visible with who, when, why and what it was before
+- **Workers** can check their own hours
+
+**Technical Details:**
+- Matches the plan's decision: CSV only for now (no payroll integration)
+- Rates changed mid-period apply to the whole period in the export
+
+## 2026-10-08 - FEATURE: G7 Ops stage 8 (preventive schedules, overdue / unassigned alerts, admin Ops metrics)
+
+**What Changed:**
+- ✅ Migration `2026-10-08_ops_schedules.sql` (+ `schema.sql`, README step 17): `maintenance_schedules`; `companies.timezone` (default America/Denver); `work_orders.schedule_id`, `schedule_due_on` (unique per schedule), `overdue_alerted_at`, `unassigned_alerted_at`
+- ✅ `src/services/ScheduleService.ts` (`firstOnOrAfter`, `nextAfter`, `generateDue`); `src/controllers/ScheduleController.ts` (extends `TimeController`); `TimeService.zonedTime` / `todayIn`
+- ✅ `src/jobs/ops-scheduler.ts`: creates due scheduled jobs (+ email/push to the assigned person), overdue digest and unassigned digest per company (each job reported once); `POST /admin/ops/run-checks` accepts a simulated `now` outside production (tests)
+- ✅ Manager API: `GET/POST /company/:slug/ops/schedules`, `PUT /ops/schedules/:id` (incl. `{ active }`), `/ops/settings` now also reads/writes `timezone`
+- ✅ Page `company-schedules.html` (`/company/:slug/schedules`, "Schedules" button on the board): list, create/edit dialog (monthly day / weekday / every N days, start, window time + length, days ahead, default person, checklist), pause/resume, company time zone
+- ✅ Board: "N overdue · M waiting for someone" banner
+- ✅ Super admin: `GET /admin/ops/metrics` and an "Ops add-on" section on the admin dashboard (properties, workers, open, overdue, verified in 30 days, schedules; revenue shows "price not set" until `OPS_ADDON.price.month` is set)
+- ✅ Mock: demo schedule "Monthly safety inspection" at Mountain Cabin (1st of the month)
+- ✅ `tests/e2e/ops-s8-test.js` (31 checks) in `npm run test:e2e`
+
+**Why:**
+- Stage 8 of the approved G7 plan: recurring maintenance shouldn't depend on someone remembering; late and unclaimed jobs should surface by themselves
+
+**How:**
+- The scheduler walks each active schedule forward while `due − lead_days ≤ today` (company time zone): creates one job per occurrence that is not in the past and not already created, then advances `next_due_on`. Occurrences missed while the server was down are skipped, not created late
+- Window: `window_start_time` local in the company zone (DST-safe), `window_hours` long; due = window end. Default person only if still an active member (vendors also need a valid certificate); otherwise unassigned with a `scheduled` event noting it
+- Digests: overdue = open job past `due_at`; unassigned = still `new` after 24 h (1 h if urgent). One email per company per run; overdue also pushes the assigned worker
+- Monthly day limited to 1–28 so every month has it
+
+**Impact:**
+- **Preventive care on autopilot**: filters, detectors, pool and HVAC jobs appear on time with the right checklist and person
+- **Nothing falls through**: managers hear about late and unclaimed jobs once, in one email
+- **Visibility for StayGuide**: adoption and workload per Ops customer on the admin dashboard
+
+**Technical Details:**
+- Runs hourly in-process (`OPS_SCHEDULER=off` disables); single Node instance assumed
+- "after checkout" schedules (PMS sync) remain out of scope
+
+## 2026-10-08 - FEATURE: G7 Ops stage 9 (Ops add-on billing)
+
+**What Changed:**
+- ✅ `plans.ts`: `OPS_ADDON.price.month` now reads `OPS_PRICE_MONTHLY` (USD per property; unset = "coming soon")
+- ✅ `StripeBillingService`: `enableOps` (adds a `price_ops` subscription item, one unit per active property, prorated), `disableOps` (deletes it, prorated credit), `opsForSale()`; `syncQuantity` updates the plan item and the Ops item separately (was `items.data[0]`); webhooks set `ops_addon` from the subscription's items and clear it when the subscription is deleted; plan interval read from the plan item
+- ✅ `CompanyService.BILLING_FIELDS` includes `ops_addon`
+- ✅ `GET /company/:slug/billing/status` returns `ops` (enabled, for sale, price, monthly cost, invoiced, can_add, needs_monthly); `POST /company/:slug/billing/ops { enable }`
+- ✅ Billing page: "Ops add-on" card (On + Remove / price + Add / why not: coming soon, needs Pro, annual billing, invoiced account)
+- ✅ `scripts/stripe-sandbox-setup.js` creates the Ops price when `OPS_PRICE_MONTHLY` is set (amount in the lookup key; prices are immutable)
+- ✅ `.env.example`: `OPS_PRICE_MONTHLY`, `STRIPE_PRICE_OPS_MONTHLY`
+- ✅ `tests/e2e/ops-s9-test.js` (25 checks, own fake Stripe with multi-item subscriptions) in `npm run test:e2e`; existing billing suite still 62/62
+- ✅ `docs/G7_OPS_PLAN.md` status updated; tasks #41 and #47–#55 done
+
+**Why:**
+- Stage 9 of the approved G7 plan: sell Ops as a self-serve add-on on top of Pro / Portfolio
+
+**How:**
+- Ops needs an active (or trialing) monthly Pro/Portfolio Stripe subscription; Stripe can't mix intervals, so annual Pro is told to switch to monthly
+- Invoiced (legacy) accounts stay manual: the super admin's checkbox; self-serve add/remove refuses them
+- Once Ops has a Stripe price, Stripe is the source of truth: removing the item in the Customer Portal turns Ops off via `customer.subscription.updated`
+- Entitlement unchanged: `ops = ops_addon && effective plan ∈ {pro, portfolio}`; a lapsed plan pauses Ops for managers (402) and workers ("Paused")
+
+**Impact:**
+- **Revenue-ready**: setting a price and one env var puts Ops on sale with prorated billing per property
+- **No double counting**: property changes adjust Pro and Ops quantities independently
+
+**Technical Details:**
+- To launch: choose the price → `OPS_PRICE_MONTHLY=<usd>` → `npm run stripe:setup` → paste `STRIPE_PRICE_OPS_MONTHLY` → restart

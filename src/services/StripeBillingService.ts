@@ -6,7 +6,7 @@ import { db } from '../utils/database';
 import { Company } from '../types';
 import { CompanyService } from './CompanyService';
 import { countActiveProperties } from './EntitlementService';
-import { PlanId, BillingInterval, HardwareKit, PriceKey, priceId, billedQuantity } from '../config/plans';
+import { PlanId, BillingInterval, HardwareKit, PriceKey, priceId, billedQuantity, OPS_ADDON } from '../config/plans';
 import { MOCK_MODE, mockStripeEvents, mockHardwareOrders } from '../utils/mock-database';
 
 export class BillingError extends Error {
@@ -50,6 +50,14 @@ const periodEnd = (sub: any): Date | null => {
   const ts = sub?.current_period_end ?? sub?.items?.data?.[0]?.current_period_end;
   return ts ? new Date(ts * 1000) : null;
 };
+
+// 2026-10-08 12:40, G7 S9: a subscription can carry the plan item and an Ops add-on item; tell them apart by price
+const opsPriceId = () => priceId('ops_month');
+const isOpsItem = (it: any) => !!opsPriceId() && it?.price?.id === opsPriceId();
+const planItem = (sub: any) => (sub?.items?.data || []).find((it: any) => !isOpsItem(it));
+const opsItem = (sub: any) => (sub?.items?.data || []).find((it: any) => isOpsItem(it));
+/** Ops can be sold when it has a price and a Stripe price id. */
+export const opsForSale = () => OPS_ADDON.price.month !== null && !!opsPriceId();
 
 export class StripeBillingService {
   private companyService = new CompanyService();
@@ -186,14 +194,51 @@ export class StripeBillingService {
     if (company.subscription_status === 'legacy' || company.subscription_status === 'canceled') return;
 
     const sub = await stripe.subscriptions.retrieve(company.stripe_subscription_id);
-    const item = sub.items.data[0];
-    if (!item) return;
-    const target = billedQuantity(company.plan as PlanId, await countActiveProperties(companyId));
-    if (item.quantity === target) return;
-    await stripe.subscriptionItems.update(item.id, {
-      quantity: target,
-      proration_behavior: target > (item.quantity || 0) ? 'create_prorations' : 'none'
+    const properties = await countActiveProperties(companyId);
+    // 2026-10-08 12:40, G7 S9: plan item and Ops item are synced separately (Ops is one unit per active property)
+    const targets: [any, number][] = [[planItem(sub), billedQuantity(company.plan as PlanId, properties)], [opsItem(sub), Math.max(1, properties)]];
+    for (const [item, target] of targets) {
+      if (!item || item.quantity === target) continue;
+      await stripe.subscriptionItems.update(item.id, {
+        quantity: target,
+        proration_behavior: target > (item.quantity || 0) ? 'create_prorations' : 'none'
+      });
+    }
+  }
+
+  // ---- 2026-10-08 12:40, G7 S9: Ops add-on on the existing subscription ----
+
+  /** Adds the Ops item (prorated now). Needs a monthly Pro/Portfolio Stripe subscription; invoiced legacy accounts are switched on by StayGuide. */
+  async enableOps(companyId: number): Promise<void> {
+    const stripe = requireStripe();
+    if (!opsForSale()) throw new BillingError('The Ops add-on is not on sale yet. Contact StayGuide support to switch it on.', 409);
+    const company = await this.companyService.findById(companyId);
+    if (!company) throw new BillingError('Company not found', 404);
+    if (company.subscription_status === 'legacy') throw new BillingError('Your account is invoiced by StayGuide. Contact support to add Ops.', 409);
+    if (!company.stripe_subscription_id || !['pro', 'portfolio'].includes(String(company.plan)) || !['active', 'trialing'].includes(String(company.subscription_status))) {
+      throw new BillingError('Ops needs an active Pro or Portfolio plan.', 409);
+    }
+    if (company.billing_interval === 'year') throw new BillingError('Ops is billed monthly. Switch Pro to monthly billing (Manage billing) to add it, or contact support.', 409);
+    const sub = await stripe.subscriptions.retrieve(company.stripe_subscription_id);
+    if (opsItem(sub)) { await this.companyService.setBillingState(companyId, { ops_addon: true }); return; }
+    await stripe.subscriptionItems.create({
+      subscription: sub.id, price: opsPriceId()!, quantity: Math.max(1, await countActiveProperties(companyId)),
+      proration_behavior: 'create_prorations', metadata: { kind: 'ops', company_id: String(companyId) }
     });
+    await this.companyService.setBillingState(companyId, { ops_addon: true });
+  }
+
+  /** Removes the Ops item; unused time is credited on the next invoice. */
+  async disableOps(companyId: number): Promise<void> {
+    const stripe = requireStripe();
+    const company = await this.companyService.findById(companyId);
+    if (!company) throw new BillingError('Company not found', 404);
+    if (company.subscription_status === 'legacy') throw new BillingError('Your account is invoiced by StayGuide. Contact support to remove Ops.', 409);
+    if (company.stripe_subscription_id) {
+      const item = opsItem(await stripe.subscriptions.retrieve(company.stripe_subscription_id));
+      if (item) await stripe.subscriptionItems.del(item.id, { proration_behavior: 'create_prorations' });
+    }
+    await this.companyService.setBillingState(companyId, { ops_addon: false });
   }
 
   // ---- Webhooks ----
@@ -269,11 +314,11 @@ export class StripeBillingService {
     // Only the company's current subscription drives entitlements (ignore stale/other subscriptions)
     if (company.stripe_subscription_id && company.stripe_subscription_id !== sub.id) return;
     if (deleted) {
-      await this.companyService.setBillingState(company.id, { subscription_status: 'canceled', cancel_at_period_end: false });
+      await this.companyService.setBillingState(company.id, { subscription_status: 'canceled', cancel_at_period_end: false, ...(opsPriceId() ? { ops_addon: false } : {}) });
       return;
     }
     const plan = (sub.metadata?.plan || company.plan || 'pro') as PlanId;
-    const interval = (sub.metadata?.interval || sub.items?.data?.[0]?.price?.recurring?.interval || 'month') as BillingInterval;
+    const interval = (sub.metadata?.interval || planItem(sub)?.price?.recurring?.interval || 'month') as BillingInterval;
     await this.applySubscription(company.id, sub, plan, interval);
   }
 
@@ -284,7 +329,9 @@ export class StripeBillingService {
       subscription_status: sub.status,
       stripe_subscription_id: sub.id,
       current_period_end: periodEnd(sub),
-      cancel_at_period_end: !!sub.cancel_at_period_end
+      cancel_at_period_end: !!sub.cancel_at_period_end,
+      // 2026-10-08 12:40, G7 S9: Stripe is the source of truth for Ops once it is sold (an item removed in the Portal turns it off)
+      ...(opsPriceId() ? { ops_addon: !!opsItem(sub) } : {})
     });
   }
 

@@ -5,6 +5,7 @@ import morgan from 'morgan';
 import dotenv from 'dotenv';
 import path from 'path';
 import routes from './routes';
+import { startOpsScheduler } from './jobs/ops-scheduler'; // 2026-10-08 07:50, G7 Ops
 import { BillingPlanController } from './controllers/BillingPlanController';
 
 dotenv.config();
@@ -24,10 +25,11 @@ app.use(helmet({
       defaultSrc: ["'self'"],
       scriptSrc: ["'self'", "'unsafe-inline'", "'unsafe-eval'"],
       scriptSrcAttr: ["'unsafe-inline'"], // Allow inline event handlers
-      styleSrc: ["'self'", "'unsafe-inline'"],
+      // 2026-10-06 14:40, landing hero: Google Fonts (Playfair Display + Inter) stylesheet and font files
+      styleSrc: ["'self'", "'unsafe-inline'", "https://fonts.googleapis.com"],
       imgSrc: ["'self'", "data:", "https:"],
       connectSrc: ["'self'"],
-      fontSrc: ["'self'"],
+      fontSrc: ["'self'", "https://fonts.gstatic.com"],
       objectSrc: ["'none'"],
       mediaSrc: ["'self'"],
       // 2026-10-03 11:58, in-app video embeds on the tablet (YouTube privacy mode + Vimeo)
@@ -62,6 +64,15 @@ app.get('/manifest.json', (req, res) => {
   res.sendFile(path.join(__dirname, '../public/manifest.json'));
 });
 app.use('/icons', express.static(path.join(__dirname, '../public/icons')));
+// 2026-10-08 05:50, G7 Ops stage 5: worker app PWA (registered with scope /maint, separate from the tablet's sw.js)
+app.get('/maint-sw.js', (req, res) => {
+  res.setHeader('Cache-Control', 'no-cache');
+  res.sendFile(path.join(__dirname, '../public/maint-sw.js'));
+});
+app.get('/maint-manifest.json', (req, res) => {
+  res.type('application/manifest+json');
+  res.sendFile(path.join(__dirname, '../public/maint-manifest.json'));
+});
 
 // Routes
 app.use('/', routes);
@@ -86,6 +97,7 @@ app.use((err: any, req: express.Request, res: express.Response, next: express.Ne
 
 // Start server
 app.listen(PORT, () => {
+  startOpsScheduler(); // 2026-10-08 07:50, G7 Ops reminders (hourly)
   console.log(`StayGuide server running on port ${PORT}`);
   console.log(`Environment: ${process.env.NODE_ENV || 'development'}`);
   console.log('Available routes:');

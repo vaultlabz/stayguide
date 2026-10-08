@@ -18,6 +18,7 @@ export interface EmailOptions {
   html?: string;
   text?: string;
   attachments?: EmailAttachment[];
+  fromName?: string; // 2026-10-07 18:50, e.g. "Demo Rentals via StayGuide" (address stays FROM_EMAIL)
 }
 
 export interface InvoiceEmailData {

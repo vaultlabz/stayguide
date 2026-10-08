@@ -2,6 +2,13 @@ import { Request, Response } from 'express';
 import { IntegratedReportService } from '../services/IntegratedReportService';
 import { MockIntegratedReportService } from '../services/MockIntegratedReportService';
 import { PropertyService } from '../services/PropertyService';
+// 2026-10-07 16:40, email the company when a guest files an urgent report (task #15)
+import { CompanyService } from '../services/CompanyService';
+import { EmailService } from '../services/EmailService';
+import { WorkOrderService } from '../services/WorkOrderService'; // 2026-10-07 22:45, G7 S2
+import { entitlementsFor } from '../services/EntitlementService';
+
+const escHtml = (v: unknown) => String(v ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]!));
 
 interface AuthenticatedRequest extends Request {
   user?: {
@@ -14,6 +21,44 @@ interface AuthenticatedRequest extends Request {
 export class ReportController {
   private reportService: IntegratedReportService;
   private propertyService = new PropertyService();
+  private companyService = new CompanyService();
+  private emailService = new EmailService();
+  private workOrderService = new WorkOrderService();
+
+  /** Best-effort: never fails the guest's request. */
+  private async notifyUrgentReport(report: any, req: Request): Promise<void> {
+    try {
+      const property = await this.propertyService.findById(report.property_id);
+      const company = property ? await this.companyService.findById(property.company_id) : null;
+      if (!property || !company?.email) return;
+      const baseUrl = (process.env.APP_BASE_URL || `${req.protocol}://${req.get('host')}`).replace(/\/$/, '');
+      let link = `${baseUrl}/company/${company.slug}/dashboard`;
+      // 2026-10-07 22:45, G7 S2: with the Ops add-on an urgent report also becomes an unassigned work order
+      let workOrderLine = '';
+      if (entitlementsFor(company).ops && report.id && !(await this.workOrderService.findByReport(company.id, report.id))) {
+        const order = await this.workOrderService.createFromReport(company.id, report, { id: null, role: 'system' });
+        link = `${baseUrl}/company/${company.slug}/ops?wo=${order.id}`;
+        workOrderLine = `Work order #${order.id} was created and is waiting to be assigned.`;
+      }
+      const lines = [
+        `Property: ${property.name}`,
+        report.location ? `Location: ${report.location}` : '',
+        `Category: ${report.category}`,
+        report.guest_name ? `Guest: ${report.guest_name}${report.guest_phone ? ' (' + report.guest_phone + ')' : ''}` : '',
+        workOrderLine
+      ].filter(Boolean);
+      await this.emailService.sendEmail({
+        to: company.email,
+        subject: `URGENT guest report at ${property.name}: ${report.title}`,
+        text: `A guest reported an urgent problem.\n\n${report.title}\n${report.description}\n\n${lines.join('\n')}\n\nOpen: ${link}`,
+        html: `<p>A guest reported an urgent problem.</p><p><strong>${escHtml(report.title)}</strong></p>`
+          + `<p style="white-space:pre-wrap">${escHtml(report.description)}</p><p>${lines.map(escHtml).join('<br>')}</p>`
+          + `<p><a href="${link}">${workOrderLine ? 'Open the work order' : 'Open the dashboard'}</a></p>`
+      });
+    } catch (error) {
+      console.error('Urgent report email failed:', error);
+    }
+  }
 
   // 2026-10-03 11:34, company admins may only touch reports for their own company's properties
   private async canAccessProperty(user: NonNullable<AuthenticatedRequest['user']>, propertyId: number): Promise<boolean> {
@@ -112,6 +157,7 @@ export class ReportController {
       };
 
       const report = await this.reportService.createReport(reportData);
+      if (priority === 'urgent' || urgency_level === 'immediate') this.notifyUrgentReport(report, req);
 
       res.status(201).json({
         success: true,

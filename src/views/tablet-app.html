@@ -10,7 +10,7 @@
     <!-- 2026-10-03 17:15, the look is chosen by the property manager, not guests: style = solid | image | one of 8 gradient presets
          (see /js/tablet-backgrounds.js), theme = auto | light | dark (solid + image only; each gradient forces its own
          light or dark treatment). The last known look is cached so it applies before first paint and offline.
-         Default (nothing known yet) is solid black. -->
+         Default (nothing known yet) is the Baltic Rose gradient. -->
     <script src="/js/tablet-backgrounds.js"></script>
     <script>
         var TABLET_LOOK_KEY = 'stayguide_tablet_look';
@@ -58,7 +58,8 @@
                 setTimeout(function () { if (fade.parentNode) fade.parentNode.removeChild(fade); }, 1100);
             }
         }
-        try { var look = JSON.parse(localStorage.getItem(TABLET_LOOK_KEY) || 'null'); applyTabletLook(look ? look.theme : 'dark', look ? look.bg : '', look ? look.style : 'solid'); } catch (e) { applyTabletLook('dark', '', 'solid'); }
+        // 2026-10-06 15:25, default look (pairing screen / nothing cached yet) is the Baltic Rose gradient instead of plain black
+        try { var look = JSON.parse(localStorage.getItem(TABLET_LOOK_KEY) || 'null'); applyTabletLook(look ? look.theme : 'dark', look ? look.bg : '', look ? look.style : 'baltic-rose'); } catch (e) { applyTabletLook('dark', '', 'baltic-rose'); }
         try { window.matchMedia('(prefers-color-scheme: light)').addEventListener('change', function () { applyTabletLook(currentLook.theme, currentLook.bg, currentLook.style); }); } catch (e) {}
     </script>
     <!-- 2026-10-03 11:52, PWA manifest (offline support for paired tablets) -->
@@ -314,7 +315,7 @@
                 const token = storageGet(DEVICE_TOKEN_KEY);
                 return token ? { 'Authorization': `Device ${token}` } : {};
             }
-            const adminToken = storageGet('stayguide_token');
+            const adminToken = storageGet('stayguide_token') || storageGet('stayguide_admin_token'); // 2026-10-07 17:55, super admins have their own key
             return adminToken ? { 'Authorization': `Bearer ${adminToken}` } : {};
         }
 

@@ -2,9 +2,9 @@
 import { Request, Response } from 'express';
 import { AuthRequest, Company } from '../types';
 import { resolveOwnedCompany } from '../utils/ownership';
-import { StripeBillingService, BillingError, getStripe } from '../services/StripeBillingService';
+import { StripeBillingService, BillingError, getStripe, opsForSale } from '../services/StripeBillingService';
 import { entitlementsFor, countActiveProperties } from '../services/EntitlementService';
-import { PLANS, HARDWARE, SIGNATURE, PRICE_ENV, PlanId, BillingInterval, HardwareKit, billedQuantity, priceId, PriceKey } from '../config/plans';
+import { PLANS, HARDWARE, SIGNATURE, PRICE_ENV, PlanId, BillingInterval, HardwareKit, billedQuantity, priceId, PriceKey, OPS_ADDON } from '../config/plans';
 
 const baseUrl = (req: Request) => (process.env.APP_BASE_URL || `${req.protocol}://${req.get('host')}`).replace(/\/$/, '');
 
@@ -42,7 +42,20 @@ export class BillingPlanController {
         signature: SIGNATURE,
         billing_configured: !!getStripe(),
         prices_configured: Object.fromEntries((Object.keys(PRICE_ENV) as PriceKey[]).map(k => [k, !!priceId(k)])),
-        hardware_orders: await this.billing.listHardwareOrders(company.id)
+        hardware_orders: await this.billing.listHardwareOrders(company.id),
+        // 2026-10-08 12:50, G7 S9: Ops add-on
+        ops: {
+          enabled: ent.ops,
+          on_record: !!company.ops_addon,
+          for_sale: opsForSale(),
+          price_per_property: OPS_ADDON.price.month,
+          monthly_cost: OPS_ADDON.price.month === null ? null : Math.round(OPS_ADDON.price.month * Math.max(1, properties) * 100) / 100,
+          invoiced: company.subscription_status === 'legacy',
+          // what the self-serve button can do right now
+          can_add: opsForSale() && !company.ops_addon && company.subscription_status !== 'legacy' && !!company.stripe_subscription_id
+            && ['pro', 'portfolio'].includes(String(company.plan)) && ['active', 'trialing'].includes(String(company.subscription_status)) && company.billing_interval !== 'year',
+          needs_monthly: company.billing_interval === 'year'
+        }
       });
     } catch (error) {
       this.fail(res, error, 'status');
@@ -103,6 +116,21 @@ export class BillingPlanController {
       res.json({ url: await this.billing.createPortalSession(company as Company, baseUrl(req)) });
     } catch (error) {
       this.fail(res, error, 'portal');
+    }
+  }
+
+  // 2026-10-08 12:50, G7 S9: POST /company/:companySlug/billing/ops { enable }
+  async ops(req: AuthRequest, res: Response) {
+    try {
+      const company = await resolveOwnedCompany(req, res);
+      if (!company) return;
+      if (req.body?.enable === true) await this.billing.enableOps(company.id);
+      else if (req.body?.enable === false) await this.billing.disableOps(company.id);
+      else return res.status(400).json({ error: 'Send { "enable": true } or { "enable": false }' });
+      console.log(`Ops add-on ${req.body.enable ? 'added' : 'removed'} for ${company.slug} by ${req.user?.email}`);
+      res.json({ message: req.body.enable ? 'Ops add-on added' : 'Ops add-on removed' });
+    } catch (error) {
+      this.fail(res, error, 'ops');
     }
   }
 

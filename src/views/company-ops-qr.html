@@ -1,0 +1,84 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="referrer" content="no-referrer">
+    <title>QR sticker - StayGuide</title>
+    <!-- 2026-10-08 01:30, G7 Ops stage 3: printable check-in sticker for one property (print, or replace if a sticker leaks) -->
+    <link rel="stylesheet" href="/css/theme.css">
+    <script src="/js/theme.js"></script>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: var(--font-sans); background: var(--bg); color: var(--text); padding: 24px 16px; }
+        .bar { max-width: 520px; margin: 0 auto 16px; display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
+        .btn { display: inline-flex; align-items: center; justify-content: center; min-height: 40px; padding: 0.5rem 1rem; border-radius: var(--radius-sm); cursor: pointer; font: inherit; font-weight: 600; border: 1px solid var(--border-strong); background: transparent; color: var(--text); }
+        .btn-primary { background: var(--accent); color: var(--on-accent); border-color: var(--accent); }
+        .notice { max-width: 520px; margin: 0 auto 16px; padding: 0.8rem 1rem; border-radius: var(--radius-sm); background: var(--surface-2); }
+        .notice.error { background: var(--danger-bg); color: var(--danger-text); }
+        /* the sticker itself is always black on white so it scans and prints the same in either theme */
+        .sticker { max-width: 520px; margin: 0 auto; background: #fff; color: #111; border: 2px solid #111; border-radius: 18px; padding: 28px 28px 20px; text-align: center; }
+        .brand { display: flex; align-items: center; justify-content: center; gap: 10px; font-weight: 700; font-size: 1.2rem; }
+        .brand img { width: 40px; height: 40px; border-radius: 8px; object-fit: cover; }
+        .prop { font-size: 1.6rem; font-weight: 700; margin: 14px 0 4px; }
+        .addr { color: #444; font-size: 0.95rem; }
+        .qr { width: 300px; max-width: 100%; margin: 18px auto; }
+        .qr svg { width: 100%; height: auto; display: block; }
+        .how { font-size: 1.05rem; font-weight: 600; }
+        .small { color: #555; font-size: 0.85rem; margin-top: 6px; }
+        .powered { margin-top: 18px; color: #777; font-size: 0.8rem; }
+        @media print { body { padding: 0; background: #fff; } .bar, .notice, .sg-theme-toggle { display: none !important; } .sticker { border-width: 3px; } }
+    </style>
+</head>
+<body>
+    <div class="bar">
+        <button class="btn btn-primary" type="button" onclick="window.print()">Print</button>
+        <button class="btn" type="button" id="replace">Replace sticker</button>
+        <span id="created" style="color: var(--text-muted); font-size: 0.9rem;"></span>
+    </div>
+    <div id="notices"></div>
+    <div class="sticker" id="sticker" hidden>
+        <div class="brand" id="brand"></div>
+        <div class="prop" id="prop"></div>
+        <div class="addr" id="addr"></div>
+        <div class="qr" id="qr"></div>
+        <div class="how">Staff &amp; contractors: scan to check in and out</div>
+        <div class="small">Use the phone camera; sign in to the StayGuide work app if asked.</div>
+        <div class="powered">Powered by StayGuide</div>
+    </div>
+    <script>
+        const parts = location.pathname.split('/');
+        const base = `/company/${parts[2]}`;
+        const propertyId = parts[parts.length - 1];
+        let token = null;
+        try { token = localStorage.getItem('stayguide_token'); } catch {}
+        if (!token) location.href = `${base}/login`;
+        const esc = v => String(v ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+        function notice(msg, kind = '') { document.getElementById('notices').innerHTML = `<div class="notice ${kind}" role="${kind === 'error' ? 'alert' : 'status'}">${esc(msg)}</div>`; }
+
+        async function load(method = 'GET') {
+            try {
+                const res = await fetch(`${base}/ops/access/${propertyId}/qr`, { method, headers: { Authorization: `Bearer ${token}` } });
+                const data = await res.json();
+                if (!res.ok) throw new Error(data.error || 'Could not load the sticker');
+                document.getElementById('brand').innerHTML = (data.company.logo_url ? `<img src="${esc(data.company.logo_url)}" alt="">` : '') + esc(data.company.name);
+                document.getElementById('prop').textContent = data.property.name;
+                document.getElementById('addr').textContent = data.property.address || '';
+                document.getElementById('qr').innerHTML = data.svg; // server-generated SVG from the qrcode library
+                document.getElementById('created').textContent = `Sticker created ${new Date(data.created_at).toLocaleString()}`;
+                document.getElementById('sticker').hidden = false;
+                document.title = `QR sticker - ${data.property.name}`;
+                return true;
+            } catch (error) {
+                notice(error.message, 'error');
+                return false;
+            }
+        }
+        document.getElementById('replace').addEventListener('click', async () => {
+            if (!confirm('Replace this sticker? The old one stops working right away; print and put up the new one.')) return;
+            if (await load('POST')) notice('New sticker created. The old one no longer works.');
+        });
+        load();
+    </script>
+</body>
+</html>

@@ -1,0 +1,120 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+    <meta name="referrer" content="no-referrer">
+    <title>Join the team - StayGuide</title>
+    <!-- 2026-10-07 19:30, G7 Ops stage 1: invite onboarding. New people create a work account (password optional: they can
+         always sign in with an email code); people who already have one just join this company. -->
+    <link rel="stylesheet" href="/css/theme.css">
+    <link rel="stylesheet" href="/css/maint.css">
+    <script src="/js/theme.js"></script>
+</head>
+<body>
+    <header class="m-header">
+        <div class="brand" id="brand"><span class="initial">S</span><span class="brand-name">StayGuide</span></div>
+    </header>
+
+    <main>
+        <div id="notices"></div>
+
+        <section id="v-loading"><p class="muted">Loading your invite…</p></section>
+
+        <section id="v-invalid" hidden>
+            <h1>Invite not available</h1>
+            <p class="lead" id="invalid-msg"></p>
+            <a class="btn btn-secondary" href="/maint">Go to sign in</a>
+        </section>
+
+        <section id="v-form" hidden>
+            <h1 id="title">Join the team</h1>
+            <p class="lead" id="lead"></p>
+            <form id="accept-form" class="card">
+                <div class="form-group"><label for="email">Email</label><input id="email" type="email" readonly></div>
+                <div class="form-group"><label for="first">First name</label><input id="first" maxlength="100" autocomplete="given-name" required></div>
+                <div class="form-group"><label for="last">Last name</label><input id="last" maxlength="100" autocomplete="family-name" required></div>
+                <div class="form-group"><label for="phone">Mobile phone (optional)</label><input id="phone" type="tel" maxlength="50" autocomplete="tel"></div>
+                <div class="form-group"><label for="skills">Your skills (comma separated)</label><input id="skills" placeholder="plumbing, electrical, pool"></div>
+                <div class="form-group" id="password-group">
+                    <label for="password">Password (optional)</label>
+                    <input id="password" type="password" minlength="8" autocomplete="new-password">
+                    <span class="muted" style="font-size: 0.85rem;">Leave it empty to sign in with a code we email you each time.</span>
+                </div>
+                <button class="btn btn-primary" type="submit" id="accept-btn">Join the team</button>
+            </form>
+        </section>
+    </main>
+
+    <!-- 2026-10-07 20:00, theme switch lives in the footer (the floating one covered the header buttons) -->
+    <footer class="powered"><div data-theme-toggle style="margin-bottom: 10px;"></div>Powered by <strong>StayGuide</strong></footer>
+
+    <script>
+        const token = decodeURIComponent(window.location.pathname.split('/').pop());
+        const esc = v => String(v ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+        const TYPES = { tech: 'maintenance tech', cleaner: 'cleaner', contractor: 'contractor', vendor: 'vendor' };
+        let existing = false;
+
+        function show(view) { for (const v of ['loading', 'invalid', 'form']) document.getElementById(`v-${v}`).hidden = v !== view; }
+        function notice(message, kind) {
+            const el = document.createElement('div');
+            el.className = `notice ${kind}`;
+            el.setAttribute('role', kind === 'error' ? 'alert' : 'status');
+            el.textContent = message;
+            document.getElementById('notices').replaceChildren(el);
+        }
+
+        (async () => {
+            try {
+                const res = await fetch(`/maint/api/invite/${encodeURIComponent(token)}`);
+                const data = await res.json();
+                if (!res.ok) { document.getElementById('invalid-msg').textContent = data.error; return show('invalid'); }
+                const c = data.company;
+                const mark = c.logo_url ? `<img src="${esc(c.logo_url)}" alt="">` : `<span class="initial">${esc((c.name || 'S')[0].toUpperCase())}</span>`;
+                document.getElementById('brand').innerHTML = `${mark}<span class="brand-name">${esc(c.name)}</span>`;
+                existing = data.existing_account;
+                document.getElementById('title').textContent = `Join ${c.name}`;
+                document.getElementById('lead').textContent = existing
+                    ? `You already have a StayGuide work account. Confirm your details to add ${c.name} to it.`
+                    : `${c.name} invited you as a ${TYPES[data.worker_type]}. You'll get their jobs in this app.`;
+                document.getElementById('email').value = data.email;
+                document.getElementById('first').value = data.first_name;
+                document.getElementById('last').value = data.last_name;
+                document.getElementById('phone').value = data.phone || '';
+                document.getElementById('skills').value = (data.skills || []).join(', ');
+                document.getElementById('password-group').hidden = existing;
+                document.getElementById('accept-btn').textContent = existing ? `Add ${c.name}` : 'Join the team';
+                show('form');
+            } catch {
+                document.getElementById('invalid-msg').textContent = 'Could not reach StayGuide. Check your connection and reload.';
+                show('invalid');
+            }
+        })();
+
+        document.getElementById('accept-form').addEventListener('submit', async e => {
+            e.preventDefault();
+            const button = document.getElementById('accept-btn');
+            button.disabled = true;
+            try {
+                const res = await fetch(`/maint/api/invite/${encodeURIComponent(token)}/accept`, {
+                    method: 'POST', headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        first_name: document.getElementById('first').value,
+                        last_name: document.getElementById('last').value,
+                        phone: document.getElementById('phone').value,
+                        skills: document.getElementById('skills').value.split(',').map(s => s.trim()).filter(Boolean),
+                        password: existing ? undefined : document.getElementById('password').value || undefined
+                    })
+                });
+                const data = await res.json();
+                if (!res.ok) throw new Error(data.error || 'Could not join');
+                try { localStorage.setItem('stayguide_maint_token', data.token); } catch {}
+                window.location.replace('/maint');
+            } catch (error) {
+                notice(error.message, 'error');
+                button.disabled = false;
+            }
+        });
+    </script>
+</body>
+</html>

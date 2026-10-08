@@ -176,8 +176,8 @@
       "title": "Email notifications for urgent reports",
       "description": "Automatic email notifications for urgent reports (EmailService exists but is not wired into reporting)",
       "complexity": 4,
-      "completionDate": null,
-      "status": "pending",
+      "completionDate": "2026-10-07 17:40",
+      "status": "done",
       "priority": "medium",
       "trelloCardId": null,
       "context": {
@@ -208,8 +208,8 @@
       "title": "Helpdesk system (support tickets)",
       "description": "Planned Phase 3 item #14 — support ticket management per company; no helpdesk code exists in src/",
       "complexity": 6,
-      "completionDate": null,
-      "status": "pending",
+      "completionDate": "2026-10-07 17:40",
+      "status": "done",
       "priority": "medium",
       "trelloCardId": null,
       "context": {
@@ -575,16 +575,30 @@
       "id": 41,
       "creationDate": "2026-10-03 22:08",
       "title": "G7: Field/maintenance web app (Ops add-on) — own plan before build",
-      "description": "Guest product plan (PRD v1.0 follow-up), see ~/.claude/plans/lets-discuss-this-i-robust-panda.md",
+      "description": "Plan: docs/G7_OPS_PLAN.md (draft, all questions answered 2026-10-07, awaiting approval). Origin: ~/.claude/plans/lets-discuss-this-i-robust-panda.md",
       "complexity": 10,
-      "completionDate": null,
-      "status": "pending",
+      "completionDate": "2026-10-08 13:40",
+      "status": "done",
       "priority": "medium",
       "trelloCardId": null,
       "context": {
         "doing": "Planning a PWA for techs, vendors and cleaners managed from the dashboard",
         "achieve": "property managers can dispatch and monitor anyone they hire",
         "according": "Guest product plan (PRD v1.0 follow-up), see ~/.claude/plans/lets-discuss-this-i-robust-panda.md"
+      },
+      "decisions": {
+        "date": "2026-10-07",
+        "pricing": "Per property per month add-on on top of Pro; amount TBD (configurable in src/config/plans.ts, set before launch)",
+        "people": "Workers and vendors both get accounts via manager invite: manager enters name + email/phone, worker gets invite link, sets password, completes profile (skills; vendors: company + insurance/COI expiry). After onboarding they receive per-job links and codes",
+        "codes": "All three: property access codes shown only during the job window; job QR at the property for on-site check-in/out; one-time login/verification codes by email",
+        "scope": "Everything in the G7 outline for v1: work orders (from guest reports + manual), lifecycle with actor/timestamp audit, field PWA /maint, photos, checklists with required photos + review queue, vendor directory with COI expiry, time tracking + pay export, preventive schedules, live board + overdue/unassigned alerts",
+        "offline": "Read offline + queued status/photo updates (service-worker approach like the tablet)",
+        "notifications": "Email + web push from the installed PWA (no SMS in v1)",
+        "assign_approve": "Only the property manager (company admins) creates, assigns, approves and verifies work",
+        "guest_details": "Hidden from workers (no guest name/phone/room)",
+        "cost_approval": "Yes: estimate over company threshold (default $250) waits for manager approval",
+        "pay_export": "CSV for now",
+        "branding": "Managing company name/logo, Powered by StayGuide"
       }
     },
     {
@@ -625,8 +639,8 @@
       "title": "Company sign-in screen (replace prompt() for company identifier: email → company → password)",
       "description": "Logged at /stop 2026-10-05",
       "complexity": 4,
-      "completionDate": null,
-      "status": "pending",
+      "completionDate": "2026-10-07 17:40",
+      "status": "done",
       "priority": "medium",
       "trelloCardId": null,
       "context": {
@@ -666,6 +680,105 @@
         "achieve": "the self-serve product can go live safely",
         "according": "deploy notes in docs/todo.md entries and BILLING_SETUP.md"
       }
+    },
+    {
+      "id": 47,
+      "creationDate": "2026-10-07 20:10",
+      "title": "G7 S1: Ops foundations (roles, memberships, invites, email codes, /maint shell, Ops flag)",
+      "description": "Part of #41, plan docs/G7_OPS_PLAN.md",
+      "complexity": 8,
+      "completionDate": "2026-10-07 20:10",
+      "status": "done",
+      "priority": "medium",
+      "trelloCardId": null
+    },
+    {
+      "id": 48,
+      "creationDate": "2026-10-07 20:10",
+      "title": "G7 S2: Work orders core (lifecycle + audit, manager board, cost approval, worker job list, guest report → work order)",
+      "description": "Part of #41, plan docs/G7_OPS_PLAN.md",
+      "complexity": 7,
+      "completionDate": "2026-10-07 23:30",
+      "status": "done",
+      "priority": "medium",
+      "trelloCardId": null
+    },
+    {
+      "id": 49,
+      "creationDate": "2026-10-07 20:10",
+      "title": "G7 S3: On site (encrypted access codes in job window, property QR check-in/out, private photos, costs)",
+      "description": "Part of #41, plan docs/G7_OPS_PLAN.md",
+      "complexity": 7,
+      "completionDate": "2026-10-08 02:10",
+      "status": "done",
+      "priority": "medium",
+      "trelloCardId": null
+    },
+    {
+      "id": 50,
+      "creationDate": "2026-10-07 20:10",
+      "title": "G7 S4: Checklists (templates, photo-required items, review queue)",
+      "description": "Part of #41, plan docs/G7_OPS_PLAN.md",
+      "complexity": 7,
+      "completionDate": "2026-10-08 04:30",
+      "status": "done",
+      "priority": "medium",
+      "trelloCardId": null
+    },
+    {
+      "id": 51,
+      "creationDate": "2026-10-07 20:10",
+      "title": "G7 S5: Offline + push (maint service worker, queued updates, web push, install prompt)",
+      "description": "Part of #41, plan docs/G7_OPS_PLAN.md",
+      "complexity": 7,
+      "completionDate": "2026-10-08 06:50",
+      "status": "done",
+      "priority": "medium",
+      "trelloCardId": null
+    },
+    {
+      "id": 52,
+      "creationDate": "2026-10-07 20:10",
+      "title": "G7 S6: Team & vendors (vendor profiles, COI upload/expiry alerts)",
+      "description": "Part of #41, plan docs/G7_OPS_PLAN.md",
+      "complexity": 7,
+      "completionDate": "2026-10-08 08:40",
+      "status": "done",
+      "priority": "medium",
+      "trelloCardId": null
+    },
+    {
+      "id": 53,
+      "creationDate": "2026-10-07 20:10",
+      "title": "G7 S7: Time & pay (time entries, audited edits, CSV pay export)",
+      "description": "Part of #41, plan docs/G7_OPS_PLAN.md",
+      "complexity": 7,
+      "completionDate": "2026-10-08 10:10",
+      "status": "done",
+      "priority": "medium",
+      "trelloCardId": null
+    },
+    {
+      "id": 54,
+      "creationDate": "2026-10-07 20:10",
+      "title": "G7 S8: Preventive schedules + overdue/unassigned alerts, admin metrics",
+      "description": "Part of #41, plan docs/G7_OPS_PLAN.md",
+      "complexity": 7,
+      "completionDate": "2026-10-08 12:20",
+      "status": "done",
+      "priority": "medium",
+      "trelloCardId": null
+    },
+    {
+      "id": 55,
+      "creationDate": "2026-10-07 20:10",
+      "title": "G7 S9: Ops billing (Stripe add-on item, billing page, gating)",
+      "description": "Part of #41, plan docs/G7_OPS_PLAN.md",
+      "complexity": 7,
+      "completionDate": "2026-10-08 13:40",
+      "status": "done",
+      "priority": "medium",
+      "trelloCardId": null
     }
   ]
 }

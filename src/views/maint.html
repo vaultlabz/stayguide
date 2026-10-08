@@ -1,0 +1,615 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+    <title>Jobs - StayGuide</title>
+    <!-- 2026-10-07 19:20, G7 Ops stage 1: worker app shell. Sign-in (email code or password) and the companies you work for;
+         job lists arrive in stage 2. Branded with the managing company, "Powered by StayGuide". -->
+    <link rel="stylesheet" href="/css/theme.css">
+    <link rel="stylesheet" href="/css/maint.css">
+    <script src="/js/theme.js"></script>
+    <!-- 2026-10-08 06:10, G7 S5: installable app, offline queue, push -->
+    <link rel="manifest" href="/maint-manifest.json">
+    <meta name="theme-color" content="#1d6b60">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <script src="/js/maint-offline.js"></script>
+</head>
+<body>
+    <header class="m-header">
+        <div class="brand" id="brand"><span class="initial">S</span><span class="brand-name">StayGuide</span></div>
+        <button class="btn-link" type="button" id="signout" hidden onclick="signOut()">Sign out</button>
+    </header>
+
+    <main>
+        <div id="net" aria-live="polite"></div>
+        <div id="notices"></div>
+
+        <!-- sign in: step 1 -->
+        <section id="v-email" hidden>
+            <h1>Sign in</h1>
+            <p class="lead">For techs, cleaners and vendors invited by a property manager. Property managers sign in at <a href="/login">/login</a>.</p>
+            <form id="email-form" class="card">
+                <div class="form-group">
+                    <label for="email">Email</label>
+                    <input id="email" type="email" autocomplete="username" inputmode="email" required>
+                </div>
+                <div class="btn-row">
+                    <button class="btn btn-primary" type="submit" value="code">Email me a sign-in code</button>
+                </div>
+                <div class="divider">or</div>
+                <div class="form-group">
+                    <label for="password">Password</label>
+                    <input id="password" type="password" autocomplete="current-password">
+                </div>
+                <button class="btn btn-secondary" type="submit" value="password">Sign in with password</button>
+            </form>
+        </section>
+
+        <!-- sign in: step 2 (code) -->
+        <section id="v-code" hidden>
+            <h1>Check your email</h1>
+            <p class="lead" id="code-lead"></p>
+            <form id="code-form" class="card">
+                <div class="form-group">
+                    <label for="code">6-digit code</label>
+                    <input id="code" class="code-input" inputmode="numeric" autocomplete="one-time-code" pattern="[0-9 ]{6,7}" maxlength="7" required>
+                </div>
+                <button class="btn btn-primary" type="submit">Sign in</button>
+                <button class="btn-link" type="button" onclick="show('email')">Use a different email</button>
+            </form>
+        </section>
+
+        <!-- signed in -->
+        <section id="v-home" hidden>
+            <h1 id="hello">Your jobs</h1>
+            <!-- 2026-10-07 23:10, G7 S2: job lists -->
+            <div id="jobs"></div>
+            <!-- 2026-10-08 09:50, G7 S7: own hours -->
+            <div class="card" id="hours-card" hidden><h2>Your hours</h2><div id="hours"></div></div>
+            <!-- 2026-10-08 08:10, G7 S6: vendors and contractors keep their business details and insurance certificate here -->
+            <div class="card" id="profile-card" hidden>
+                <h2>Your business &amp; insurance</h2>
+                <div id="coi-state" style="margin-bottom:12px"></div>
+                <form id="coi-form">
+                    <div class="form-group"><label for="coi-file">Insurance certificate (PDF or photo)</label><input id="coi-file" name="file" type="file" accept="application/pdf,image/*" required></div>
+                    <div class="form-group"><label for="coi-expires">Expires on</label><input id="coi-expires" name="expires_on" type="date" required></div>
+                    <button class="btn btn-secondary" type="submit">Upload certificate</button>
+                </form>
+                <details style="margin-top:14px"><summary><strong>Business details</strong></summary>
+                    <form id="biz-form" style="margin-top:12px">
+                        <div class="form-group"><label for="biz-name">Business name</label><input id="biz-name" maxlength="160" autocomplete="organization"></div>
+                        <div class="form-group"><label for="biz-license">License number</label><input id="biz-license" maxlength="80"></div>
+                        <div class="form-group"><label for="biz-insurer">Insurance company</label><input id="biz-insurer" maxlength="120"></div>
+                        <button class="btn btn-secondary" type="submit">Save details</button>
+                    </form>
+                </details>
+            </div>
+            <!-- 2026-10-08 06:10, G7 S5 -->
+            <div class="card" id="phone-card">
+                <h2>This phone</h2>
+                <div id="phone-settings"><p class="muted">Checking…</p></div>
+            </div>
+            <div class="card">
+                <h2>Companies you work for</h2>
+                <div id="companies"></div>
+            </div>
+        </section>
+
+        <!-- 2026-10-07 23:10, G7 S2: one job -->
+        <section id="v-job" hidden>
+            <button class="btn-link" type="button" onclick="backToJobs()">← All jobs</button>
+            <div id="job"></div>
+        </section>
+    </main>
+
+    <!-- 2026-10-07 20:00, theme switch lives in the footer (the floating one covered the header buttons) -->
+    <footer class="powered"><div data-theme-toggle style="margin-bottom: 10px;"></div>Powered by <strong>StayGuide</strong></footer>
+
+    <script>
+        const KEY = 'stayguide_maint_token';
+        const get = () => { try { return localStorage.getItem(KEY); } catch { return null; } };
+        const esc = v => String(v ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+        let pendingEmail = '';
+
+        function show(view) {
+            for (const v of ['email', 'code', 'home', 'job']) document.getElementById(`v-${v}`).hidden = v !== view;
+            document.getElementById('signout').hidden = view !== 'home' && view !== 'job';
+            if (view === 'email' || view === 'code') setBrand(null);
+        }
+
+        function notice(message, kind = '') {
+            const box = document.getElementById('notices');
+            if (!message) { box.replaceChildren(); return; }
+            const el = document.createElement('div');
+            el.className = `notice ${kind}`;
+            el.setAttribute('role', kind === 'error' ? 'alert' : 'status');
+            el.textContent = message;
+            box.replaceChildren(el);
+        }
+
+        function brandHtml(name, logo) {
+            const mark = logo ? `<img src="${esc(logo)}" alt="">` : `<span class="initial">${esc((name || 'S').trim()[0].toUpperCase())}</span>`;
+            return `${mark}<span class="brand-name">${esc(name)}</span>`;
+        }
+        /** Header shows the managing company when the worker has exactly one active company; otherwise StayGuide. */
+        function setBrand(company) {
+            document.getElementById('brand').innerHTML = company ? brandHtml(company.name, company.logo_url) : brandHtml('StayGuide', null);
+        }
+
+        async function post(url, body) {
+            const res = await fetch(url, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
+            const data = await res.json().catch(() => ({}));
+            if (!res.ok) throw new Error(data.error || 'Something went wrong');
+            return data;
+        }
+
+        function signedIn(data) {
+            try { localStorage.setItem(KEY, data.token); } catch {}
+            SGOffline.clearCachedData(); // saved job data of whoever used this phone before
+            notice('');
+            loadHome();
+        }
+
+        async function signOut(ask = true) {
+            // 2026-10-08 06:10, G7 S5: unsent updates belong to this worker; warn before dropping them
+            const waiting = myId ? (await SGOffline.pending().catch(() => [])).length : 0;
+            if (ask && waiting && !confirm(`${waiting} update${waiting === 1 ? ' has' : 's have'} not been sent yet. Sign out and delete ${waiting === 1 ? 'it' : 'them'}?`)) return;
+            if (waiting) await SGOffline.discardMine();
+            await SGOffline.disablePush().catch(() => {});
+            await SGOffline.clearCachedData();
+            try { localStorage.removeItem(KEY); } catch {}
+            myId = null;
+            notice('');
+            renderNet();
+            show('email');
+        }
+
+        async function loadHome() {
+            const token = get();
+            if (!token) return show('email');
+            try {
+                const res = await fetch('/maint/api/me', { headers: { Authorization: `Bearer ${token}` } });
+                if (res.status === 401 || res.status === 403) return signOut(false);
+                const me = await res.json();
+                if (!res.ok) throw new Error(me.error);
+                myId = me.user.id;
+                // 2026-10-08 01:40, G7 S3: a QR scan that needed sign-in continues here
+                let pending = null;
+                try { pending = sessionStorage.getItem('stayguide_pending_scan'); sessionStorage.removeItem('stayguide_pending_scan'); } catch {}
+                if (pending && /^\/maint\/scan\/[A-Za-z0-9_-]+$/.test(pending)) { location.replace(pending); return; }
+                document.getElementById('hello').textContent = `Hi ${me.user.first_name}`;
+                const active = me.companies.filter(c => c.active);
+                setBrand(active.length === 1 ? active[0] : null);
+                document.getElementById('companies').innerHTML = me.companies.length ? me.companies.map(c => `
+                    <div class="company">
+                        <div class="brand">${brandHtml(c.name, c.logo_url)}</div>
+                        <span class="pill ${c.active ? 'ok' : 'off'}" style="margin-left:auto">${c.active ? 'Active' : c.status === 'suspended' ? 'Paused by manager' : 'Paused'}</span>
+                    </div>`).join('') : '<div class="empty">You are not on any team yet.</div>';
+                homeBrand = active.length === 1 ? active[0] : null;
+                multiCompany = active.length > 1;
+                await loadJobs();
+                loadProfile();
+                loadHours();
+                renderPhone();
+                renderNet();
+                SGOffline.flush();
+                const job = new URLSearchParams(location.search).get('job');
+                if (job) openJob(Number(job)); else show('home');
+            } catch {
+                notice('Could not reach StayGuide. Check your connection and try again.', 'error');
+            }
+        }
+
+        // ---- 2026-10-08 06:10, G7 S5: offline state, queued updates, this phone ----
+        let offlineCopyAt = null;
+        async function renderNet() {
+            const box = document.getElementById('net');
+            if (!myId) { box.replaceChildren(); return; }
+            const waiting = await SGOffline.pending().catch(() => []);
+            const failed = SGOffline.failures();
+            const parts = [];
+            if (!navigator.onLine) parts.push(`<div class="notice">You're offline. ${offlineCopyAt ? 'Showing what was saved at ' + new Date(offlineCopyAt).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' }) + '. ' : ''}Updates and photos are kept on this phone until you're back online.</div>`);
+            if (waiting.length) parts.push(`<div class="notice"><strong>${waiting.length} update${waiting.length === 1 ? '' : 's'} waiting to send</strong>${navigator.onLine ? ' <button class="btn-link" type="button" onclick="SGOffline.flush()">Send now</button>' : ''}</div>`);
+            if (failed.length) parts.push(`<div class="notice error"><strong>Some updates could not be applied:</strong><ul style="margin:6px 0 0 18px">${failed.map(f => `<li>${esc(f.label)}: ${esc(f.error)}</li>`).join('')}</ul><button class="btn-link" type="button" onclick="SGOffline.clearFailures()">Dismiss</button></div>`);
+            box.innerHTML = parts.join('');
+        }
+        let lastWaiting = 0;
+        window.addEventListener('sg-outbox', async () => {
+            await renderNet();
+            const waiting = myId ? (await SGOffline.pending().catch(() => [])).length : 0;
+            // everything was sent: show the server's version again
+            if (lastWaiting && !waiting && navigator.onLine) {
+                if (currentJob && !document.getElementById('v-job').hidden) openJob(currentJob.id, true); else if (!document.getElementById('v-home').hidden) loadJobs().catch(() => {});
+            }
+            lastWaiting = waiting;
+            if (!document.getElementById('v-home').hidden) renderPhone();
+        });
+
+        async function renderPhone() {
+            const box = document.getElementById('phone-settings');
+            const push = await SGOffline.pushState().catch(() => 'unsupported');
+            const install = SGOffline.installState();
+            const pushRow = {
+                on: '<p>Notifications are <strong>on</strong> for this phone. <button class="btn-link" type="button" onclick="togglePush(false)">Turn off</button></p>',
+                off: '<button class="btn btn-secondary" type="button" onclick="togglePush(true)">Turn on notifications for new jobs</button>',
+                blocked: '<p class="muted">Notifications are blocked for this site. Allow them in the browser settings to get new jobs right away.</p>',
+                'needs-install': '<p class="muted">To get notifications on iPhone, add this app to the Home Screen first (below), then open it from there.</p>',
+                'server-off': '<p class="muted">Notifications are not set up on this server yet; you will get emails.</p>',
+                unsupported: '<p class="muted">This browser cannot show notifications; you will get emails.</p>'
+            }[push];
+            const installRow = {
+                installed: '',
+                prompt: '<button class="btn btn-secondary" type="button" onclick="SGOffline.install().then(renderPhone)" style="margin-top:10px">Install the app on this phone</button>',
+                ios: '<p class="muted" style="margin-top:10px">Install: tap the Share button, then <strong>Add to Home Screen</strong>.</p>',
+                none: ''
+            }[install];
+            box.innerHTML = pushRow + installRow + '<p class="muted" style="margin-top:10px;font-size:0.88rem">Jobs you have opened stay readable without signal. Updates and photos taken offline are sent when the connection is back.</p>';
+        }
+        // ---- 2026-10-08 09:50, G7 S7: own hours (this week / last week) ----
+        async function loadHours() {
+            try {
+                const data = await api(`/maint/api/time?tz=${encodeURIComponent(Intl.DateTimeFormat().resolvedOptions().timeZone || 'UTC')}`);
+                const fmt = m => `${Math.floor(m / 60)} h ${String(m % 60).padStart(2, '0')} min`;
+                document.getElementById('hours').innerHTML = data.weeks.map(w => `<div class="company"><span>${esc(w.label)}</span><strong style="margin-left:auto">${fmt(w.minutes)}</strong></div>`).join('');
+                document.getElementById('hours-card').hidden = !data.weeks.some(w => w.minutes);
+            } catch {}
+        }
+
+        // ---- 2026-10-08 08:10, G7 S6: business details + insurance certificate ----
+        async function loadProfile() {
+            try {
+                const data = await api('/maint/api/profile');
+                const card = document.getElementById('profile-card');
+                card.hidden = !data.is_vendor;
+                if (!data.is_vendor) return;
+                const v = data.vendor, c = v.coi;
+                const fmt = d => new Date(d + 'T12:00:00').toLocaleDateString(undefined, { dateStyle: 'medium' });
+                document.getElementById('coi-state').innerHTML = {
+                    missing: '<div class="notice">No certificate yet. Managers need a current insurance certificate before they can give vendors work.</div>',
+                    valid: `<div class="notice success">Certificate on file, valid until <strong>${fmt(c.expires_on)}</strong>${c.verified ? ' (confirmed by a manager)' : ''}.</div>`,
+                    expiring: `<div class="notice">Your certificate expires <strong>${fmt(c.expires_on)}</strong> (${c.days_left} day${c.days_left === 1 ? '' : 's'}). Upload the renewed one below.</div>`,
+                    expired: `<div class="notice error">Your certificate expired on <strong>${fmt(c.expires_on)}</strong>. You can't get new jobs until you upload the current one.</div>`
+                }[c.state] + (c.url ? `<a href="${c.url}" target="_blank" rel="noopener">View the certificate on file</a>` : '');
+                document.getElementById('biz-name').value = v.business_name || '';
+                document.getElementById('biz-license').value = v.license_no || '';
+                document.getElementById('biz-insurer').value = v.insurance_provider || '';
+                // the reminder email links to /maint?profile=1; scroll once the home view is showing
+                if (new URLSearchParams(location.search).get('profile')) setTimeout(() => card.scrollIntoView({ block: 'start' }), 300);
+            } catch {}
+        }
+        document.getElementById('coi-form').addEventListener('submit', async e => {
+            e.preventDefault();
+            if (!navigator.onLine) return notice('You need a connection to upload the certificate.', 'error');
+            const button = e.submitter;
+            button.disabled = true;
+            try {
+                const res = await fetch('/maint/api/profile/certificate', { method: 'POST', headers: { Authorization: `Bearer ${get()}` }, body: new FormData(e.target) });
+                const data = await res.json().catch(() => ({}));
+                if (!res.ok) throw new Error(data.error || 'Upload failed');
+                e.target.reset();
+                await loadProfile();
+                notice('Certificate uploaded. Your managers can see it now.', 'success');
+            } catch (error) { notice(error.message, 'error'); }
+            button.disabled = false;
+        });
+        document.getElementById('biz-form').addEventListener('submit', async e => {
+            e.preventDefault();
+            try {
+                const res = await fetch('/maint/api/profile/vendor', { method: 'PUT', headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${get()}` },
+                    body: JSON.stringify({ business_name: document.getElementById('biz-name').value, license_no: document.getElementById('biz-license').value, insurance_provider: document.getElementById('biz-insurer').value }) });
+                const data = await res.json().catch(() => ({}));
+                if (!res.ok) throw new Error(data.error || 'Could not save');
+                notice('Business details saved.', 'success');
+            } catch (error) { notice(error.message, 'error'); }
+        });
+
+        async function togglePush(on) {
+            try {
+                if (on) await SGOffline.enablePush(); else await SGOffline.disablePush();
+                notice(on ? 'Notifications are on.' : 'Notifications are off.', 'success');
+            } catch (error) { notice(error.message, 'error'); }
+            renderPhone();
+        }
+
+        /** Sends an update (or saves it on the phone when offline). Returns the server data, or { queued: true }. */
+        async function update(path, { json, form, label }) {
+            const r = await SGOffline.send(path, { json, form, label, jobId: currentJob ? currentJob.id : null });
+            if (r.queued) return { queued: true };
+            if (r.status === 401 || r.status === 403) { signOut(false); throw new Error('Please sign in again'); }
+            if (!r.ok) throw new Error(r.data.error || 'Something went wrong');
+            return r.data;
+        }
+        const QUEUED = 'Saved on this phone. It will be sent when you are back online.';
+
+        // ---- 2026-10-07 23:10, G7 S2: jobs ----
+        const STATUS = { assigned: 'Assigned', awaiting_approval: 'Waiting for approval', in_progress: 'In progress', done: 'Submitted', verified: 'Verified' };
+        const TYPE = { maintenance: 'Maintenance', cleaning: 'Cleaning', inspection: 'Inspection', ad_hoc: 'Job' };
+        const ACTION = { step_done: 'Step done', step_undone: 'Step reopened', checklist_attached: 'Checklist added', checklist_removed: 'Checklist removed', checked_in: 'Checked in', checked_out: 'Checked out', photo_added: 'Photo added', photo_removed: 'Photo removed', access_viewed: 'Viewed the access code', access_set: 'Access code updated', created: 'Created', assigned: 'Assigned to you', reassigned: 'Assigned to you', preapproved: 'Pre-approved', estimated: 'Estimate', approval_requested: 'Sent for approval',
+            approved: 'Approved', rejected: 'Estimate rejected', started: 'Started', submitted: 'Submitted', verified: 'Verified', bounced: 'Sent back', canceled: 'Canceled', commented: 'Comment', edited: 'Details updated', unassigned: 'Unassigned' };
+        let homeBrand = null, multiCompany = false, currentJob = null, myId = null;
+        const money = n => (n === null || n === undefined ? '' : '$' + Number(n).toFixed(2));
+        const when = d => (d ? new Date(d).toLocaleString(undefined, { weekday: 'short', month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' }) : '');
+
+        async function api(path, options = {}) {
+            const res = await fetch(path, { ...options, headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${get()}` } });
+            if (res.status === 401 || res.status === 403) { signOut(false); throw new Error('Please sign in again'); }
+            if ((options.method || 'GET') === 'GET') { offlineCopyAt = res.headers.get('X-SG-Offline') ? res.headers.get('X-SG-Cached-At') : null; renderNet(); }
+            const data = await res.json().catch(() => ({}));
+            if (!res.ok) throw new Error(res.headers.get('X-SG-Offline') ? 'You are offline and this job has not been saved on the phone yet.' : data.error || 'Something went wrong');
+            return data;
+        }
+
+        function jobRow(j) {
+            const pill = j.status === 'in_progress' ? 'ok' : j.status === 'awaiting_approval' ? 'off' : '';
+            return `<button class="company" type="button" onclick="openJob(${j.id})" style="width:100%;background:none;border:0;border-bottom:1px solid var(--border);text-align:left;font:inherit;color:inherit;cursor:pointer;display:grid;gap:4px">
+                <span style="display:flex;justify-content:space-between;gap:8px"><strong>${esc(j.title)}</strong><span class="pill ${pill}">${STATUS[j.status] || j.status}</span></span>
+                <span class="muted">${esc(j.property.name)}${multiCompany ? ' · ' + esc(j.company.name) : ''}</span>
+                <span class="muted">${j.window_start ? when(j.window_start) : j.due_at ? 'Due ' + when(j.due_at) : TYPE[j.type]}${j.priority === 'urgent' || j.priority === 'high' ? ' · <strong>' + j.priority + '</strong>' : ''}</span>
+            </button>`;
+        }
+
+        async function loadJobs() {
+            const { jobs } = await api('/maint/api/jobs');
+            const endOfToday = new Date(); endOfToday.setHours(23, 59, 59, 999);
+            const start = j => (j.window_start ? new Date(j.window_start) : j.due_at ? new Date(j.due_at) : null);
+            const open = jobs.filter(j => !['done', 'verified'].includes(j.status));
+            const today = open.filter(j => j.status !== 'assigned' || !start(j) || start(j) <= endOfToday);
+            const upcoming = open.filter(j => !today.includes(j)).sort((a, b) => start(a) - start(b));
+            const done = jobs.filter(j => j.status === 'done' || j.status === 'verified').sort((a, b) => new Date(b.updated_at) - new Date(a.updated_at)).slice(0, 10);
+            today.sort((a, b) => (a.status === 'in_progress' ? -1 : 0) - (b.status === 'in_progress' ? -1 : 0) || (start(a) || 0) - (start(b) || 0));
+            const section = (title, list, empty) => `<div class="card"><h2>${title}</h2>${list.length ? list.map(jobRow).join('') : `<div class="empty">${empty}</div>`}</div>`;
+            document.getElementById('jobs').innerHTML = section('Today', today, 'Nothing for today.')
+                + (upcoming.length ? section('Upcoming', upcoming, '') : '')
+                + (done.length ? section('Done', done, '') : '');
+            if (!jobs.length) document.getElementById('jobs').innerHTML = '<div class="card"><div class="empty">No jobs yet. When a manager assigns you work, it shows up here.</div></div>';
+        }
+
+        async function openJob(id, keepScroll = false) {
+            const y = window.scrollY;
+            try {
+                const data = await api(`/maint/api/jobs/${id}`);
+                currentJob = { ...data.job, checklist: data.checklist || [] };
+                const waitingHere = await SGOffline.pending(data.job.id).catch(() => []);
+                const j = data.job, s = j.status;
+                setBrand(j.company);
+                const maps = j.property.address ? `https://maps.google.com/?q=${encodeURIComponent(j.property.address)}` : null;
+                const actions = [];
+                if (s === 'assigned') actions.push(`<button class="btn btn-primary" type="button" onclick="jobAction('start', {})">Start job</button>`);
+                if (s === 'awaiting_approval') actions.push(`<div class="notice">Your estimate of <strong>${money(j.cost_estimate)}</strong> is waiting for ${esc(j.company.name)} to approve it. You'll get an email when they decide.</div>`);
+                if (s === 'assigned' || s === 'in_progress') actions.push(`
+                    <details class="card" style="margin:12px 0 0"><summary><strong>${j.cost_estimate !== null ? 'Update the cost estimate' : 'Add a cost estimate'}</strong>${j.approved_amount !== null ? ` <span class="muted">(approved up to ${money(j.approved_amount)})</span>` : ''}</summary>
+                        <form onsubmit="event.preventDefault(); jobAction('estimate', { amount: this.amount.value, note: this.note.value })" style="margin-top:12px">
+                            <div class="form-group"><label for="est-amount">Estimate (USD)</label><input id="est-amount" name="amount" type="number" min="0" step="0.01" inputmode="decimal" required></div>
+                            <div class="form-group"><label for="est-note">What it covers</label><input id="est-note" name="note" maxlength="5000"></div>
+                            <button class="btn btn-secondary" type="submit">Send estimate</button>
+                        </form></details>`);
+                if (s === 'in_progress') actions.push(`
+                    <form class="card" style="margin-top:12px" onsubmit="event.preventDefault(); jobAction('submit', { notes: this.notes.value, cost_actual: this.cost.value })">
+                        <h2>Finish the job</h2>
+                        ${(data.checklist || []).some(i => !i.done) ? `<p class="notice" style="margin-bottom:12px">Finish the checklist first: ${(data.checklist || []).filter(i => !i.done).length} step(s) open.</p>` : ''}
+                        <div class="form-group"><label for="done-notes">What you did</label><input id="done-notes" name="notes" maxlength="5000"></div>
+                        <div class="form-group"><label for="done-cost">Actual cost (USD, optional)</label><input id="done-cost" name="cost" type="number" min="0" step="0.01" inputmode="decimal"></div>
+                        <button class="btn btn-primary" type="submit">Submit for review</button>
+                    </form>`);
+                // 2026-10-08 01:40, G7 S3: access code, check in/out, photos
+                const onSite = [];
+                if (s === 'assigned' || s === 'in_progress' || s === 'awaiting_approval') {
+                    const a = data.access;
+                    onSite.push(`<div class="card" style="margin-top:12px"><h2>Getting in</h2>${
+                        a.available
+                            ? (a.has_code ? `<div id="code-box"><button class="btn btn-secondary" type="button" onclick="revealCode()">Show access code</button></div>` : '<p class="muted">The manager has not added an access code.</p>')
+                              + (a.notes ? `<p style="margin-top:10px">${esc(a.notes)}</p>` : '')
+                            : `<p class="muted">${a.opens_at ? 'The access code shows from ' + when(a.opens_at) + '.' : esc(a.reason || 'Not available yet.')}</p>`
+                    }</div>`);
+                    onSite.push(`<div class="card" style="margin-top:12px"><h2>On site</h2>
+                        ${data.on_site ? `<p style="margin-bottom:10px">Checked in since <strong>${when(data.on_site.since)}</strong></p>` : ''}
+                        ${data.minutes_on_site ? `<p class="muted" style="margin-bottom:10px">Total on site: ${data.minutes_on_site >= 60 ? Math.floor(data.minutes_on_site / 60) + ' h ' + (data.minutes_on_site % 60) + ' min' : data.minutes_on_site + ' min'}</p>` : ''}
+                        ${s !== 'awaiting_approval' ? (data.on_site
+                            ? `<button class="btn btn-secondary" type="button" onclick="siteAction('check-out')">Check out (leaving the property)</button>`
+                            : s === 'in_progress' ? `<button class="btn btn-secondary" type="button" onclick="siteAction('check-in')">Check in</button>` : '') : ''}
+                        <p class="muted" style="margin-top:10px;font-size:0.88rem">Or scan the StayGuide QR sticker at the property with your camera.</p>
+                    </div>`);
+                }
+                // 2026-10-08 03:50, G7 S4: checklist (ticking needs the job started; photo steps tick themselves after the photo uploads)
+                const items = data.checklist || [];
+                const openItems = items.filter(i => !i.done).length;
+                if (items.length) onSite.push(`<div class="card" style="margin-top:12px" id="checklist-card"><h2>Checklist <span class="muted">${items.length - openItems}/${items.length}</span></h2>
+                    ${s !== 'in_progress' && openItems ? '<p class="muted" style="margin-bottom:8px">Start the job to tick off steps.</p>' : ''}
+                    ${items.map(i => `<div class="company" style="display:grid;grid-template-columns:32px minmax(0,1fr) auto;gap:10px;align-items:center">
+                        <input type="checkbox" id="step-${i.id}" ${i.done ? 'checked' : ''} ${s !== 'in_progress' || (i.requires_photo && !i.photo_url) ? 'disabled' : ''}
+                            onchange="tickStep(${i.id}, this.checked)" style="width:24px;height:24px;min-height:0">
+                        <label for="step-${i.id}" style="font-weight:500">${esc(i.label)}${i.requires_photo ? ' <span class="pill">photo</span>' : ''}</label>
+                        ${i.requires_photo ? (i.photo_url
+                            ? `<a href="${i.photo_url}" target="_blank" rel="noopener"><img src="${i.photo_url}" alt="Photo for ${esc(i.label)}" style="width:48px;height:48px;object-fit:cover;border-radius:8px;display:block"></a>`
+                            : s === 'in_progress' ? `<label class="btn btn-secondary" style="width:auto;min-height:44px;padding:0 12px;cursor:pointer">📷<span style="position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0)">Take photo for ${esc(i.label)}</span>
+                                <input type="file" accept="image/*" capture="environment" hidden onchange="stepPhoto(${i.id}, this)"></label>` : '<span></span>') : '<span></span>'}
+                    </div>`).join('')}</div>`);
+                const canEditPhotos = s === 'assigned' || s === 'in_progress';
+                if (canEditPhotos || data.photos.length) onSite.push(`<div class="card" style="margin-top:12px"><h2>Photos</h2>
+                    ${data.photos.length ? `<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:6px;margin-bottom:12px">${data.photos.map(ph => `<div style="position:relative">
+                        <a href="${ph.url}" target="_blank" rel="noopener"><img src="${ph.url}" alt="${esc(ph.kind)} photo" loading="lazy" style="width:100%;aspect-ratio:1;object-fit:cover;border-radius:8px;display:block"></a>
+                        <span class="pill" style="position:absolute;left:4px;bottom:4px;font-size:0.7rem">${esc(ph.kind)}</span>
+                        ${canEditPhotos && ph.uploaded_by === myId ? `<button type="button" aria-label="Remove photo" onclick="removePhoto(${ph.id})" style="position:absolute;right:4px;top:4px;width:30px;height:30px;border-radius:50%;border:0;background:rgb(0 0 0 / 0.6);color:#fff;font-size:16px;cursor:pointer">×</button>` : ''}
+                    </div>`).join('')}</div>` : '<p class="muted" style="margin-bottom:12px">No photos yet.</p>'}
+                    ${canEditPhotos ? `<form id="photo-form" onsubmit="event.preventDefault(); uploadPhoto(this)">
+                        <div class="form-group"><label for="ph-kind">Type</label><select id="ph-kind" name="kind"><option value="before">Before</option><option value="after" selected>After</option><option value="step">During the work</option><option value="receipt">Receipt</option></select></div>
+                        <div class="form-group"><label for="ph-file">Photo</label><input id="ph-file" name="photo" type="file" accept="image/*" capture="environment" required></div>
+                        <div class="form-group"><label for="ph-caption">Caption (optional)</label><input id="ph-caption" name="caption" maxlength="255"></div>
+                        <button class="btn btn-secondary" type="submit">Upload photo</button>
+                    </form>` : ''}
+                </div>`);
+                if (s === 'done') actions.push(`<div class="notice">Submitted. ${esc(j.company.name)} will verify the work or send it back with a note.</div>`);
+                if (s === 'verified') actions.push(`<div class="notice success">Verified by ${esc(j.company.name)}. Thank you!</div>`);
+                document.getElementById('job').innerHTML = `
+                    <h1 style="margin-top:8px">${esc(j.title)}</h1>
+                    <p class="muted" style="margin-bottom:14px"><span class="pill">${STATUS[s] || s}</span> ${TYPE[j.type]}${j.priority !== 'medium' && j.priority !== 'low' ? ' · <strong>' + j.priority + '</strong>' : ''}</p>
+                    <div class="card">
+                        <div class="form-group" style="margin:0 0 10px"><span class="muted">Property</span><strong>${esc(j.property.name)}</strong>${j.property.address ? `<span>${esc(j.property.address)}</span>` : ''}${maps ? `<a href="${maps}" target="_blank" rel="noopener">Open in Maps</a>` : ''}</div>
+                        ${j.window_start ? `<div class="form-group" style="margin:0 0 10px"><span class="muted">When</span><span>${when(j.window_start)}${j.window_end ? ' – ' + when(j.window_end) : ''}</span></div>` : ''}
+                        ${j.due_at ? `<div class="form-group" style="margin:0 0 10px"><span class="muted">Due</span><span>${when(j.due_at)}</span></div>` : ''}
+                        ${j.description ? `<div class="form-group" style="margin:0"><span class="muted">Details</span><span style="white-space:pre-wrap">${esc(j.description)}</span></div>` : ''}
+                        ${data.report ? `<div class="form-group" style="margin:10px 0 0"><span class="muted">Reported by a guest</span><span>${esc(data.report.title)}${data.report.location ? ' · ' + esc(data.report.location) : ''}</span></div>` : ''}
+                    </div>
+                    ${waitingHere.length ? `<div class="notice" style="margin-top:12px"><strong>Waiting to send:</strong> ${waitingHere.map(o => esc(o.label)).join(' · ')}</div>` : ''}
+                    ${onSite.join('')}
+                    ${actions.join('')}
+                    <div class="card" style="margin-top:12px">
+                        <h2>History</h2>
+                        ${data.events.map(e => `<div class="company" style="display:block"><strong>${ACTION[e.action] || esc(e.action)}</strong>${e.amount !== null && e.amount !== undefined ? ' · ' + money(e.amount) : ''} <span class="muted">· ${esc(e.by)} · ${when(e.created_at)}</span>${e.note ? `<div style="white-space:pre-wrap;margin-top:4px">${esc(e.note)}</div>` : ''}</div>`).join('')}
+                        <form onsubmit="event.preventDefault(); jobAction('comment', { note: this.note.value })" style="margin-top:12px">
+                            <div class="form-group"><label for="job-note">Message ${esc(j.company.name)}</label><input id="job-note" name="note" maxlength="5000" required></div>
+                            <button class="btn btn-secondary" type="submit">Send</button>
+                        </form>
+                    </div>`;
+                history.replaceState(null, '', `/maint?job=${j.id}`);
+                if (!keepScroll) notice('');
+                show('job');
+                window.scrollTo(0, keepScroll ? y : 0);
+            } catch (error) {
+                notice(error.message, 'error');
+                backToJobs();
+            }
+        }
+
+        async function tickStep(itemId, done) {
+            try {
+                const label = (currentJob.checklist || []).find(i => i.id === itemId)?.label || 'Checklist step';
+                const r = await update(`/maint/api/jobs/${currentJob.id}/checklist/${itemId}`, { json: { done }, label: `${done ? 'Ticked' : 'Unticked'}: ${label}` });
+                await openJob(currentJob.id, true);
+                if (r.queued) notice(QUEUED);
+            } catch (error) {
+                notice(error.message, 'error');
+                await openJob(currentJob.id, true);
+            }
+        }
+
+        async function stepPhoto(itemId, input) {
+            if (!input.files[0]) return;
+            const file = input.files[0];
+            const label = (currentJob.checklist || []).find(i => i.id === itemId)?.label || 'Checklist step';
+            input.closest('label').textContent = 'Uploading…';
+            try {
+                // photo, then tick: when offline both are queued and sent in this order
+                const p = await update(`/maint/api/jobs/${currentJob.id}/photos`, { form: [['checklist_item_id', String(itemId)], ['photo', file]], label: `Photo: ${label}` });
+                const t = await update(`/maint/api/jobs/${currentJob.id}/checklist/${itemId}`, { json: { done: true }, label: `Ticked: ${label}` });
+                await openJob(currentJob.id, true);
+                notice(p.queued || t.queued ? QUEUED : 'Photo added and step ticked.', p.queued || t.queued ? '' : 'success');
+            } catch (error) {
+                notice(error.message, 'error');
+                await openJob(currentJob.id, true);
+            }
+        }
+
+        async function revealCode() {
+            try {
+                if (!navigator.onLine) throw new Error('You need a connection to see the access code. It is never saved on the phone.');
+                const data = await api(`/maint/api/jobs/${currentJob.id}/access`, { method: 'POST' });
+                document.getElementById('code-box').innerHTML = `<div class="code-input" style="border:1px solid var(--border-strong);border-radius:var(--radius-sm);padding:12px;user-select:all" aria-live="polite">${esc(data.code)}</div><p class="muted" style="margin-top:6px;font-size:0.85rem">This view was recorded in the job history.</p>`;
+            } catch (error) { notice(error.message, 'error'); }
+        }
+
+        async function siteAction(action) {
+            try {
+                const r = await update(`/maint/api/jobs/${currentJob.id}/${action}`, { json: {}, label: action === 'check-in' ? 'Check in' : 'Check out' });
+                await openJob(currentJob.id);
+                notice(r.queued ? QUEUED : action === 'check-in' ? 'Checked in.' : 'Checked out.', r.queued ? '' : 'success');
+            } catch (error) { notice(error.message, 'error'); }
+        }
+
+        async function uploadPhoto(form) {
+            const button = form.querySelector('button[type=submit]');
+            button.disabled = true;
+            button.textContent = 'Uploading…';
+            try {
+                const fd = new FormData(form);
+                const r = await update(`/maint/api/jobs/${currentJob.id}/photos`, { form: [...fd.entries()], label: `Photo (${fd.get('kind')})` });
+                await openJob(currentJob.id);
+                notice(r.queued ? QUEUED : 'Photo added.', r.queued ? '' : 'success');
+            } catch (error) {
+                notice(error.message, 'error');
+                button.disabled = false;
+                button.textContent = 'Upload photo';
+            }
+        }
+
+        async function removePhoto(id) {
+            if (!confirm('Remove this photo?')) return;
+            if (!navigator.onLine) return notice('You need a connection to remove a photo.', 'error');
+            try {
+                await api(`/maint/api/jobs/${currentJob.id}/photos/${id}`, { method: 'DELETE' });
+                await openJob(currentJob.id);
+            } catch (error) { notice(error.message, 'error'); }
+        }
+
+        async function jobAction(action, body) {
+            const buttons = document.querySelectorAll('#job button');
+            buttons.forEach(b => { b.disabled = true; });
+            try {
+                const LABEL = { start: 'Start job', submit: 'Submit for review', comment: 'Message', estimate: 'Cost estimate' };
+                const data = await update(`/maint/api/jobs/${currentJob.id}/${action}`, { json: body, label: LABEL[action] || action });
+                await openJob(currentJob.id);
+                if (data.queued) return notice(QUEUED);
+                const msg = { start: 'Job started.', submit: 'Submitted for review.', comment: 'Message sent.',
+                    estimate: data.flags?.includes('approval_requested') ? 'Estimate sent. The job is on hold until it is approved.' : 'Estimate saved.' }[action];
+                notice(msg, 'success');
+            } catch (error) {
+                notice(error.message, 'error');
+                buttons.forEach(b => { b.disabled = false; });
+            }
+        }
+
+        async function backToJobs() {
+            history.replaceState(null, '', '/maint');
+            setBrand(homeBrand);
+            try { await loadJobs(); } catch {}
+            show('home');
+        }
+
+        document.getElementById('email-form').addEventListener('submit', async e => {
+            e.preventDefault();
+            const button = e.submitter;
+            const email = document.getElementById('email').value.trim();
+            if (!email) return;
+            button.disabled = true;
+            try {
+                if (button.value === 'password') {
+                    const password = document.getElementById('password').value;
+                    if (!password) { notice('Enter your password, or use a sign-in code.', 'error'); return; }
+                    signedIn(await post('/maint/api/login', { email, password }));
+                } else {
+                    await post('/maint/api/login-code', { email });
+                    pendingEmail = email;
+                    document.getElementById('code-lead').textContent = `If ${email} has a work account, we sent it a 6-digit code. It works for 10 minutes.`;
+                    document.getElementById('code-form').reset();
+                    notice('');
+                    show('code');
+                    document.getElementById('code').focus();
+                }
+            } catch (error) {
+                notice(error.message, 'error');
+            } finally {
+                button.disabled = false;
+            }
+        });
+
+        document.getElementById('code-form').addEventListener('submit', async e => {
+            e.preventDefault();
+            const button = e.submitter;
+            button.disabled = true;
+            try {
+                signedIn(await post('/maint/api/login-code/verify', { email: pendingEmail, code: document.getElementById('code').value }));
+            } catch (error) {
+                notice(error.message, 'error');
+            } finally {
+                button.disabled = false;
+            }
+        });
+
+        SGOffline.init({ token: get, userId: () => myId });
+        window.addEventListener('online', renderNet);
+        window.addEventListener('offline', renderNet);
+        loadHome();
+    </script>
+</body>
+</html>

@@ -62,7 +62,7 @@ export class UserService {
     password: string;
     first_name: string;
     last_name: string;
-    role: 'super_admin' | 'company_admin';
+    role: 'super_admin' | 'company_admin' | 'field_worker'; // 2026-10-07 18:30, G7 S1
     company_id?: number;
   }): Promise<User> {
     if (MOCK_MODE) {

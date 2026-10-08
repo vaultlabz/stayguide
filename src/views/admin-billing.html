@@ -6,6 +6,10 @@
     <title>StayGuide Admin - Billing Overview</title>
     <!-- 2026-10-03 15:31, shared design tokens + light/dark theme (set before paint to avoid a flash) -->
     <link rel="stylesheet" href="/css/theme.css">
+    <!-- 2026-10-06 15:50, Snow-kit admin skin (Inter via Google Fonts, allowed by CSP) -->
+    <link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap">
+    <link rel="stylesheet" href="/css/admin-kit.css">
     <script src="/js/theme.js"></script>
     <style>
         * {
@@ -248,13 +252,13 @@
         }
     </style>
 </head>
-<body class="sg-app">
+<body class="sg-app snow">
     <div class="header">
         <div class="logo">StayGuide Admin</div>
         <div class="nav-links">
             <a href="/admin/dashboard">Dashboard</a>
             <a href="/admin/billing" class="active">Billing</a>
-            <a href="#" id="helpdesk-link">Helpdesk</a>
+            <a href="/admin/helpdesk" id="helpdesk-link">Helpdesk</a><!-- 2026-10-07 16:20, was a "coming soon" alert -->
         </div>
         <div class="user-info">
             <div data-theme-toggle></div>
@@ -315,7 +319,7 @@
 
     <script>
         const API_BASE = '';
-        let authToken = localStorage.getItem('stayguide_token');
+        let authToken = localStorage.getItem('stayguide_admin_token');
         
         // Check authentication on page load
         if (!authToken) {
@@ -336,7 +340,7 @@
                 const response = await fetch(API_BASE + endpoint, config);
                 
                 if (response.status === 401) {
-                    localStorage.removeItem('stayguide_token');
+                    localStorage.removeItem('stayguide_admin_token');
                     window.location.href = '/admin/login';
                     return;
                 }
@@ -433,34 +437,32 @@
             });
         }
         
+        // 2026-10-07 17:05, shared by "View All Invoices" and the CSV export: every company's invoices, newest first
+        async function fetchAllInvoices() {
+            const companiesData = await apiCall('/admin/companies');
+            const allInvoices = [];
+            for (const company of companiesData.companies) {
+                try {
+                    const billingData = await apiCall(`/billing/company/${company.id}`);
+                    if (billingData.success && billingData.billings) {
+                        billingData.billings.forEach(billing => {
+                            billing.company_name = company.name;
+                            billing.company_slug = company.slug;
+                            allInvoices.push(billing);
+                        });
+                    }
+                } catch (error) {
+                    console.warn(`Failed to load billing for company ${company.id}:`, error);
+                }
+            }
+            return allInvoices.sort((a, b) => new Date(b.billing_period_start) - new Date(a.billing_period_start));
+        }
+
         // Show all invoices across all companies
         async function showAllInvoices() {
             try {
                 document.getElementById('billing-content').innerHTML = '<div class="loading">Loading all invoices...</div>';
-                
-                // Get all companies and their billing data
-                const companiesData = await apiCall('/admin/companies');
-                const companies = companiesData.companies;
-                
-                let allInvoices = [];
-                for (const company of companies) {
-                    try {
-                        const billingData = await apiCall(`/billing/company/${company.id}`);
-                        if (billingData.success && billingData.billings) {
-                            billingData.billings.forEach(billing => {
-                                billing.company_name = company.name;
-                                billing.company_slug = company.slug;
-                                allInvoices.push(billing);
-                            });
-                        }
-                    } catch (error) {
-                        console.warn(`Failed to load billing for company ${company.id}:`, error);
-                    }
-                }
-                
-                // Sort by date (newest first)
-                allInvoices.sort((a, b) => new Date(b.billing_period_start) - new Date(a.billing_period_start));
-                
+                const allInvoices = await fetchAllInvoices();
                 displayInvoiceTable(allInvoices);
                 
             } catch (error) {
@@ -691,13 +693,47 @@
         }
         
         // Export billing data
-        function exportBillingData() {
-            alert('Billing data export feature coming soon!\n\nThis will export to CSV/Excel format.');
+        // 2026-10-07 17:05, CSV download of every invoice (was a "coming soon" alert); opens in Excel / Google Sheets
+        async function exportBillingData() {
+            try {
+                const invoices = await fetchAllInvoices();
+                const columns = [
+                    ['Invoice', i => i.invoice_number || i.id],
+                    ['Company', i => i.company_name],
+                    ['Company slug', i => i.company_slug],
+                    ['Period start', i => (i.billing_period_start || '').slice(0, 10)],
+                    ['Period end', i => (i.billing_period_end || '').slice(0, 10)],
+                    ['Properties', i => i.property_count],
+                    ['Fee per property', i => Number(i.monthly_fee_per_property || 0).toFixed(2)],
+                    ['Connection fee', i => Number(i.connection_fee || 0).toFixed(2)],
+                    ['Total', i => Number(i.total_amount || 0).toFixed(2)],
+                    ['Status', i => i.status],
+                    ['Paid at', i => (i.paid_at || '').slice(0, 10)],
+                    ['Created', i => (i.created_at || '').slice(0, 10)]
+                ];
+                // quote every cell; prefix formula-like text so spreadsheets do not execute it
+                const cell = v => {
+                    let t = String(v ?? '');
+                    if (/^[=+\-@\t\r]/.test(t) && isNaN(Number(t))) t = "'" + t;
+                    return '"' + t.replace(/"/g, '""') + '"';
+                };
+                const csv = [columns.map(c => cell(c[0])).join(','), ...invoices.map(i => columns.map(c => cell(c[1](i))).join(','))].join('\r\n');
+                const url = URL.createObjectURL(new Blob(['\ufeff' + csv], { type: 'text/csv;charset=utf-8' }));
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = `stayguide-invoices-${new Date().toISOString().slice(0, 10)}.csv`;
+                document.body.appendChild(a);
+                a.click();
+                a.remove();
+                setTimeout(() => URL.revokeObjectURL(url), 1000);
+            } catch (error) {
+                alert(`Failed to export billing data: ${error.message}`);
+            }
         }
         
         // Logout function
         function logout() {
-            localStorage.removeItem('stayguide_token');
+            localStorage.removeItem('stayguide_admin_token');
             window.location.href = '/admin/login';
         }
         
@@ -708,10 +744,6 @@
             
             // Add main event listeners
             document.getElementById('logout-btn').addEventListener('click', logout);
-            document.getElementById('helpdesk-link').addEventListener('click', function(e) {
-                e.preventDefault();
-                alert('Helpdesk coming soon!');
-            });
             document.getElementById('generate-billing-btn').addEventListener('click', generateMonthlyBilling);
             document.getElementById('view-invoices-btn').addEventListener('click', showAllInvoices);
             

@@ -6,6 +6,10 @@
     <title>Company Dashboard - StayGuide</title>
     <!-- 2026-10-03 15:31, shared design tokens + light/dark theme (set before paint to avoid a flash) -->
     <link rel="stylesheet" href="/css/theme.css">
+    <!-- 2026-10-06 15:50, Snow-kit admin skin (Inter via Google Fonts, allowed by CSP) -->
+    <link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap">
+    <link rel="stylesheet" href="/css/admin-kit.css">
     <script src="/js/theme.js"></script>
     <script src="/js/tablet-backgrounds.js"></script>
     <style>
@@ -575,13 +579,18 @@
         .activity-table td.num, .activity-table th.num { text-align: right; font-variant-numeric: tabular-nums; }
     </style>
 </head>
-<body class="sg-app">
+<body class="sg-app snow">
     <header class="header">
         <div class="logo">StayGuide</div>
         <!-- 2026-10-03 15:36, nav uses shared .nav-links styles (inline hover handlers removed) -->
         <nav class="nav-links">
             <a href="#" id="dashboard-nav" class="active" aria-current="page">Dashboard</a>
+            <a href="#" id="ops-nav">Work orders</a><!-- 2026-10-07 23:00, G7 S2 -->
+            <a href="#" id="team-nav">Team</a><!-- 2026-10-07 19:40, G7 Ops -->
             <a href="#" id="billing-nav">Billing</a>
+            <!-- 2026-10-07 16:20, support tickets + help guide -->
+            <a href="#" id="support-nav">Support</a>
+            <a href="#" id="help-nav">Help</a>
         </nav>
         <div class="company-info">
             <div class="company-name" id="company-name">Loading...</div>
@@ -597,7 +606,7 @@
         <div class="dashboard-header">
             <h1 class="dashboard-title">Company Dashboard</h1>
             <div style="display: flex; gap: 1rem;">
-                <!-- 2026-10-03 15:36, debug "Test JS" button removed from the UI (testFunction kept for console use) -->
+                <!-- 2026-10-03 15:36, debug "Test JS" button removed from the UI (2026-10-07: testFunction removed too) -->
                 <button class="btn btn-primary" onclick="openCreatePropertyModal()">Add New Property</button>
             </div>
         </div>
@@ -650,20 +659,13 @@
                     </button>
                 </div>
 
+                <!-- 2026-10-07 16:35, guest reports from tablets and guest links (replaces hardcoded sample "Recent Activity") -->
                 <div class="recent-activity">
-                    <h3 class="section-title" style="margin-bottom: 1rem;">Recent Activity</h3>
-                    <div class="activity-item">
-                        <div>Property "Beach House" updated</div>
-                        <div class="activity-time">2 hours ago</div>
-                    </div>
-                    <div class="activity-item">
-                        <div>New guest accessed tablet app</div>
-                        <div class="activity-time">4 hours ago</div>
-                    </div>
-                    <div class="activity-item">
-                        <div>Restaurant list updated</div>
-                        <div class="activity-time">1 day ago</div>
-                    </div>
+                    <h3 class="section-title" style="margin-bottom: 0.5rem;">Guest reports</h3>
+                    <label class="activity-time" style="display: inline-flex; gap: 0.4rem; align-items: center; margin-bottom: 0.5rem;">
+                        <input type="checkbox" id="reports-show-all" onchange="renderReports()"> Show resolved and closed
+                    </label>
+                    <div id="reports-list"><div class="activity-item activity-time">Loading…</div></div>
                 </div>
             </div>
         </div>
@@ -940,15 +942,7 @@
     </div>
 
     <script>
-        // Test function to verify JavaScript is working
-        function testFunction() {
-            alert('JavaScript is working!');
-            console.log('Test function called successfully');
-        }
-        
-        // Make test function global for debugging
-        window.testFunction = testFunction;
-        
+        // 2026-10-07 17:55, removed the debug testFunction()
         const API_BASE = '';
         let authToken = localStorage.getItem('stayguide_token');
         let currentCompany = null;
@@ -973,6 +967,10 @@
         try {
             const dashboardNav = document.getElementById('dashboard-nav');
             const billingNav = document.getElementById('billing-nav');
+            document.getElementById('support-nav').href = `/company/${companySlug}/helpdesk`; // 2026-10-07 16:20
+            document.getElementById('team-nav').href = `/company/${companySlug}/team`; // 2026-10-07 19:40
+            document.getElementById('ops-nav').href = `/company/${companySlug}/ops`; // 2026-10-07 23:00
+            document.getElementById('help-nav').href = `/company/${companySlug}/help`;
             
             if (dashboardNav) {
                 dashboardNav.href = `/company/${companySlug}/dashboard`;
@@ -1056,6 +1054,7 @@
                 console.log('Properties data received:', data);
                 displayProperties(data.properties);
                 updateStats(data.properties, data.company);
+                loadReports(data.properties); // 2026-10-07 16:35
             } catch (error) {
                 console.error('Error loading properties:', error);
                 document.getElementById('properties-content').innerHTML = 
@@ -1063,6 +1062,72 @@
             }
         }
         
+        // 2026-10-07 16:35, guest reports: fetched per property (GET /reports/property/:id enforces ownership)
+        const REPORT_STATUSES = { new: 'New', acknowledged: 'Acknowledged', in_progress: 'In progress', resolved: 'Resolved', closed: 'Closed' };
+        let guestReports = [];
+        let opsEnabled = false; // 2026-10-07 23:00, G7 S2: reports can become work orders when the Ops add-on is on
+        const escHtml = v => String(v ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+
+        async function loadReports(properties) {
+            try {
+                const ops = await fetch(`/company/${companySlug}/ops/settings`, { headers: { Authorization: `Bearer ${authToken}` } });
+                opsEnabled = ops.ok;
+            } catch { opsEnabled = false; }
+            try {
+                const lists = await Promise.all((properties || []).map(p =>
+                    apiCall(`/reports/property/${p.id}`).then(d => (d.reports || []).map(r => ({ ...r, property_name: p.name }))).catch(() => [])));
+                guestReports = lists.flat().sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
+            } catch (error) {
+                console.error('Failed to load guest reports:', error);
+                guestReports = [];
+            }
+            renderReports();
+        }
+
+        function renderReports() {
+            const showAll = document.getElementById('reports-show-all').checked;
+            const list = guestReports.filter(r => showAll || !['resolved', 'closed'].includes(r.status)).slice(0, 10);
+            document.getElementById('reports-list').innerHTML = list.length ? list.map(r => `
+                <div class="activity-item">
+                    <div><strong>${escHtml(r.title)}</strong>${r.priority === 'urgent' || r.urgency_level === 'immediate' ? ' <span style="color: var(--danger-text); font-weight: 600;">urgent</span>' : ''}</div>
+                    <div class="activity-time">${escHtml(r.property_name)}${r.location ? ' · ' + escHtml(r.location) : ''} · ${new Date(r.created_at).toLocaleString(undefined, { dateStyle: 'medium', timeStyle: 'short' })}</div>
+                    ${r.description ? `<div style="margin: 0.3rem 0; color: var(--text-2);">${escHtml(r.description)}</div>` : ''}
+                    <label class="activity-time">Status
+                        <select onchange="setReportStatus(${Number(r.id)}, this)" style="margin-left: 0.3rem;">
+                            ${Object.entries(REPORT_STATUSES).map(([v, l]) => `<option value="${v}" ${r.status === v ? 'selected' : ''}>${l}</option>`).join('')}
+                        </select>
+                    </label>
+                    ${opsEnabled && !['resolved', 'closed'].includes(r.status) ? `<button type="button" class="btn btn-secondary btn-small" style="margin-left:0.5rem" onclick="reportToWorkOrder(${Number(r.id)}, this)">Create work order</button>` : ''}
+                </div>`).join('')
+                : `<div class="activity-item activity-time">${showAll ? 'No guest reports yet.' : 'No open guest reports.'}</div>`;
+        }
+
+        // 2026-10-07 23:00, G7 S2: guest report → work order (opens it on the board; an existing one is opened instead)
+        async function reportToWorkOrder(id, button) {
+            button.disabled = true;
+            try {
+                const res = await fetch(`/company/${companySlug}/ops/work-orders/from-report/${id}`, { method: 'POST', headers: { Authorization: `Bearer ${authToken}` } });
+                const data = await res.json();
+                if (res.ok || res.status === 409) { window.location.href = `/company/${companySlug}/ops?wo=${data.work_order.id}`; return; }
+                alert(data.error || 'Could not create the work order');
+            } catch (error) {
+                alert(`Could not create the work order: ${error.message}`);
+            }
+            button.disabled = false;
+        }
+
+        async function setReportStatus(id, select) {
+            const report = guestReports.find(r => r.id === id);
+            try {
+                await apiCall(`/reports/${id}/status`, { method: 'PUT', body: JSON.stringify({ status: select.value }) });
+                if (report) report.status = select.value;
+                renderReports();
+            } catch (error) {
+                alert(`Failed to update report: ${error.message}`);
+                if (report) select.value = report.status;
+            }
+        }
+
         // Display properties
         function displayProperties(properties) {
             if (properties.length === 0) {
@@ -1261,14 +1326,7 @@
             window.open(`/company/${companySlug}/property/${propertySlug}`, '_blank');
         }
         
-        function deleteProperty(propertySlug, name) {
-            if (!confirm(`Are you sure you want to delete "${name}"?`)) {
-                return;
-            }
-            
-            // TODO: Implement delete functionality
-            alert('Delete functionality will be implemented with database');
-        }
+        // 2026-10-07 15:45, removed a dead deleteProperty() stub (the working async version further down always overrode it)
         
         function viewBilling() {
             window.location.href = `/company/${companySlug}/billing`;
@@ -1278,8 +1336,9 @@
             window.location.href = `/company/${companySlug}/helpdesk`;
         }
         
+        // 2026-10-07 15:45, opens the company help guide (was a "coming soon" alert)
         function viewHelp() {
-            alert('Help documentation coming soon!');
+            window.location.href = `/company/${companySlug}/help`;
         }
         
         // Edit property function
@@ -1863,11 +1922,10 @@
         function logout() {
             console.log('Company logout function called');
             try {
-                // Clear all possible tokens
+                // 2026-10-07 17:55, remove only this dashboard's session (clear() also wiped the other dashboard's
+                // session, the theme choice and, on the same origin, a paired tablet's token)
                 localStorage.removeItem('stayguide_token');
                 localStorage.removeItem('authToken');
-                localStorage.clear(); // Clear all localStorage
-                sessionStorage.clear(); // Clear sessionStorage too
                 
                 console.log('Storage cleared, redirecting to company login...');
                 

@@ -6,6 +6,10 @@
     <title>StayGuide Admin Dashboard</title>
     <!-- 2026-10-03 15:31, shared design tokens + light/dark theme (set before paint to avoid a flash) -->
     <link rel="stylesheet" href="/css/theme.css">
+    <!-- 2026-10-06 15:50, Snow-kit admin skin (Inter via Google Fonts, allowed by CSP) -->
+    <link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap">
+    <link rel="stylesheet" href="/css/admin-kit.css">
     <script src="/js/theme.js"></script>
     <style>
         * {
@@ -304,13 +308,14 @@
         }
     </style>
 </head>
-<body class="sg-app">
+<body class="sg-app snow">
     <header class="header">
         <div class="logo">StayGuide Admin</div>
         <!-- 2026-10-03 15:36, nav uses shared .nav-links styles -->
         <nav class="nav-links">
             <a href="/admin/dashboard" class="active" aria-current="page">Dashboard</a>
             <a href="/admin/billing">Billing</a>
+            <a href="/admin/helpdesk">Helpdesk</a><!-- 2026-10-07 16:20 -->
         </nav>
         <div class="user-info">
             <div data-theme-toggle></div>
@@ -342,6 +347,12 @@
                 <div class="stat-number" id="monthly-revenue">-</div>
                 <div class="stat-label">Monthly Revenue</div>
             </div>
+        </div>
+
+        <!-- 2026-10-08 12:00, G7 Ops: adoption and workload of companies with the Ops add-on -->
+        <div class="companies-section" id="ops-section" hidden style="margin-bottom: 1.5rem;">
+            <div class="section-header"><h2 class="section-title">Ops add-on</h2><span id="ops-summary" style="color: var(--text-muted)"></span></div>
+            <div id="ops-content"></div>
         </div>
 
         <div class="companies-section">
@@ -406,6 +417,22 @@
                     </div>
                 </div>
                 
+                <!-- 2026-10-07 15:40, status is editable when editing an existing company -->
+                <div class="form-group" id="status-group" style="display: none;">
+                    <label class="form-label" for="company-status">Status</label>
+                    <select id="company-status" class="form-input">
+                        <option value="active">active</option>
+                        <option value="inactive">inactive</option>
+                        <option value="suspended">suspended</option>
+                    </select>
+                    <!-- 2026-10-07 18:30, G7 Ops add-on (manual until Stripe billing for Ops) -->
+                    <label style="display: flex; gap: 0.5rem; align-items: center; margin-top: 0.75rem;">
+                        <input type="checkbox" id="company-ops"> Ops add-on (field workers &amp; work orders; needs Pro or Portfolio)
+                    </label>
+                </div>
+
+                <!-- 2026-10-07 15:40, admin user fields only apply when creating a company -->
+                <div id="admin-user-fields">
                 <hr style="margin: 1.5rem 0;">
                 <h4 style="margin-bottom: 1rem; color: var(--text-2);">Company Admin User</h4>
                 
@@ -430,9 +457,10 @@
                         <input type="password" id="admin-password" class="form-input" required>
                     </div>
                 </div>
+                </div>
                 
                 <div style="display: flex; gap: 1rem; margin-top: 2rem;">
-                    <button type="submit" class="btn btn-primary">Create Company</button>
+                    <button type="submit" class="btn btn-primary" id="company-submit">Create Company</button>
                     <button type="button" class="btn btn-secondary" onclick="closeModal()">Cancel</button>
                 </div>
             </form>
@@ -441,7 +469,7 @@
 
     <script>
         const API_BASE = '';
-        let authToken = localStorage.getItem('stayguide_token');
+        let authToken = localStorage.getItem('stayguide_admin_token');
         
         // Check authentication on page load
         if (!authToken) {
@@ -462,7 +490,7 @@
                 const response = await fetch(API_BASE + endpoint, config);
                 
                 if (response.status === 401) {
-                    localStorage.removeItem('stayguide_token');
+                    localStorage.removeItem('stayguide_admin_token');
                     window.location.href = '/admin/login';
                     return;
                 }
@@ -561,15 +589,60 @@
             
             document.getElementById('total-companies').textContent = totalCompanies;
             document.getElementById('active-companies').textContent = activeCompanies;
-            document.getElementById('total-properties').textContent = '-'; // TODO: Calculate from properties
-            document.getElementById('monthly-revenue').textContent = '-'; // TODO: Calculate from billing
+            loadStats(); // 2026-10-07 15:40, was a TODO placeholder
+        }
+
+        // 2026-10-07 15:40, active properties + estimated monthly revenue from /admin/stats
+        async function loadStats() {
+            try {
+                const stats = await apiCall('/admin/stats');
+                document.getElementById('total-properties').textContent = stats.total_properties;
+                document.getElementById('monthly-revenue').textContent =
+                    '$' + Number(stats.monthly_revenue).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+            } catch (error) {
+                console.error('Failed to load stats:', error);
+            }
         }
         
         // Modal functions
+        // 2026-10-07 15:40, one modal for create and edit; editingCompanyId is null when creating
+        let editingCompanyId = null;
+
+        function setModalMode(isEdit) {
+            document.getElementById('admin-user-fields').style.display = isEdit ? 'none' : '';
+            document.getElementById('status-group').style.display = isEdit ? '' : 'none';
+            document.querySelectorAll('#admin-user-fields input').forEach(input => { input.required = !isEdit; });
+            document.getElementById('company-submit').textContent = isEdit ? 'Save Changes' : 'Create Company';
+        }
+
         function openCreateModal() {
+            editingCompanyId = null;
             document.getElementById('modal-title').textContent = 'Add New Company';
             document.getElementById('companyForm').reset();
+            setModalMode(false);
             document.getElementById('companyModal').style.display = 'block';
+        }
+
+        async function editCompany(id) {
+            try {
+                const { company } = await apiCall(`/admin/companies/${id}`);
+                editingCompanyId = id;
+                document.getElementById('modal-title').textContent = `Edit ${company.name}`;
+                document.getElementById('companyForm').reset();
+                document.getElementById('company-name').value = company.name || '';
+                document.getElementById('company-slug').value = company.slug || '';
+                document.getElementById('company-email').value = company.email || '';
+                document.getElementById('company-phone').value = company.phone || '';
+                document.getElementById('company-address').value = company.address || '';
+                document.getElementById('connection-fee').value = company.connection_fee ?? 0;
+                document.getElementById('monthly-fee').value = company.monthly_fee_per_property ?? 0;
+                document.getElementById('company-status').value = company.status || 'active';
+                document.getElementById('company-ops').checked = !!company.ops_addon;
+                setModalMode(true);
+                document.getElementById('companyModal').style.display = 'block';
+            } catch (error) {
+                alert(`Failed to load company: ${error.message}`);
+            }
         }
         
         function closeModal() {
@@ -582,6 +655,34 @@
         document.getElementById('companyForm').addEventListener('submit', async (e) => {
             e.preventDefault();
             
+            // 2026-10-07 15:40, edit mode: PUT the company fields only
+            if (editingCompanyId !== null) {
+                try {
+                    document.getElementById('modal-error').style.display = 'none';
+                    await apiCall(`/admin/companies/${editingCompanyId}`, {
+                        method: 'PUT',
+                        body: JSON.stringify({
+                            name: document.getElementById('company-name').value,
+                            slug: document.getElementById('company-slug').value,
+                            email: document.getElementById('company-email').value,
+                            phone: document.getElementById('company-phone').value,
+                            address: document.getElementById('company-address').value,
+                            connection_fee: document.getElementById('connection-fee').value,
+                            monthly_fee_per_property: document.getElementById('monthly-fee').value,
+                            status: document.getElementById('company-status').value,
+                            ops_addon: document.getElementById('company-ops').checked
+                        })
+                    });
+                    document.getElementById('modal-success').textContent = 'Company updated successfully!';
+                    document.getElementById('modal-success').style.display = 'block';
+                    setTimeout(() => { closeModal(); loadCompanies(); }, 1000);
+                } catch (error) {
+                    document.getElementById('modal-error').textContent = error.message;
+                    document.getElementById('modal-error').style.display = 'block';
+                }
+                return;
+            }
+
             const formData = {
                 name: document.getElementById('company-name').value,
                 slug: document.getElementById('company-slug').value,
@@ -620,6 +721,7 @@
         
         // Auto-generate slug from company name
         document.getElementById('company-name').addEventListener('input', (e) => {
+            if (editingCompanyId !== null) return; // 2026-10-07 15:40, keep the existing slug when editing
             const slug = e.target.value
                 .toLowerCase()
                 .replace(/[^a-z0-9]+/g, '-')
@@ -645,11 +747,10 @@
         function logout() {
             console.log('Logout function called');
             try {
-                // Clear all possible tokens
-                localStorage.removeItem('stayguide_token');
+                // 2026-10-07 17:55, remove only this dashboard's session (clear() also wiped the other dashboard's
+                // session, the theme choice and, on the same origin, a paired tablet's token)
+                localStorage.removeItem('stayguide_admin_token');
                 localStorage.removeItem('authToken');
-                localStorage.clear(); // Clear all localStorage
-                sessionStorage.clear(); // Clear sessionStorage too
                 
                 console.log('Storage cleared, redirecting...');
                 
@@ -662,10 +763,24 @@
             }
         }
         
+        // 2026-10-08 12:00, G7 Ops metrics
+        async function loadOpsMetrics() {
+            try {
+                const data = await apiCall('/admin/ops/metrics');
+                if (!data || !data.companies.length) return;
+                const t = data.totals;
+                document.getElementById('ops-section').hidden = false;
+                document.getElementById('ops-summary').textContent = `${t.companies} compan${t.companies === 1 ? 'y' : 'ies'} · ${t.properties} properties · ${t.workers} workers · revenue ${t.monthly_revenue === null ? 'price not set' : '$' + t.monthly_revenue.toFixed(2) + '/mo'}`;
+                document.getElementById('ops-content').innerHTML = `<table class="companies-table"><thead><tr><th>Company</th><th>Properties</th><th>Workers</th><th>Open jobs</th><th>Overdue</th><th>Verified (30 days)</th><th>Schedules</th></tr></thead><tbody>${
+                    data.companies.map(c => `<tr><td><strong>${String(c.name).replace(/[&<>"']/g, ch => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[ch]))}</strong></td><td>${c.properties}</td><td>${c.workers}</td><td>${c.open}</td><td>${c.overdue ? '<strong>' + c.overdue + '</strong>' : 0}</td><td>${c.verified_30d}</td><td>${c.schedules}</td></tr>`).join('')}</tbody></table>`;
+            } catch (error) { console.error('Ops metrics failed:', error); }
+        }
+
         // Initialize dashboard
         document.addEventListener('DOMContentLoaded', () => {
             loadUserProfile();
             loadCompanies();
+            loadOpsMetrics();
         });
         
         // Close modal when clicking outside

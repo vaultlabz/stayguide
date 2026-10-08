@@ -13,7 +13,7 @@
     "build:clean": "rm -rf dist && npm run build",
     "test": "npm run test:unit && npm run test:e2e",
     "test:unit": "ts-node tests/e2e/unit-test.ts",
-    "test:e2e": "node tests/e2e/offline-test.js && node tests/e2e/phase3-test.js && node tests/e2e/phase5-test.js && node tests/e2e/design-test.js && node tests/e2e/content-test.js && node tests/e2e/guest-link-test.js && node tests/e2e/billing-test.js && node tests/e2e/pricing-test.js && node tests/e2e/analytics-test.js && node tests/e2e/diagnostics-test.js",
+    "test:e2e": "node tests/e2e/offline-test.js && node tests/e2e/phase3-test.js && node tests/e2e/phase5-test.js && node tests/e2e/design-test.js && node tests/e2e/content-test.js && node tests/e2e/guest-link-test.js && node tests/e2e/billing-test.js && node tests/e2e/pricing-test.js && node tests/e2e/analytics-test.js && node tests/e2e/diagnostics-test.js && node tests/e2e/admin-functions-test.js && node tests/e2e/ops-s1-test.js && node tests/e2e/ops-s2-test.js && node tests/e2e/ops-s3-test.js && node tests/e2e/ops-s4-test.js && node tests/e2e/ops-s5-test.js && node tests/e2e/ops-s6-test.js && node tests/e2e/ops-s7-test.js && node tests/e2e/ops-s8-test.js && node tests/e2e/ops-s9-test.js",
     "stripe:setup": "node scripts/stripe-sandbox-setup.js"
   },
   "keywords": [
@@ -36,9 +36,12 @@
     "morgan": "^1.10.0",
     "multer": "^2.0.1",
     "mysql2": "^3.6.0",
+    "nodemailer": "^10.0.16",
+    "pdfkit": "^0.20.2",
     "qrcode": "^1.5.4",
     "sharp": "^0.35.5",
-    "stripe": "^23.0.0"
+    "stripe": "^23.0.0",
+    "web-push": "^3.6.7"
   },
   "devDependencies": {
     "@types/bcryptjs": "^2.4.2",
@@ -47,7 +50,10 @@
     "@types/jsonwebtoken": "^9.0.2",
     "@types/morgan": "^1.9.4",
     "@types/node": "^20.4.5",
+    "@types/nodemailer": "^8.0.2",
+    "@types/pdfkit": "^0.17.6",
     "@types/qrcode": "^1.5.6",
+    "@types/web-push": "^3.6.4",
     "nodemon": "^3.0.1",
     "playwright-core": "^1.63.0",
     "ts-node": "^10.9.1",

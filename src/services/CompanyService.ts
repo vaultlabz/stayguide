@@ -33,7 +33,7 @@ export class CompanyService {
   }
 
   // 2026-10-03 23:06, G3 billing state: written only by BillingService / webhooks, never from request bodies
-  static readonly BILLING_FIELDS = ['plan', 'billing_interval', 'subscription_status', 'stripe_customer_id', 'stripe_subscription_id', 'current_period_end', 'cancel_at_period_end'] as const;
+  static readonly BILLING_FIELDS = ['plan', 'billing_interval', 'subscription_status', 'stripe_customer_id', 'stripe_subscription_id', 'current_period_end', 'cancel_at_period_end', 'ops_addon'] as const; // 2026-10-08 12:40, ops_addon (G7 S9)
 
   async setBillingState(id: number, state: Partial<Company>): Promise<void> {
     const fields = pickAllowedFields(state as Record<string, any>, CompanyService.BILLING_FIELDS);
@@ -45,6 +45,16 @@ export class CompanyService {
     }
     const { setClause, values } = buildSetClause(fields);
     await db.execute(`UPDATE companies SET ${setClause}, updated_at = CURRENT_TIMESTAMP WHERE id = ?`, [...values, id]);
+  }
+
+  // 2026-10-07 22:30, G7 S2: company-admin Ops setting (estimates above it wait for approval; null = never)
+  async setOpsApprovalThreshold(id: number, threshold: number | null): Promise<void> {
+    if (MOCK_MODE) {
+      const company: any = mockCompanies.find(c => c.id === id);
+      if (company) company.ops_approval_threshold = threshold;
+      return;
+    }
+    await db.execute('UPDATE companies SET ops_approval_threshold = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?', [threshold, id]);
   }
 
   async findByStripeCustomerId(customerId: string): Promise<Company | null> {

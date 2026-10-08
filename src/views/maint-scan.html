@@ -1,0 +1,67 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+    <meta name="referrer" content="no-referrer">
+    <title>Check in - StayGuide</title>
+    <!-- 2026-10-08 01:45, G7 Ops stage 3: landing page of a property QR sticker. Checks the signed-in worker in or out of their job there. -->
+    <link rel="stylesheet" href="/css/theme.css">
+    <link rel="stylesheet" href="/css/maint.css">
+    <script src="/js/theme.js"></script>
+</head>
+<body>
+    <header class="m-header">
+        <div class="brand"><span class="initial">S</span><span class="brand-name">StayGuide</span></div>
+    </header>
+    <main>
+        <div id="notices"></div>
+        <section id="result" aria-live="polite"><p class="muted">Checking you in…</p></section>
+    </main>
+    <footer class="powered"><div data-theme-toggle style="margin-bottom: 10px;"></div>Powered by <strong>StayGuide</strong></footer>
+    <script>
+        const KEY = 'stayguide_maint_token';
+        const scanToken = location.pathname.split('/').pop();
+        const esc = v => String(v ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+        let token = null;
+        try { token = localStorage.getItem(KEY); } catch {}
+        const box = document.getElementById('result');
+
+        function goSignIn() {
+            try { sessionStorage.setItem('stayguide_pending_scan', location.pathname); } catch {}
+            location.replace('/maint');
+        }
+
+        async function scan(jobId) {
+            box.innerHTML = '<p class="muted">Checking you in…</p>';
+            try {
+                const res = await fetch(`/maint/api/scan/${encodeURIComponent(scanToken)}`, {
+                    method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+                    body: JSON.stringify(jobId ? { job_id: jobId } : {})
+                });
+                if (res.status === 401 || res.status === 403) return goSignIn();
+                const data = await res.json().catch(() => ({}));
+                if (res.status === 300) {
+                    box.innerHTML = `<h1>Which job?</h1><p class="lead">You have more than one job here.</p><div class="btn-row">${data.jobs.map(j =>
+                        `<button class="btn btn-secondary" type="button" onclick="scan(${Number(j.id)})">${esc(j.title)}</button>`).join('')}</div>`;
+                    return;
+                }
+                if (!res.ok) {
+                    box.innerHTML = `<h1>Not checked in</h1><div class="notice error">${esc(data.error || 'Something went wrong')}</div>`
+                        + (data.job ? `<a class="btn btn-secondary" href="/maint?job=${Number(data.job.id)}">Open the job</a>` : '<a class="btn btn-secondary" href="/maint">Your jobs</a>');
+                    return;
+                }
+                const inNow = data.checked === 'in';
+                box.innerHTML = `<h1>${inNow ? 'Checked in' : 'Checked out'}</h1>
+                    <div class="notice success">${inNow ? 'Welcome' : 'Thanks'}: ${esc(data.job.title)} at ${esc(data.job.property)}, ${new Date().toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })}.</div>
+                    <a class="btn btn-primary" href="/maint?job=${Number(data.job.id)}">Open the job</a>
+                    <p class="muted" style="margin-top:12px">Scan the sticker again when you ${inNow ? 'leave' : 'come back'}.</p>`;
+            } catch {
+                box.innerHTML = '<h1>No connection</h1><div class="notice error">Could not reach StayGuide. Check your signal and scan again.</div>';
+            }
+        }
+
+        if (!token) goSignIn(); else scan();
+    </script>
+</body>
+</html>

@@ -109,3 +109,5 @@ export const requireCompanyAdmin = async (req: AuthRequest, res: Response, next:
     role: req.user.role
   });
 };
+// 2026-10-07 19:00, G7 Ops: the /maint worker app only accepts field_worker accounts (use after authenticateToken)
+export const requireFieldWorker = requireRole(['field_worker']);

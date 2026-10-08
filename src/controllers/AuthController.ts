@@ -50,6 +50,37 @@ export class AuthController {
     }
   }
 
+  // 2026-10-07 17:15, POST /login: sign in with email + password only; the company comes from the account (task #44, replaces prompt() for the slug)
+  async signIn(req: Request, res: Response) {
+    try {
+      const { email, password } = req.body || {};
+      if (!email || !password) {
+        return res.status(400).json({ error: 'Email and password are required' });
+      }
+      const user = await this.userService.validatePassword(email, password);
+      if (!user || (user.role !== 'company_admin' && user.role !== 'super_admin')) {
+        return res.status(401).json({ error: 'Invalid email or password' });
+      }
+      let company = null;
+      if (user.role === 'company_admin') {
+        company = user.company_id ? await this.companyService.findById(user.company_id) : null;
+        if (!company || company.status !== 'active') {
+          return res.status(403).json({ error: 'This company account is not active. Contact StayGuide support.' });
+        }
+      }
+      const token = generateToken({ userId: user.id, email: user.email, role: user.role, companyId: user.company_id });
+      console.log(`Sign-in successful: ${user.email}${company ? ` for ${company.name}` : ' (super admin)'}`);
+      res.json({
+        message: 'Login successful',
+        token,
+        redirect: company ? `/company/${company.slug}/dashboard` : '/admin/dashboard'
+      });
+    } catch (error) {
+      console.error('Sign-in error:', error);
+      res.status(500).json({ error: 'Internal server error' });
+    }
+  }
+
   async companyLogin(req: Request, res: Response) {
     try {
       const { email, password } = req.body;

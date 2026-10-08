@@ -1,0 +1,15 @@
+{
+  "name": "StayGuide Work",
+  "short_name": "Jobs",
+  "description": "Jobs from the property managers you work for. Powered by StayGuide.",
+  "id": "/maint",
+  "start_url": "/maint",
+  "scope": "/maint",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#f5f3ee",
+  "theme_color": "#1d6b60",
+  "icons": [
+    { "src": "/icons/stayguide.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any" }
+  ]
+}

@@ -6,6 +6,10 @@
     <title>Invoice Details - StayGuide Admin</title>
     <!-- 2026-10-03 15:31, shared design tokens + light/dark theme (set before paint to avoid a flash) -->
     <link rel="stylesheet" href="/css/theme.css">
+    <!-- 2026-10-06 15:50, Snow-kit admin skin (Inter via Google Fonts, allowed by CSP) -->
+    <link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap">
+    <link rel="stylesheet" href="/css/admin-kit.css">
     <script src="/js/theme.js"></script>
     <style>
         * {
@@ -290,13 +294,13 @@
         }
     </style>
 </head>
-<body class="sg-app">
+<body class="sg-app snow">
     <div class="header">
         <div class="logo">StayGuide Admin</div>
         <div class="nav-links">
             <a href="/admin/dashboard">Dashboard</a>
             <a href="/admin/billing">Billing</a>
-            <a href="#" id="helpdesk-link">Helpdesk</a>
+            <a href="/admin/helpdesk" id="helpdesk-link">Helpdesk</a><!-- 2026-10-07 16:20, was a "coming soon" alert -->
         </div>
         <div class="user-info">
             <div data-theme-toggle></div>
@@ -321,7 +325,7 @@
 
     <script>
         const API_BASE = '';
-        let authToken = localStorage.getItem('stayguide_token');
+        let authToken = localStorage.getItem('stayguide_admin_token');
         
         // Check authentication on page load
         if (!authToken) {
@@ -351,7 +355,7 @@
                 const response = await fetch(API_BASE + endpoint, config);
                 
                 if (response.status === 401) {
-                    localStorage.removeItem('stayguide_token');
+                    localStorage.removeItem('stayguide_admin_token');
                     window.location.href = '/admin/login';
                     return;
                 }
@@ -564,8 +568,25 @@
         }
         
         // Download invoice PDF
-        function downloadInvoicePDF() {
-            alert('📄 PDF download feature coming soon!\\n\\nThis will generate and download a professional PDF invoice.');
+        // 2026-10-07 16:55, server-rendered PDF (was a "coming soon" alert); fetched with the bearer token, saved via a blob link
+        async function downloadInvoicePDF() {
+            try {
+                const response = await fetch(`/billing/${invoiceId}/pdf`, { headers: { Authorization: `Bearer ${authToken}` } });
+                if (!response.ok) {
+                    const data = await response.json().catch(() => ({}));
+                    throw new Error(data.error || 'Download failed');
+                }
+                const url = URL.createObjectURL(await response.blob());
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = (response.headers.get('Content-Disposition') || '').match(/filename="([^"]+)"/)?.[1] || `invoice-${invoiceId}.pdf`;
+                document.body.appendChild(a);
+                a.click();
+                a.remove();
+                setTimeout(() => URL.revokeObjectURL(url), 1000);
+            } catch (error) {
+                alert(`Failed to download PDF: ${error.message}`);
+            }
         }
         
         // Mark as paid
@@ -611,7 +632,7 @@
         
         // Logout function
         function logout() {
-            localStorage.removeItem('stayguide_token');
+            localStorage.removeItem('stayguide_admin_token');
             window.location.href = '/admin/login';
         }
         
@@ -622,10 +643,6 @@
             
             // Add event listeners
             document.getElementById('logout-btn').addEventListener('click', logout);
-            document.getElementById('helpdesk-link').addEventListener('click', function(e) {
-                e.preventDefault();
-                alert('Helpdesk coming soon!');
-            });
         });
     </script>
 </body>

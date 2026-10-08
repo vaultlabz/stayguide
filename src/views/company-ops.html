@@ -1,0 +1,525 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Work orders - StayGuide</title>
+    <!-- 2026-10-07 22:50, G7 Ops stage 2: manager work-order board (create, assign, approve costs, verify / send back, cancel, history) -->
+    <link rel="stylesheet" href="/css/theme.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap">
+    <link rel="stylesheet" href="/css/helpdesk.css">
+    <link rel="stylesheet" href="/css/admin-kit.css">
+    <script src="/js/theme.js"></script>
+    <style>
+        .toolbar { display: flex; flex-wrap: wrap; gap: 0.75rem; align-items: end; margin-bottom: 1rem; }
+        .toolbar .form-group { margin: 0; min-width: 170px; }
+        .board { display: grid; grid-template-columns: repeat(5, minmax(200px, 1fr)); gap: 0.9rem; align-items: start; overflow-x: auto; padding-bottom: 0.5rem; }
+        .col { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-lg); padding: 0.75rem; min-height: 120px; }
+        .col h2 { font-size: 0.9rem; display: flex; justify-content: space-between; margin: 0.15rem 0.25rem 0.75rem; }
+        .col h2 span { color: var(--text-muted); font-weight: 500; }
+        .wo { display: grid; gap: 0.3rem; width: 100%; text-align: left; font: inherit; color: inherit; background: var(--bg); border: 1px solid var(--border); border-radius: var(--radius-sm); padding: 0.7rem; margin-bottom: 0.55rem; cursor: pointer; }
+        .wo:hover { border-color: var(--border-strong); }
+        .wo:focus-visible { outline: 2px solid var(--text); outline-offset: 2px; }
+        .wo-title { font-weight: 600; line-height: 1.3; }
+        .wo-meta { font-size: 0.82rem; color: var(--text-muted); }
+        .wo-tags { display: flex; flex-wrap: wrap; gap: 0.3rem; }
+        .badge.overdue, .badge.over { background: var(--danger-bg); color: var(--danger-text); }
+        .badge.awaiting_approval { background: var(--warning-bg, var(--accent-soft)); color: var(--warning-text, var(--text)); }
+        .badge.verified { background: var(--success-bg); color: var(--success-text); }
+        .empty-col { color: var(--text-muted); font-size: 0.85rem; padding: 0.5rem 0.25rem; }
+        dialog { margin: auto; /* the * { margin: 0 } reset removes native centering */ border: 1px solid var(--border); border-radius: var(--radius-lg); background: var(--surface); color: var(--text); padding: 1.5rem; width: min(640px, calc(100vw - 32px)); max-height: calc(100vh - 48px); }
+        dialog::backdrop { background: rgb(0 0 0 / 0.4); }
+        .dl { display: grid; grid-template-columns: 140px 1fr; gap: 0.4rem 1rem; margin: 1rem 0; font-size: 0.95rem; }
+        .dl dt { color: var(--text-muted); }
+        .timeline { list-style: none; display: grid; gap: 0.55rem; margin: 0.75rem 0 1rem; border-left: 2px solid var(--border); padding-left: 0.9rem; }
+        .timeline li { font-size: 0.9rem; }
+        .timeline .when { color: var(--text-muted); font-size: 0.8rem; }
+        .timeline .note { white-space: pre-wrap; color: var(--text-2); }
+        .grid-2 { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 0 1rem; }
+        .closed-list { margin-top: 1.25rem; }
+        /* 2026-10-08 01:20, G7 S3 */
+        .photos { display: grid; grid-template-columns: repeat(auto-fill, minmax(110px, 1fr)); gap: 0.5rem; margin: 0.5rem 0 1rem; }
+        .photos a { display: block; position: relative; border-radius: var(--radius-sm); overflow: hidden; border: 1px solid var(--border); aspect-ratio: 1; background: var(--surface-2); }
+        .photos img { width: 100%; height: 100%; object-fit: cover; display: block; }
+        .photos span { position: absolute; left: 4px; bottom: 4px; font-size: 0.72rem; padding: 0.05rem 0.4rem; border-radius: 999px; background: rgb(0 0 0 / 0.6); color: #fff; }
+        .access-table { width: 100%; border-collapse: collapse; font-size: 0.95rem; }
+        .access-table th, .access-table td { text-align: left; padding: 0.6rem 0.5rem; border-bottom: 1px solid var(--border); vertical-align: middle; }
+        .access-table th { color: var(--text-muted); font-size: 0.85rem; }
+        .row-actions { display: flex; gap: 0.4rem; flex-wrap: wrap; }
+        .btn-small { min-height: 32px; padding: 0.25rem 0.7rem; font-size: 0.85rem; }
+        .checklist { list-style: none; display: grid; gap: 0.35rem; margin: 0.5rem 0 1rem; }
+        .checklist li { display: grid; grid-template-columns: 22px minmax(0, 1fr) auto; gap: 0.5rem; align-items: center; font-size: 0.92rem; }
+        .checklist .tick { font-weight: 700; color: var(--success-text); }
+        .checklist .open { color: var(--text-muted); }
+        .checklist img { width: 44px; height: 44px; object-fit: cover; border-radius: 6px; display: block; }
+        .review-item { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 0.5rem 1rem; padding: 0.9rem 0; border-bottom: 1px solid var(--border); }
+        .review-item:last-child { border-bottom: 0; }
+        .strip { display: flex; gap: 0.35rem; flex-wrap: wrap; grid-column: 1 / -1; }
+        .strip img { width: 64px; height: 64px; object-fit: cover; border-radius: 6px; display: block; }
+        @media (max-width: 1100px) { .board { grid-template-columns: repeat(5, 240px); } }
+        @media (max-width: 700px) { .grid-2 { grid-template-columns: 1fr; } .dl { grid-template-columns: 1fr; } }
+    </style>
+</head>
+<body class="sg-app snow">
+    <div class="header">
+        <div class="logo">StayGuide</div>
+        <nav class="nav-links" aria-label="Main">
+            <a href="#" data-path="dashboard">Dashboard</a>
+            <a href="#" data-path="ops" class="active" aria-current="page">Work orders</a>
+            <a href="#" data-path="team">Team</a>
+            <a href="#" data-path="billing">Billing</a>
+            <a href="#" data-path="helpdesk">Support</a>
+            <a href="#" data-path="help">Help</a>
+        </nav>
+        <div class="user-info">
+            <div data-theme-toggle></div>
+            <span id="user-name">Company Admin</span>
+            <button class="btn btn-secondary" onclick="logout()">Logout</button>
+        </div>
+    </div>
+
+    <main class="container" style="max-width: 1400px;">
+        <div class="page-head">
+            <div>
+                <h1>Work orders</h1>
+                <p class="lead">Assign jobs to your team, approve costs and verify the work.</p>
+            </div>
+            <div class="actions">
+                <a class="btn btn-secondary" href="#" data-path="schedules">Schedules</a><!-- 2026-10-08 12:00, G7 S8 -->
+                <a class="btn btn-secondary" href="#" data-path="time">Time &amp; pay</a><!-- 2026-10-08 09:50, G7 S7 -->
+                <a class="btn btn-secondary" href="#" data-path="checklists">Checklists</a><!-- 2026-10-08 03:40, G7 S4 -->
+                <button class="btn btn-primary" type="button" id="new-btn" onclick="openCreate()" hidden>New work order</button>
+            </div>
+        </div>
+        <div id="notices"></div>
+
+        <section id="upgrade" class="card" hidden>
+            <h2>Ops add-on</h2>
+            <p class="muted">Work orders are part of the Ops add-on, which needs a Pro or Portfolio plan. <a href="#" data-path="helpdesk?new=1">Contact StayGuide support</a> to switch it on.</p>
+        </section>
+
+        <div id="ops" hidden>
+            <div class="toolbar">
+                <div class="form-group"><label for="f-property">Property</label><select id="f-property"><option value="">All properties</option></select></div>
+                <div class="form-group"><label for="f-assignee">Assigned to</label><select id="f-assignee"><option value="">Anyone</option></select></div>
+                <form class="form-group" id="threshold-form" style="min-width: 260px;">
+                    <label for="threshold">Approve estimates above (USD)</label>
+                    <div style="display: flex; gap: 0.5rem;"><input id="threshold" type="number" min="0" step="1" placeholder="Never ask"><button class="btn btn-secondary" type="submit">Save</button></div>
+                </form>
+            </div>
+            <div id="alerts"></div><!-- 2026-10-08 12:00, G7 S8: overdue / waiting for someone -->
+            <!-- 2026-10-08 03:40, G7 S4: submitted jobs with their checklist and photos -->
+            <section class="card" id="review-card" hidden style="margin-bottom: 1rem;">
+                <h2>Review queue <span class="muted" id="review-count"></span></h2>
+                <div id="review"></div>
+            </section>
+            <div class="board" id="board"></div>
+            <!-- 2026-10-08 01:20, G7 S3: access codes + QR stickers per property -->
+            <section class="card" style="margin-top: 1.25rem;" id="access-card">
+                <h2>Property access &amp; QR stickers</h2>
+                <p class="muted" style="margin-bottom: 0.75rem;">Workers see a property's code only while they have a job there, from 30 minutes before the job window until 30 minutes after. Each view is recorded in the job history. Print a QR sticker for each property so workers can check in and out on site.</p>
+                <div style="overflow-x:auto"><table class="access-table"><thead><tr><th>Property</th><th>Access code</th><th>Notes</th><th>QR sticker</th><th></th></tr></thead><tbody id="access-rows"></tbody></table></div>
+                <form id="access-form" hidden style="margin-top: 1rem;">
+                    <h3 style="font-size:1rem;margin-bottom:0.5rem" id="access-title"></h3>
+                    <div class="grid-2">
+                        <div class="form-group"><label for="a-code">Access code (lockbox, door, gate)</label><input id="a-code" maxlength="100" autocomplete="off"></div>
+                        <div class="form-group"><label for="a-notes">Notes for workers</label><input id="a-notes" maxlength="500" placeholder="Lockbox left of the front door"></div>
+                    </div>
+                    <div class="actions"><button class="btn btn-primary" type="submit">Save</button><button class="btn btn-secondary" type="button" onclick="document.getElementById('access-form').hidden = true">Cancel</button></div>
+                </form>
+            </section>
+
+            <details class="closed-list card">
+                <summary><strong>Verified and canceled</strong> <span class="muted" id="closed-count"></span></summary>
+                <div id="closed" style="margin-top: 0.75rem;"></div>
+            </details>
+        </div>
+    </main>
+
+    <dialog id="detail"><div id="detail-body"></div></dialog>
+
+    <dialog id="create">
+        <form id="create-form">
+            <h2>New work order</h2>
+            <div class="form-group"><label for="c-title">Title</label><input id="c-title" maxlength="255" required></div>
+            <div class="grid-2">
+                <div class="form-group"><label for="c-property">Property</label><select id="c-property" required></select></div>
+                <div class="form-group"><label for="c-type">Type</label>
+                    <select id="c-type"><option value="maintenance">Maintenance</option><option value="cleaning">Cleaning</option><option value="inspection">Inspection</option><option value="ad_hoc">Other</option></select></div>
+                <div class="form-group"><label for="c-priority">Priority</label>
+                    <select id="c-priority"><option value="low">Low</option><option value="medium" selected>Medium</option><option value="high">High</option><option value="urgent">Urgent</option></select></div>
+                <div class="form-group"><label for="c-assignee">Assign to</label><select id="c-assignee"></select></div>
+                <div class="form-group"><label for="c-start">Window starts</label><input id="c-start" type="datetime-local"></div>
+                <div class="form-group"><label for="c-end">Window ends</label><input id="c-end" type="datetime-local"></div>
+                <div class="form-group"><label for="c-due">Due by</label><input id="c-due" type="datetime-local"></div>
+                <div class="form-group"><label for="c-approved">Pre-approve up to (USD)</label><input id="c-approved" type="number" min="0" step="0.01" placeholder="Optional"></div>
+                <div class="form-group"><label for="c-checklist">Checklist</label><select id="c-checklist"><option value="">None</option></select></div>
+            </div>
+            <div class="form-group"><label for="c-desc">Description</label><textarea id="c-desc" maxlength="5000"></textarea></div>
+            <div class="actions">
+                <button class="btn btn-primary" type="submit">Create</button>
+                <button class="btn btn-secondary" type="button" onclick="document.getElementById('create').close()">Cancel</button>
+            </div>
+        </form>
+    </dialog>
+
+    <script>
+        const pathParts = window.location.pathname.split('/');
+        const companySlug = pathParts[1] === 'company' ? pathParts[2] : '';
+        const base = `/company/${companySlug}`;
+        let authToken = null;
+        try { authToken = localStorage.getItem('stayguide_token'); } catch {}
+        if (!authToken) window.location.href = `${base}/login`;
+        document.querySelectorAll('[data-path]').forEach(a => { a.href = `${base}/${a.dataset.path}`; });
+
+        const COLUMNS = [['new', 'New'], ['assigned', 'Assigned'], ['awaiting_approval', 'Needs approval'], ['in_progress', 'In progress'], ['done', 'Done: verify']];
+        const LABEL = { new: 'New', assigned: 'Assigned', awaiting_approval: 'Needs approval', in_progress: 'In progress', done: 'Done', verified: 'Verified', canceled: 'Canceled' };
+        const TYPE = { maintenance: 'Maintenance', cleaning: 'Cleaning', inspection: 'Inspection', ad_hoc: 'Other' };
+        const fmtMinutes = m => (m >= 60 ? `${Math.floor(m / 60)} h ${m % 60} min` : `${m} min`);
+        const STEP_ACTIONS = { step_done: 'Step done', step_undone: 'Step reopened', checklist_attached: 'Checklist attached', checklist_removed: 'Checklist removed' };
+        const ACTION = { ...STEP_ACTIONS, checked_in: 'Checked in', checked_out: 'Checked out', photo_added: 'Photo added', photo_removed: 'Photo removed', access_viewed: 'Viewed the access code', access_set: 'Job access code changed', created: 'Created', assigned: 'Assigned', reassigned: 'Reassigned', unassigned: 'Unassigned', preapproved: 'Pre-approved', estimated: 'Estimate', approval_requested: 'Asked for approval',
+            approved: 'Approved', rejected: 'Estimate rejected', started: 'Started', submitted: 'Submitted', verified: 'Verified', bounced: 'Sent back', canceled: 'Canceled', commented: 'Comment', edited: 'Edited' };
+        let orders = [], members = [], properties = [], current = null, poll = null, templates = [], currentChecklist = [];
+
+        const esc = v => String(v ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+        const money = n => (n === null || n === undefined ? '' : '$' + Number(n).toFixed(2));
+        const when = d => (d ? new Date(d).toLocaleString(undefined, { dateStyle: 'medium', timeStyle: 'short' }) : '');
+        const isoLocal = v => (v ? new Date(v).toISOString() : null);
+
+        async function apiCall(endpoint, options = {}) {
+            const response = await fetch(base + endpoint, { ...options, headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${authToken}` } });
+            if (response.status === 401) { logout(); return null; }
+            const data = await response.json();
+            if (!response.ok) { const err = new Error(data.error || 'Request failed'); err.status = response.status; throw err; }
+            return data;
+        }
+        function notice(message, kind = '') {
+            const el = document.createElement('div');
+            el.className = `notice ${kind}`;
+            el.setAttribute('role', kind === 'error' ? 'alert' : 'status');
+            el.textContent = message;
+            document.getElementById('notices').replaceChildren(el);
+        }
+        function logout() { try { localStorage.removeItem('stayguide_token'); } catch {} window.location.href = `${base}/login`; }
+
+        function card(o) {
+            const tags = [
+                `<span class="badge ${o.priority}">${o.priority}</span>`,
+                o.overdue ? '<span class="badge overdue">overdue</span>' : '',
+                o.status === 'awaiting_approval' ? `<span class="badge awaiting_approval">${money(o.cost_estimate)}</span>` : '',
+                o.status === 'done' && o.cost_actual !== null ? `<span class="badge ${o.approved_amount !== null && o.cost_actual > o.approved_amount * 1.1 ? 'over' : ''}">${money(o.cost_actual)}</span>` : ''
+            ].join('');
+            return `<button class="wo" type="button" onclick="openDetail(${o.id})">
+                <span class="wo-title">#${o.id} ${esc(o.title)}</span>
+                <span class="wo-meta">${esc(o.property_name)} · ${TYPE[o.type]}</span>
+                <span class="wo-meta">${o.assignee_name ? esc(o.assignee_name) : 'Unassigned'}${o.window_start ? ' · ' + when(o.window_start) : o.due_at ? ' · due ' + when(o.due_at) : ''}</span>
+                <span class="wo-tags">${tags}</span>
+            </button>`;
+        }
+
+        function render() {
+            const p = document.getElementById('f-property').value, a = document.getElementById('f-assignee').value;
+            const shown = orders.filter(o => (!p || String(o.property_id) === p) && (!a || String(o.assignee_user_id) === a));
+            document.getElementById('board').innerHTML = COLUMNS.map(([status, title]) => {
+                const list = shown.filter(o => o.status === status);
+                return `<section class="col" aria-label="${title}"><h2>${title} <span>${list.length}</span></h2>${list.map(card).join('') || '<div class="empty-col">Nothing here</div>'}</section>`;
+            }).join('');
+            const closed = shown.filter(o => o.status === 'verified' || o.status === 'canceled');
+            document.getElementById('closed-count').textContent = `(${closed.length})`;
+            document.getElementById('closed').innerHTML = closed.map(card).join('') || '<div class="empty-col">None yet</div>';
+        }
+
+        async function load() {
+            try {
+                const data = await apiCall('/ops/work-orders');
+                if (!data) return;
+                orders = data.work_orders;
+                document.getElementById('ops').hidden = false;
+                document.getElementById('new-btn').hidden = false;
+                if (document.activeElement?.id !== 'threshold') document.getElementById('threshold').value = data.approval_threshold ?? '';
+                // 2026-10-08 12:00, G7 S8: what needs attention
+                const overdue = orders.filter(o => o.overdue).length;
+                const waiting = orders.filter(o => o.status === 'new' && Date.now() - new Date(o.created_at) > (o.priority === 'urgent' ? 3600e3 : 86400e3)).length;
+                document.getElementById('alerts').innerHTML = overdue || waiting ? `<div class="notice ${overdue ? 'error' : ''}">${[
+                    overdue ? `<strong>${overdue} overdue</strong>` : '', waiting ? `<strong>${waiting} waiting for someone</strong> to be assigned` : ''].filter(Boolean).join(' · ')}</div>` : '';
+                render();
+            } catch (error) {
+                if (error.status === 402) { document.getElementById('upgrade').hidden = false; clearInterval(poll); }
+                else notice(error.message, 'error');
+            }
+        }
+
+        async function loadRefs() {
+            try {
+                const [team, props, lists] = await Promise.all([apiCall('/ops/team'), apiCall('/properties'), apiCall('/ops/checklists')]);
+                templates = lists?.templates || [];
+                document.getElementById('c-checklist').innerHTML = '<option value="">None</option>' + templates.map(t => `<option value="${t.id}">${esc(t.name)} (${t.items.length} steps)</option>`).join('');
+                members = (team?.members || []).filter(m => m.status === 'active');
+                // 2026-10-08 08:00, G7 S6: vendors with expired insurance can't be picked
+                members.forEach(m => { m.blocked = m.worker_type === 'vendor' && m.vendor?.coi?.state === 'expired'; });
+                properties = (props?.properties || []).filter(p => p.status === 'active');
+                const opts = (list, label, value) => list.map(x => `<option value="${value(x)}">${esc(label(x))}</option>`).join('');
+                document.getElementById('f-property').insertAdjacentHTML('beforeend', opts(properties, p => p.name, p => p.id));
+                document.getElementById('f-assignee').insertAdjacentHTML('beforeend', opts(members, m => `${m.first_name} ${m.last_name}`, m => m.user_id));
+                document.getElementById('c-property').innerHTML = opts(properties, p => p.name, p => p.id);
+                document.getElementById('c-assignee').innerHTML = '<option value="">Leave unassigned</option>' + members.map(m => `<option value="${m.user_id}" ${m.blocked ? 'disabled' : ''}>${esc(m.first_name)} ${esc(m.last_name)} (${m.worker_type})${m.blocked ? ' (insurance expired)' : ''}</option>`).join('');
+            } catch {}
+        }
+
+        function memberOptions(selected) {
+            return '<option value="">Unassigned</option>' + members.map(m => `<option value="${m.user_id}" ${m.user_id === selected ? 'selected' : ''} ${m.blocked && m.user_id !== selected ? 'disabled' : ''}>${esc(m.first_name)} ${esc(m.last_name)} (${m.worker_type})${m.blocked ? ' (insurance expired)' : ''}</option>`).join('');
+        }
+
+        async function openDetail(id) {
+            try {
+                const data = await apiCall(`/ops/work-orders/${id}`);
+                if (!data) return;
+                current = data.work_order;
+                currentChecklist = data.checklist || [];
+                const o = current, s = o.status;
+                const actions = [];
+                if (['new', 'assigned', 'awaiting_approval'].includes(s)) actions.push(`
+                    <div class="form-group"><label for="d-assignee">Assigned to</label>
+                    <div style="display:flex;gap:0.5rem"><select id="d-assignee">${memberOptions(o.assignee_user_id)}</select>
+                    <button class="btn btn-secondary" type="button" onclick="act('assign', { assignee_user_id: document.getElementById('d-assignee').value || null })">Save</button></div></div>`);
+                if (s === 'in_progress') actions.push(`
+                    <div class="form-group"><label for="d-assignee">Reassign</label>
+                    <div style="display:flex;gap:0.5rem"><select id="d-assignee">${members.map(m => `<option value="${m.user_id}" ${m.user_id === o.assignee_user_id ? 'selected' : ''}>${esc(m.first_name)} ${esc(m.last_name)}</option>`).join('')}</select>
+                    <button class="btn btn-secondary" type="button" onclick="act('assign', { assignee_user_id: document.getElementById('d-assignee').value })">Save</button></div></div>`);
+                if (s === 'awaiting_approval') actions.push(`
+                    <div class="notice">${esc(o.assignee_name)} estimated <strong>${money(o.cost_estimate)}</strong>. Work is on hold until you decide.</div>
+                    <div class="actions"><button class="btn btn-primary" type="button" onclick="act('approve', {})">Approve ${money(o.cost_estimate)}</button>
+                    <button class="btn btn-secondary" type="button" onclick="withReason('reject', 'Why are you rejecting the estimate? The job goes back to New and is unassigned.')">Reject</button></div>`);
+                if (s === 'done') actions.push(`
+                    <div class="actions"><button class="btn btn-primary" type="button" onclick="act('verify', {})">Verify</button>
+                    <button class="btn btn-secondary" type="button" onclick="withReason('bounce', 'What needs to be fixed? The job goes back to In progress.')">Send back</button></div>`);
+                if (!['verified', 'canceled'].includes(s)) actions.push(`<button class="btn-link" type="button" onclick="cancelOrder()">Cancel work order</button>`);
+                const over = o.cost_actual !== null && o.approved_amount !== null && o.cost_actual > o.approved_amount * 1.1;
+                document.getElementById('detail-body').innerHTML = `
+                    <div class="page-head" style="margin-bottom:0"><h2 style="margin:0">#${o.id} ${esc(o.title)}</h2>
+                        <button class="btn btn-secondary btn-small" type="button" onclick="document.getElementById('detail').close()">Close</button></div>
+                    <p class="muted"><span class="badge ${s}">${LABEL[s]}</span> <span class="badge ${o.priority}">${o.priority}</span> ${TYPE[o.type]} · ${esc(o.property_name)}</p>
+                    <dl class="dl">
+                        ${o.description ? `<dt>Description</dt><dd style="white-space:pre-wrap">${esc(o.description)}</dd>` : ''}
+                        <dt>Window</dt><dd>${o.window_start ? when(o.window_start) + (o.window_end ? ' to ' + when(o.window_end) : '') : 'Not set'}</dd>
+                        ${o.due_at ? `<dt>Due</dt><dd>${when(o.due_at)}${o.overdue ? ' <span class="badge overdue">overdue</span>' : ''}</dd>` : ''}
+                        ${o.cost_estimate !== null ? `<dt>Estimate</dt><dd>${money(o.cost_estimate)}</dd>` : ''}
+                        ${o.approved_amount !== null ? `<dt>Approved</dt><dd>${money(o.approved_amount)}</dd>` : ''}
+                        ${o.cost_actual !== null ? `<dt>Actual cost</dt><dd>${money(o.cost_actual)}${over ? ' <span class="badge over">more than 10% over</span>' : ''}</dd>` : ''}
+                        ${o.completion_notes ? `<dt>Worker notes</dt><dd style="white-space:pre-wrap">${esc(o.completion_notes)}</dd>` : ''}
+                        ${data.report ? `<dt>Guest report</dt><dd>${esc(data.report.title)}${data.report.location ? ' · ' + esc(data.report.location) : ''}</dd>` : ''}
+                    </dl>
+                    ${checklistBlock(data, s)}
+                    ${data.photos.length ? `<h3 style="margin-top:1rem;font-size:1rem">Photos</h3><div class="photos">${data.photos.map(ph => `<a href="${ph.url}" target="_blank" rel="noopener" title="${esc(ph.caption || '')}"><img src="${ph.url}" alt="${esc(ph.kind)} photo${ph.caption ? ': ' + esc(ph.caption) : ''}" loading="lazy"><span>${esc(ph.kind)}</span></a>`).join('')}</div>` : ''}
+                    ${data.time.entries.length ? `<p class="muted" style="margin:0.5rem 0">On site: <strong>${fmtMinutes(data.time.minutes)}</strong> over ${data.time.entries.length} visit${data.time.entries.length === 1 ? '' : 's'}${data.time.on_site ? ' · <strong>checked in now</strong>' : ''}</p>` : ''}
+                    ${!['verified', 'canceled'].includes(s) ? `<form style="margin:0.75rem 0" onsubmit="event.preventDefault(); saveJobCode(this.code.value)">
+                        <div class="form-group" style="margin-bottom:0.4rem"><label for="d-code">Access code for this job only ${o.has_access_override ? '(set; leave empty to use the property code)' : '(optional, overrides the property code)'}</label>
+                        <div style="display:flex;gap:0.5rem"><input id="d-code" name="code" maxlength="100" autocomplete="off" placeholder="${o.has_access_override ? '••••••' : 'Use the property code'}"><button class="btn btn-secondary" type="submit">Save</button></div></div>
+                    </form>` : ''}
+                    ${actions.join('')}
+                    <form id="reason-form" hidden style="margin-top:0.75rem">
+                        <div class="form-group"><label for="reason" id="reason-label"></label><textarea id="reason" maxlength="5000" style="min-height:70px"></textarea></div>
+                        <div class="actions"><button class="btn btn-primary" type="submit" id="reason-submit"></button>
+                        <button class="btn btn-secondary" type="button" onclick="document.getElementById('reason-form').hidden = true">Back</button></div>
+                    </form>
+                    <h3 style="margin-top:1.25rem;font-size:1rem">History</h3>
+                    <ol class="timeline">${data.events.map(e => `<li><strong>${ACTION[e.action] || esc(e.action)}</strong> ${e.actor_name ? '· ' + esc(e.actor_name) : e.actor_user_id === null ? '· StayGuide' : ''}
+                        ${e.data?.amount != null ? ' · ' + money(e.data.amount) : ''}${e.data?.cost_actual != null ? ' · ' + money(e.data.cost_actual) : ''}
+                        <div class="when">${when(e.created_at)}</div>${e.note ? `<div class="note">${esc(e.note)}</div>` : ''}</li>`).join('')}</ol>
+                    <form onsubmit="event.preventDefault(); act('comment', { note: this.note.value })">
+                        <div class="form-group"><label for="d-note">Comment (the worker gets an email)</label><textarea id="d-note" name="note" maxlength="5000" style="min-height:70px" required></textarea></div>
+                        <button class="btn btn-secondary" type="submit">Add comment</button>
+                    </form>`;
+                const dlg = document.getElementById('detail');
+                if (!dlg.open) dlg.showModal();
+                history.replaceState(null, '', `${location.pathname}?wo=${o.id}`);
+            } catch (error) {
+                notice(error.message, 'error');
+            }
+        }
+        document.getElementById('detail').addEventListener('close', () => history.replaceState(null, '', location.pathname));
+
+        async function act(action, body) {
+            try {
+                const data = await apiCall(`/ops/work-orders/${current.id}/${action}`, { method: 'POST', body: JSON.stringify(body) });
+                await Promise.all([load(), loadReview()]);
+                await openDetail(current.id);
+                if (data?.flags?.includes('over_budget')) notice('Submitted cost is more than 10% over the approved amount.', 'error');
+            } catch (error) {
+                alert(error.message);
+            }
+        }
+        // 2026-10-08 03:40, G7 S4: checklist in the job dialog
+        function checklistBlock(data, s) {
+            const items = data.checklist || [];
+            const canChange = !['done', 'verified', 'canceled'].includes(s) && !items.some(i => i.done);
+            const picker = canChange ? `<form style="display:flex;gap:0.5rem;margin:0.5rem 0" onsubmit="event.preventDefault(); setChecklist(this.tpl.value)">
+                <select name="tpl" aria-label="Checklist"><option value="">No checklist</option>${templates.map(t => `<option value="${t.id}" ${t.id === current.checklist_template_id ? 'selected' : ''}>${esc(t.name)}</option>`).join('')}</select>
+                <button class="btn btn-secondary btn-small" type="submit">${items.length ? 'Change' : 'Attach'}</button></form>` : '';
+            if (!items.length) return canChange ? `<h3 style="margin-top:1rem;font-size:1rem">Checklist</h3>${picker}` : '';
+            const done = items.filter(i => i.done).length;
+            return `<h3 style="margin-top:1rem;font-size:1rem">Checklist <span class="muted">${done}/${items.length}</span></h3>${picker}
+                <ul class="checklist">${items.map(i => `<li><span class="${i.done ? 'tick' : 'open'}" aria-label="${i.done ? 'done' : 'open'}">${i.done ? '✓' : '○'}</span>
+                    <span>${esc(i.label)}${i.requires_photo ? ' <span class="badge">photo</span>' : ''}${i.note ? `<br><span class="muted">${esc(i.note)}</span>` : ''}</span>
+                    ${i.photo_url ? `<a href="${i.photo_url}" target="_blank" rel="noopener"><img src="${i.photo_url}" alt="Photo for ${esc(i.label)}" loading="lazy"></a>` : '<span></span>'}</li>`).join('')}</ul>`;
+        }
+        async function setChecklist(id) {
+            try {
+                await apiCall(`/ops/work-orders/${current.id}/checklist`, { method: 'PUT', body: JSON.stringify({ template_id: id || null }) });
+                await openDetail(current.id);
+            } catch (error) { alert(error.message); }
+        }
+
+        // 2026-10-08 03:40, G7 S4: review queue
+        async function loadReview() {
+            try {
+                const data = await apiCall('/ops/review');
+                if (!data) return;
+                const card = document.getElementById('review-card');
+                card.hidden = !data.jobs.length;
+                document.getElementById('review-count').textContent = `(${data.jobs.length})`;
+                document.getElementById('review').innerHTML = data.jobs.map(j => {
+                    const o = j.work_order, items = j.checklist;
+                    const over = o.cost_actual !== null && o.approved_amount !== null && o.cost_actual > o.approved_amount * 1.1;
+                    return `<div class="review-item">
+                        <div><strong>#${o.id} ${esc(o.title)}</strong>
+                            <div class="muted">${esc(o.property_name)} · ${esc(o.assignee_name || '')} · submitted ${when(o.updated_at)}</div>
+                            <div class="muted">${items.length ? `Checklist ${items.filter(i => i.done).length}/${items.length}` : 'No checklist'} · ${j.photos.length} photo${j.photos.length === 1 ? '' : 's'} · on site ${fmtMinutes(j.minutes_on_site)}${o.cost_actual !== null ? ' · ' + money(o.cost_actual) : ''}${over ? ' <span class="badge over">over budget</span>' : ''}</div>
+                            ${o.completion_notes ? `<div style="white-space:pre-wrap;margin-top:0.25rem">${esc(o.completion_notes)}</div>` : ''}</div>
+                        <div class="actions" style="align-content:start"><button class="btn btn-secondary btn-small" type="button" onclick="openDetail(${o.id})">Review</button>
+                            <button class="btn btn-primary btn-small" type="button" onclick="quickVerify(${o.id})">Verify</button></div>
+                        ${j.photos.length ? `<div class="strip">${j.photos.slice(0, 10).map(ph => `<a href="${ph.url}" target="_blank" rel="noopener"><img src="${ph.url}" alt="${esc(ph.kind)} photo" loading="lazy"></a>`).join('')}</div>` : ''}
+                    </div>`;
+                }).join('');
+            } catch {}
+        }
+        async function quickVerify(id) {
+            try {
+                await apiCall(`/ops/work-orders/${id}/verify`, { method: 'POST', body: '{}' });
+                await Promise.all([load(), loadReview()]);
+                notice(`Work order #${id} verified.`, 'success');
+            } catch (error) { notice(error.message, 'error'); }
+        }
+
+        // reasons are typed into an inline form in the dialog (no prompt())
+        function askReason(action, question, button, required) {
+            const form = document.getElementById('reason-form');
+            document.getElementById('reason-label').textContent = question;
+            document.getElementById('reason-submit').textContent = button;
+            const box = document.getElementById('reason');
+            box.value = '';
+            box.required = required;
+            // 2026-10-08 03:40, G7 S4: when sending back, the manager can reopen specific checklist steps
+            document.getElementById('reopen-box')?.remove();
+            const doneItems = action === 'bounce' ? currentChecklist.filter(i => i.done) : [];
+            if (doneItems.length) {
+                box.closest('.form-group').insertAdjacentHTML('afterend', `<fieldset id="reopen-box" class="form-group" style="border:0">
+                    <legend style="font-weight:600;font-size:0.9rem;margin-bottom:0.35rem">Reopen steps (the worker must redo them; photo steps need a new photo)</legend>
+                    ${doneItems.map(i => `<label class="check"><input type="checkbox" value="${i.id}"> ${esc(i.label)}</label>`).join('')}</fieldset>`);
+            }
+            form.hidden = false;
+            box.focus();
+            form.onsubmit = e => {
+                e.preventDefault();
+                const reopen = [...document.querySelectorAll('#reopen-box input:checked')].map(c => Number(c.value));
+                act(action, { reason: box.value.trim() || null, ...(reopen.length ? { reopen_item_ids: reopen } : {}) });
+            };
+        }
+        const withReason = (action, question) => askReason(action, question, action === 'reject' ? 'Reject estimate' : 'Send back', true);
+        const cancelOrder = () => askReason('cancel', 'Cancel this work order? Optional: a reason for the worker.', 'Cancel work order', false);
+
+        // 2026-10-08 01:20, G7 S3: per-job access code
+        async function saveJobCode(code) {
+            try {
+                await apiCall(`/ops/work-orders/${current.id}/access`, { method: 'PUT', body: JSON.stringify({ code }) });
+                await openDetail(current.id);
+            } catch (error) { alert(error.message); }
+        }
+
+        // 2026-10-08 01:20, G7 S3: property access + QR stickers
+        let accessRows = [], editingProperty = null;
+        async function loadAccess() {
+            try {
+                const data = await apiCall('/ops/access');
+                if (!data) return;
+                accessRows = data.properties;
+                document.getElementById('access-rows').innerHTML = accessRows.map(p => `<tr>
+                    <td><strong>${esc(p.name)}</strong></td>
+                    <td>${p.has_code ? '<span class="badge resolved">set</span>' : '<span class="badge">not set</span>'}</td>
+                    <td class="muted">${esc(p.notes || '')}</td>
+                    <td class="muted">${p.qr_created_at ? 'Printed ' + when(p.qr_created_at) : 'Not printed yet'}</td>
+                    <td><div class="row-actions">
+                        <button class="btn btn-secondary btn-small" type="button" onclick="editAccess(${p.id})">${p.has_code ? 'View / edit' : 'Add code'}</button>
+                        <a class="btn btn-secondary btn-small" href="${base}/ops/qr/${p.id}" target="_blank" rel="noopener">${p.qr_created_at ? 'Print sticker' : 'Create sticker'}</a>
+                    </div></td></tr>`).join('');
+            } catch {}
+        }
+        async function editAccess(id) {
+            try {
+                const data = await apiCall(`/ops/access/${id}`);
+                editingProperty = accessRows.find(p => p.id === id);
+                document.getElementById('access-title').textContent = editingProperty.name;
+                document.getElementById('a-code').value = data.code || '';
+                document.getElementById('a-notes').value = data.notes || '';
+                document.getElementById('access-form').hidden = false;
+                document.getElementById('a-code').focus();
+            } catch (error) { notice(error.message, 'error'); }
+        }
+        document.getElementById('access-form').addEventListener('submit', async e => {
+            e.preventDefault();
+            try {
+                await apiCall(`/ops/access/${editingProperty.id}`, { method: 'PUT', body: JSON.stringify({ code: document.getElementById('a-code').value, notes: document.getElementById('a-notes').value }) });
+                document.getElementById('access-form').hidden = true;
+                await loadAccess();
+                notice(`Access details saved for ${editingProperty.name}.`, 'success');
+            } catch (error) { notice(error.message, 'error'); }
+        });
+
+        function openCreate() {
+            document.getElementById('create-form').reset();
+            document.getElementById('create').showModal();
+            document.getElementById('c-title').focus();
+        }
+        document.getElementById('create-form').addEventListener('submit', async e => {
+            e.preventDefault();
+            const v = id => document.getElementById(id).value;
+            try {
+                const data = await apiCall('/ops/work-orders', { method: 'POST', body: JSON.stringify({
+                    title: v('c-title'), property_id: Number(v('c-property')), type: v('c-type'), priority: v('c-priority'),
+                    assignee_user_id: v('c-assignee') || null, window_start: isoLocal(v('c-start')), window_end: isoLocal(v('c-end')),
+                    due_at: isoLocal(v('c-due')), approved_amount: v('c-approved') || null, description: v('c-desc'), checklist_template_id: v('c-checklist') || null
+                }) });
+                document.getElementById('create').close();
+                await load();
+                notice(`Work order #${data.work_order.id} created${data.work_order.assignee_name ? ' and sent to ' + data.work_order.assignee_name : ''}.`, 'success');
+            } catch (error) {
+                alert(error.message);
+            }
+        });
+
+        document.getElementById('threshold-form').addEventListener('submit', async e => {
+            e.preventDefault();
+            try {
+                const data = await apiCall('/ops/settings', { method: 'PUT', body: JSON.stringify({ approval_threshold: document.getElementById('threshold').value }) });
+                notice(data.approval_threshold === null ? 'Estimates never need approval now.' : `Estimates above $${data.approval_threshold} now need your approval.`, 'success');
+            } catch (error) {
+                notice(error.message, 'error');
+            }
+        });
+        document.getElementById('f-property').addEventListener('change', render);
+        document.getElementById('f-assignee').addEventListener('change', render);
+
+        (async () => {
+            try {
+                const res = await fetch('/api/auth/profile', { headers: { Authorization: `Bearer ${authToken}` } });
+                if (res.ok) { const p = await res.json(); document.getElementById('user-name').textContent = `${p.user.first_name} ${p.user.last_name}`; }
+            } catch {}
+            await Promise.all([load(), loadRefs(), loadAccess(), loadReview()]);
+            const wo = new URLSearchParams(location.search).get('wo');
+            if (wo && !document.getElementById('ops').hidden) openDetail(Number(wo));
+            poll = setInterval(() => { if (!document.getElementById('detail').open && !document.getElementById('create').open) { load(); loadReview(); } }, 30000);
+        })();
+    </script>
+</body>
+</html>
