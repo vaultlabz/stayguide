@@ -1,10 +1,10 @@
-updated: 2026-10-05 08:19
+updated: 2026-10-05 13:08
 tool: claude-code
 branch: main (design branch merged via PR #1; worktree ../stayguide-design still exists)
 
 ## Focus
 
-The guest product (plan G0–G6) is complete and pushed. Next: **configure the Stripe dashboard (#42), verify on real MySQL (#45), then plan G7** (field/maintenance web app, Ops add-on). G7 needs its own plan before building.
+Jon's "Ivory House" redesign (`origin/design-jon-v2`) is on standby: the user and Jon are still editing it. Until then, same plan as before: Stripe dashboard config (#42), real-MySQL verification (#45), then plan G7.
 
 ## Active tasks
 
@@ -22,17 +22,10 @@ Each pending task in `MGR/tasks.json` has `context`: doing, achieve, according.
 
 ## Done this session
 
-- **PRD v1.0 discussion** → plan: guest product first, generic AIO kits allowed, maintenance app later as the Ops add-on
-- **G0** merged `design` → `main` (PR #1); e2e suites moved into `tests/e2e/` (`npm test`)
-- **G1** guide content management (restaurants, videos, local info, announcements, welcome)
-- **G2** free-tier phone/web guide link `/g/:token` (Wi-Fi toggle, rotation, phone layout)
-- **G3** plans/entitlements, self-serve signup, Stripe Billing (Checkout with cards + ACH, invoices, portal, webhooks, quantity sync), billing page
-- **Stripe sandbox (Wingu Digital test)** wired: 7 prices, CLI 1.53.0 installed from the GitHub release, real end-to-end purchase verified (Checkout → webhook → Pro → qty 2 → cancel → Free)
-- **G5** marketing pricing section + signup CTAs (server-rendered from `src/config/plans.ts`)
-- **G4** section analytics (`section_events`, tablet + phone tracking, dashboard Guest activity)
-- **G6** `/tablet/diagnostics` + AIO vetting checklist in KIOSK_SETUP.md
-- **Trinity design update** with 18 screenshots (docs/TRINITY_DESIGN_UPDATE.md)
-- Regression: 590 automated checks green (unit 24 + e2e suites)
+- /go sync; Obsidian note refreshed
+- Reviewed Jon's branches `origin/design-jon-v1` and `design-jon-v2` (fetched; no local changes, nothing merged)
+
+(Previous session, 2026-10-05 08:20: G0–G6 guest product shipped; see latest.md)
 
 ## Next
 
@@ -40,6 +33,7 @@ Each pending task in `MGR/tasks.json` has `context`: doing, achieve, according.
 2. Stand up a MySQL staging DB, apply `database/migrations/*` in the order listed in database/migrations/README.md, run `npm test` against it (#45)
 3. Plan G7 (maintenance/field app): decide the Ops price, vendor access model, checklists, photo storage, notifications, offline needs
 4. Send Trinity the update link (contact channel unknown; ask the user)
+5. When the user says go: port Jon's marketing design into `src/views/landing.html`, and his admin dashboard design once it exists (see notes)
 
 ## Blockers
 
@@ -53,3 +47,12 @@ Each pending task in `MGR/tasks.json` has `context`: doing, achieve, according.
 - Local webhooks: `stripe listen --api-key <test key> --forward-to localhost:3000/billing/webhook`
 - Migrations to apply (9): follow the order in database/migrations/README.md (filename order is wrong for same-date files)
 - Existing companies are grandfathered as Pro (`subscription_status = 'legacy'`) by the plans_billing migration
+
+### Jon's redesign (design-jon-v2), 2026-10-05
+
+- The user wants Jon's **main site design** and **admin dashboard design**, and wants to **keep our tablet design**. Status: **standby**. The user said "don't change anything" while they keep editing with Jon.
+- Branch forks from old `design` @ d9ddc57. It only adds a static root `index.html` (15.6 MB, images embedded as data URIs), `screenshots/`, a README hero and a stray `probe-tmp.txt`. Tablet untouched.
+- **No admin dashboard design exists yet** on design-jon-v1 or v2 ("we'll implement soon").
+- Plan when unblocked: do not git-merge. Rebuild `src/views/landing.html` in his style: extract images to `public/img/`, reuse his CSS, keep the server-rendered pricing from `src/config/plans.ts` and the signup CTAs.
+- Copy: keep Jon's copy as-is (user decision). It markets unbuilt features (task automation, cleaner checklists, owner portal, PMS, Estate tier, demo form). Its v2 pricing shows placeholders (Free/Core/Pro/Estate); his v1 commit c07f260 had Free $0 / Pro $9.99 / Portfolio $32, which matches plans.ts.
+- The `../stayguide-design` worktree is merged and can be removed.

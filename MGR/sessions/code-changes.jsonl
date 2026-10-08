@@ -15,3 +15,4 @@
 {"at":"2026-10-04 00:40","tool":"claude-code","description":"G4 section analytics: section_events, device/guide event endpoints, tablet tracking, dashboard guest activity"}
 {"at":"2026-10-04 01:01","tool":"claude-code","description":"G6 /tablet/diagnostics + AIO vetting checklist; tablet-diagnostics.html, device.ts, KIOSK_SETUP.md"}
 {"at":"2026-10-05 08:20","tool":"claude-code","description":"Session end: handoff, tasks #42-46, memory decisions (pricing, AIO, Stripe sandbox, Trinity); MGR/, .mgr/memory/MEMORY.md"}
+{"at":"2026-10-08 07:55","tool":"claude-code","description":"Wired dashboard functions, helpdesk, email, invoice PDF; G7 Ops add-on S1-S9; src/controllers, src/services, src/views, database/migrations, tests/e2e"}

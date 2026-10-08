@@ -18,3 +18,4 @@
 2026-10-04 00:40 | claude-code | G4 section analytics: section_events, device/guide event endpoints, tablet tracking, dashboard guest activity
 2026-10-04 01:01 | claude-code | G6 /tablet/diagnostics + AIO vetting checklist; tablet-diagnostics.html, device.ts, KIOSK_SETUP.md
 2026-10-05 08:20 | claude-code | Session end: handoff, tasks #42-46, memory decisions (pricing, AIO, Stripe sandbox, Trinity); MGR/, .mgr/memory/MEMORY.md
+2026-10-08 07:55 | claude-code | Wired dashboard functions, helpdesk, email, invoice PDF; G7 Ops add-on S1-S9; src/controllers, src/services, src/views, database/migrations, tests/e2e

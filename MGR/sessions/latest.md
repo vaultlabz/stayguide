@@ -58,3 +58,25 @@
 ## Session end (claude-code)
 - Summary: PRD v1.0 reviewed → guest-product plan G0–G6 shipped on main (merge design, content mgmt, phone guide link, plans/signup/Stripe billing incl. real sandbox E2E, marketing pricing, section analytics, tablet diagnostics); Trinity design update with screenshots; tasks #42–#46 added; handoff overwritten
 - Files: src/config/plans.ts, src/services/{Content,Entitlement,StripeBilling,Analytics}Service.ts, src/controllers/{Content,GuestLink,BillingPlan,Signup,Analytics}Controller.ts, src/routes/{guest-link,company,device,api,index,admin}.ts, src/utils/{ownership,video,pricing-html}.ts, src/views/{tablet-app,company-dashboard,company-billing,signup,landing,tablet-diagnostics}.html, public/{sw.js,css/tablet-app.css}, database/{schema.sql,migrations/*}, scripts/stripe-sandbox-setup.js, tests/e2e/*, docs/{BILLING_SETUP,KIOSK_SETUP,INTEGRATION_GUIDE,TRINITY_DESIGN_UPDATE,todo}.md
+
+2026-10-05 13:08
+## Session end (claude-code)
+- Summary: /go sync; reviewed Jon's redesign branches (origin/design-jon-v1, design-jon-v2): a static Ivory House marketing index.html only, with no admin dashboard design and no tablet changes. User wants his site and dashboard designs while keeping our tablet. On standby per the user ("don't change anything"). Plan when unblocked: port into src/views/landing.html, not a git merge. Handoff overwritten.
+- Files: MGR/sessions/handoff.md, MGR/sessions/latest.md (no code changes)
+
+2026-10-08 07:55
+## Checkpoint (claude-code)
+- session report: completed + remaining
+- **Completed (2026-10-07 → 08):**
+  - Wired every stubbed dashboard function: admin Edit company + real stats, billing CSV export, invoice PDF (pdfkit), helpdesk (company tickets + admin inbox), help guide, live Guest reports card, `/login` (no slug prompt), nodemailer SMTP + urgent-report email
+  - Cleanup: proxy-addr audit fix (prod 0 vulns), separate admin session key, logout no longer wipes storage (tablet pairing), debug code removed, host-tolerant diagnostics test
+  - G7 Ops add-on, all 9 stages of docs/G7_OPS_PLAN.md: workers/invites/`/maint` app, work orders + cost approval, encrypted access codes + QR check-in + private photos, checklists + review queue, offline queue + web push, vendor insurance certificates, time & pay CSV, preventive schedules + digests + admin metrics, Stripe Ops item
+  - Tests: tests/e2e/admin-functions + ops-s1…s9 (all in `npm test`); last full runs green suite by suite; final consolidated run was still in progress at commit time (green through analytics)
+  - Committed `c194330` on new branch `feature/g7-ops` (not merged, not pushed). `public/img/hero-pool.jpg` left untracked (unused per 2026-10-06 notes)
+- **Remaining:**
+  - Launch config: OPS_PRICE_MONTHLY + STRIPE_PRICE_OPS_MONTHLY (`npm run stripe:setup`), OPS_SECRET_KEY, VAPID keys, SMTP creds, SUPPORT_EMAIL
+  - #45 MySQL staging: apply migrations 1–17 (README order) and run the suites against real MySQL (everything so far tested in mock mode)
+  - #46 production deploy prep; #42 Stripe dashboard config; #43 Trinity design pass (now also the new Ops/helpdesk screens); #30 real Tab A11+ check; #31 tile row; #33 pairing errors; #34 yarn.lock (npm changed it again); #12–#14, #16, #25 backlog
+  - Replace the placeholder `public/img/hero-devices.{png,webp}` (another brand's UI) with `hero-devices-stayguide.*` before launch
+  - Merge/PR `feature/g7-ops` → main when ready
+- Note: in-code `// 2026-10-08 HH:MM` stamps added after ~07:00 today are approximate (some read later than the real time)
