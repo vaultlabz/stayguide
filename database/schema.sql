@@ -18,13 +18,14 @@ CREATE TABLE companies (
     timezone VARCHAR(64) NOT NULL DEFAULT 'America/Denver', -- 2026-10-08 10:30, G7 S8 (schedules, local times)
     billing_interval ENUM('month', 'year') NULL,
     subscription_status VARCHAR(32) NULL,
-    stripe_customer_id VARCHAR(64) NULL UNIQUE,
+    stripe_customer_id VARCHAR(64) NULL,
     stripe_subscription_id VARCHAR(64) NULL,
     current_period_end TIMESTAMP NULL,
     cancel_at_period_end BOOLEAN NOT NULL DEFAULT FALSE,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
     
+    UNIQUE KEY unique_stripe_customer (stripe_customer_id), -- 2026-10-08 11:30, #45: index named as in the migration so fresh installs and migrated databases match
     INDEX idx_slug (slug),
     INDEX idx_status (status)
 );
@@ -75,7 +76,7 @@ CREATE TABLE properties (
     temperature_unit ENUM('F', 'C') NOT NULL DEFAULT 'F',
     clock_format ENUM('12h', '24h') NOT NULL DEFAULT '12h',
     tablet_background ENUM('solid', 'image', 'manhattan-ice', 'apricot-storm', 'barley-titan', 'silver-cloud', 'erie-charcoal', 'burnham-stone', 'baltic-rose', 'rich-bistre') NOT NULL DEFAULT 'solid', -- 2026-10-03 16:42
-    guest_link_token VARCHAR(64) NULL UNIQUE, -- 2026-10-03 22:42, G2 public guide link
+    guest_link_token VARCHAR(64) NULL, -- 2026-10-03 22:42, G2 public guide link
     guest_link_show_wifi BOOLEAN NOT NULL DEFAULT TRUE,
     status ENUM('active', 'inactive') DEFAULT 'active',
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
@@ -83,6 +84,7 @@ CREATE TABLE properties (
     
     FOREIGN KEY (company_id) REFERENCES companies(id) ON DELETE CASCADE,
     UNIQUE KEY unique_company_slug (company_id, slug),
+    UNIQUE KEY unique_guest_link_token (guest_link_token), -- 2026-10-08 11:30, #45: index named as in the migration so fresh installs and migrated databases match
     INDEX idx_company_status (company_id, status)
 );
 
@@ -385,6 +387,8 @@ CREATE TABLE devices (
     token_hash CHAR(64) NULL,
     pairing_code CHAR(6) NULL,
     pairing_expires_at TIMESTAMP NULL,
+    used_pairing_code CHAR(6) NULL, -- 2026-10-08 08:20, #33: tells a reused code from a mistyped one
+    paired_at TIMESTAMP NULL,
     last_seen_at TIMESTAMP NULL,
     status ENUM('pending', 'active', 'revoked') NOT NULL DEFAULT 'pending',
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
@@ -393,6 +397,7 @@ CREATE TABLE devices (
     FOREIGN KEY (property_id) REFERENCES properties(id) ON DELETE CASCADE,
     UNIQUE KEY unique_token_hash (token_hash),
     INDEX idx_pairing_code (pairing_code, status),
+    INDEX idx_used_code (used_pairing_code),
     INDEX idx_property_status (property_id, status)
 );
 
@@ -611,7 +616,7 @@ CREATE TABLE time_entries (
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     FOREIGN KEY (work_order_id) REFERENCES work_orders(id) ON DELETE CASCADE,
     FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
-    FOREIGN KEY (created_by) REFERENCES users(id) ON DELETE SET NULL,
+    CONSTRAINT fk_time_created_by FOREIGN KEY (created_by) REFERENCES users(id) ON DELETE SET NULL, -- 2026-10-08 11:30, #45: index named as in the migration so fresh installs and migrated databases match
     INDEX idx_user_open (user_id, clock_out),
     INDEX idx_order (work_order_id)
 );

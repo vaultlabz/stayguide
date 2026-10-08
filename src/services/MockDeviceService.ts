@@ -42,12 +42,21 @@ export class MockDeviceService {
     if (device) {
       Object.assign(device, {
         token_hash: tokenHash,
+        used_pairing_code: device.pairing_code, // 2026-10-08 08:20, #33
+        paired_at: new Date(),
         pairing_code: null,
         pairing_expires_at: null,
         status: 'active',
         last_seen_at: new Date()
       });
     }
+  }
+
+  // 2026-10-08 08:20, #33
+  async whyCodeFailed(code: string): Promise<'expired' | 'used' | 'unknown'> {
+    if (mockDevices.some(d => d.status === 'pending' && d.pairing_code === code && d.pairing_expires_at && d.pairing_expires_at <= new Date())) return 'expired';
+    if (mockDevices.some((d: any) => d.used_pairing_code === code && d.paired_at && Date.now() - +new Date(d.paired_at) < 86400000)) return 'used';
+    return 'unknown';
   }
 
   async findActiveByTokenHash(tokenHash: string): Promise<Device | null> {

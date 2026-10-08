@@ -2,7 +2,8 @@ import { BillingRecord, CreateBillingRequest, BillingStats } from '../types/bill
 import { mockDelay, MOCK_MODE } from '../utils/mock-database';
 
 // Mock billing data
-const mockBillingRecords: BillingRecord[] = [
+// 2026-10-08 12:30, #45: exported so scripts/seed-mysql-from-mock.js can copy the demo invoices into MySQL
+export const mockBillingRecords: BillingRecord[] = [
   {
     id: 1,
     company_id: 1,

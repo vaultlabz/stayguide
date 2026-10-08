@@ -92,7 +92,10 @@ body { background: transparent; min-height: 100vh; font-family: var(--t-font); f
 .welcome-message h3 { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); }
 .welcome-message p { font-size: 1.1rem; line-height: 1.45; color: var(--t-fg-2); }
 
-.tiles { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 16px; margin-top: 20px; }
+/* 2026-10-08 08:10, #31: flex so a short last row (7 tiles = 4 + 3) is centered; grid auto-fit left it hanging left */
+.tiles { display: flex; flex-wrap: wrap; justify-content: center; gap: 16px; margin-top: 20px; }
+/* 2026-10-08, #31: the Report tile sits in .report-card (display: contents), so it needs the same basis */
+.tiles > .tile, .report-card > .tile { flex: 0 1 calc((100% - 48px) / 4); min-width: 200px; }
 .report-card { display: contents; }
 .tile { min-height: 144px; border-radius: 28px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 14px; padding: 18px 16px; color: var(--t-fg); font: inherit; cursor: pointer; text-align: center; transition: background 0.15s ease; }
 .tile:hover, .tile:active { background: var(--t-glass-hover); }
@@ -248,7 +251,9 @@ body { background: transparent; min-height: 100vh; font-family: var(--t-font); f
 @media (max-width: 768px) {
     .container { padding: 16px 16px 48px; }
     .home-top { flex-direction: column; gap: 12px; }
-    .tiles { grid-template-columns: repeat(2, 1fr); gap: 12px; }
+    .tiles { gap: 12px; }
+    /* 2026-10-08 12:20, #31: 2 per row; flex-grow lets a lone last tile span the row (works even when Book Again is hidden) */
+    .tiles > .tile, .report-card > .tile { flex: 1 1 calc((100% - 12px) / 2); min-width: 0; }
     .sheet-body { padding: 20px; }
     .sheet-header { padding: 16px 16px 14px 24px; }
     .card, .guest-link-card { padding: 22px; }
@@ -307,5 +312,4 @@ html.layer-open :is(.tile, .announcement, .loading, .error, .guest-link-card, .c
     .home-name { order: 2; flex-basis: 100%; justify-content: flex-start; flex-direction: row; text-align: left; }
     .clock-time { font-size: 4.25rem; }
     .home-name-text { text-align: left; }
-    .tiles > .tile:last-child:nth-child(odd) { grid-column: 1 / -1; }
 }

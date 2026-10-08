@@ -24,7 +24,7 @@ const upload = async (token, jobId, file, extra = {}) => {
   const out = []; const check = (n, ok, x = '') => out.push(`${ok ? 'PASS' : 'FAIL'} ${n}${x ? ' — ' + x : ''}`);
   const STORE = path.join(H.OUT, 'ops-storage-s4');
   fs.rmSync(STORE, { recursive: true, force: true });
-  const server = spawn('npx', ['ts-node', 'src/index.ts'], { cwd: H.ROOT, env: { ...process.env, PORT: H.PORT, MOCK_DATABASE: 'true', EMAIL_PROVIDER: 'mock', OPS_STORAGE_DIR: STORE }, stdio: 'ignore', detached: true });
+  const server = spawn('npx', ['ts-node', 'src/index.ts'], { cwd: H.ROOT, env: { ...process.env, PORT: H.PORT, MOCK_DATABASE: process.env.TEST_MOCK_DATABASE || 'true', EMAIL_PROVIDER: 'mock', OPS_STORAGE_DIR: STORE }, stdio: 'ignore', detached: true });
   for (let i = 0; i < 60; i++) { try { if ((await fetch(B + '/api/health')).ok) break; } catch {} await sleep(500); }
   const img = path.join(H.OUT, 'ops-s4-photo.jpg');
   await sharp({ create: { width: 800, height: 600, channels: 3, background: '#48c' } }).jpeg().toFile(img);

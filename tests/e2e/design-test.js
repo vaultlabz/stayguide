@@ -39,7 +39,7 @@ const SCAN = () => {
   const stub = require('http').createServer((req, res) => { stubHits.push(req.url); res.setHeader('content-type', 'application/json'); if (req.url.startsWith('/v1/forecast')) return res.end(JSON.stringify({ current: { temperature_2m: req.url.includes('celsius') ? 22.1 : 71.6, weather_code: 2 } })); if (req.url.startsWith('/v1/search')) return res.end(JSON.stringify({ results: [{ name: 'Beverly Hills', admin1: 'California', country_code: 'US', latitude: 34.0901, longitude: -118.4065 }] })); res.statusCode = 404; res.end('{}'); }).listen(3918);
   const out = []; const check = (n, ok, x = '') => out.push(`${ok ? 'PASS' : 'FAIL'} ${n}${x ? ' — ' + x : ''}`);
   kill();
-  spawn('npx', ['ts-node', 'src/index.ts'], { cwd: ROOT, env: { ...process.env, PORT: H.PORT, MOCK_DATABASE: 'true', OPEN_METEO_BASE_URL: 'http://localhost:3918', OPEN_METEO_GEOCODE_URL: 'http://localhost:3918' }, stdio: 'ignore', detached: true });
+  spawn('npx', ['ts-node', 'src/index.ts'], { cwd: ROOT, env: { ...process.env, PORT: H.PORT, MOCK_DATABASE: process.env.TEST_MOCK_DATABASE || 'true', OPEN_METEO_BASE_URL: 'http://localhost:3918', OPEN_METEO_GEOCODE_URL: 'http://localhost:3918' }, stdio: 'ignore', detached: true });
   for (let i = 0; i < 40; i++) { try { if ((await fetch(B + '/api/health')).ok) break; } catch {} await sleep(500); }
   const J = { 'content-type': 'application/json' };
   const login = await (await fetch(B + '/company/demo-rentals/login', { method: 'POST', headers: J, body: JSON.stringify({ email: 'admin@demorentals.com', password: 'demo123' }) })).json();

@@ -19,7 +19,7 @@ const ymd = days => { const d = new Date(); d.setDate(d.getDate() + days); retur
   const out = []; const check = (n, ok, x = '') => out.push(`${ok ? 'PASS' : 'FAIL'} ${n}${x ? ' — ' + x : ''}`);
   const STORE = path.join(H.OUT, 'ops-storage-s6');
   fs.rmSync(STORE, { recursive: true, force: true });
-  const server = spawn('npx', ['ts-node', 'src/index.ts'], { cwd: H.ROOT, env: { ...process.env, PORT: H.PORT, MOCK_DATABASE: 'true', EMAIL_PROVIDER: 'mock', OPS_STORAGE_DIR: STORE, OPS_SCHEDULER: 'off' }, stdio: ['ignore', 'pipe', 'pipe'], detached: true });
+  const server = spawn('npx', ['ts-node', 'src/index.ts'], { cwd: H.ROOT, env: { ...process.env, PORT: H.PORT, MOCK_DATABASE: process.env.TEST_MOCK_DATABASE || 'true', EMAIL_PROVIDER: 'mock', OPS_STORAGE_DIR: STORE, OPS_SCHEDULER: 'off' }, stdio: ['ignore', 'pipe', 'pipe'], detached: true });
   server.stdout.on('data', d => { log += d; }); server.stderr.on('data', d => { log += d; });
   for (let i = 0; i < 60; i++) { try { if ((await fetch(B + '/api/health')).ok) break; } catch {} await sleep(500); }
 

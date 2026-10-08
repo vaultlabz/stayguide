@@ -25,7 +25,7 @@ function at(daysAgo, hh, mm) {
 
 (async () => {
   const out = []; const check = (n, ok, x = '') => out.push(`${ok ? 'PASS' : 'FAIL'} ${n}${x ? ' — ' + x : ''}`);
-  const server = spawn('npx', ['ts-node', 'src/index.ts'], { cwd: H.ROOT, env: { ...process.env, PORT: H.PORT, MOCK_DATABASE: 'true', EMAIL_PROVIDER: 'mock', OPS_SCHEDULER: 'off' }, stdio: 'ignore', detached: true });
+  const server = spawn('npx', ['ts-node', 'src/index.ts'], { cwd: H.ROOT, env: { ...process.env, PORT: H.PORT, MOCK_DATABASE: process.env.TEST_MOCK_DATABASE || 'true', EMAIL_PROVIDER: 'mock', OPS_SCHEDULER: 'off' }, stdio: 'ignore', detached: true });
   for (let i = 0; i < 60; i++) { try { if ((await fetch(B + '/api/health')).ok) break; } catch {} await sleep(500); }
 
   const CT = (await api('/login', { method: 'POST', body: { email: 'admin@demorentals.com', password: 'demo123' } })).data.token;
@@ -75,7 +75,8 @@ function at(daysAgo, hh, mm) {
   check('open entry listed, not counted', !!open && list.totals.find(t => t.user_id === 3).open === 1 && list.totals.find(t => t.user_id === 3).minutes === 240);
   check('closing an open entry can keep it open? no: closed entry needs out', (await mgr(`/time/${E1}`, { clock_out: null, reason: 'x' }, 'PUT')).status === 400);
   const closed = await mgr(`/time/${open.id}`, { clock_out: new Date().toISOString(), reason: 'Forgot to check out' }, 'PUT');
-  check('manager checks someone out', closed.data.entry?.open === false && (await mgr(`/time/${open.id}/history`)).data.history[0].action === 'closed');
+  const closedHist = (await mgr(`/time/${open.id}/history`)).data.history; // 2026-10-08 12:45, #45: show what came back when it fails
+  check('manager checks someone out', closed.data.entry?.open === false && closedHist[0].action === 'closed', JSON.stringify({ status: closed.status, entry: closed.data.entry || closed.data, hist: closedHist }));
 
   // ---- void
   check('void needs a reason', (await mgr(`/time/${open.id}/void`, {})).status === 400);

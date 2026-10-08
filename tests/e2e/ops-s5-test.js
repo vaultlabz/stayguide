@@ -40,7 +40,7 @@ const api = async (p, { token, method = 'GET', body, headers = {} } = {}) => {
 
   const STORE = path.join(H.OUT, 'ops-storage-s5');
   fs.rmSync(STORE, { recursive: true, force: true });
-  const server = spawn('npx', ['ts-node', 'src/index.ts'], { cwd: H.ROOT, env: { ...process.env, PORT: H.PORT, MOCK_DATABASE: 'true', EMAIL_PROVIDER: 'mock', OPS_STORAGE_DIR: STORE, PUSH_ALLOW_ANY_ENDPOINT: 'true', NODE_ENV: 'development', NODE_TLS_REJECT_UNAUTHORIZED: '0' }, stdio: 'ignore', detached: true });
+  const server = spawn('npx', ['ts-node', 'src/index.ts'], { cwd: H.ROOT, env: { ...process.env, PORT: H.PORT, MOCK_DATABASE: process.env.TEST_MOCK_DATABASE || 'true', EMAIL_PROVIDER: 'mock', OPS_STORAGE_DIR: STORE, PUSH_ALLOW_ANY_ENDPOINT: 'true', NODE_ENV: 'development', NODE_TLS_REJECT_UNAUTHORIZED: '0' }, stdio: 'ignore', detached: true });
   for (let i = 0; i < 60; i++) { try { if ((await fetch(B + '/api/health')).ok) break; } catch {} await sleep(500); }
   const img = path.join(H.OUT, 'ops-s5-photo.jpg');
   await sharp({ create: { width: 900, height: 700, channels: 3, background: '#c84' } }).jpeg().toFile(img);

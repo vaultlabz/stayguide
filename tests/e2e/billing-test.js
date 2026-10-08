@@ -81,7 +81,7 @@ async function webhook(type, object, opts = {}) {
   const out = []; const check = (n, ok, x = '') => out.push(`${ok ? 'PASS' : 'FAIL'} ${n}${x ? ' — ' + x : ''}`);
   killPort(FAKE_PORT);
   await new Promise(r => fake.listen(FAKE_PORT, r));
-  const env = { ...process.env, PORT: H.PORT, MOCK_DATABASE: 'true', APP_BASE_URL: '', STRIPE_SECRET_KEY: 'sk_test_fake', STRIPE_WEBHOOK_SECRET: WEBHOOK_SECRET, STRIPE_API_HOST: 'localhost', STRIPE_API_PORT: String(FAKE_PORT), STRIPE_API_PROTOCOL: 'http', ...PRICES };
+  const env = { ...process.env, PORT: H.PORT, MOCK_DATABASE: process.env.TEST_MOCK_DATABASE || 'true', APP_BASE_URL: '', STRIPE_SECRET_KEY: 'sk_test_fake', STRIPE_WEBHOOK_SECRET: WEBHOOK_SECRET, STRIPE_API_HOST: 'localhost', STRIPE_API_PORT: String(FAKE_PORT), STRIPE_API_PROTOCOL: 'http', ...PRICES };
   spawn('npx', ['ts-node', 'src/index.ts'], { cwd: H.ROOT, env, stdio: 'ignore', detached: true });
   for (let i = 0; i < 60; i++) { try { if ((await fetch(B + '/api/health')).ok) break; } catch {} await sleep(500); }
   const J = { 'content-type': 'application/json' };
@@ -250,7 +250,7 @@ async function webhook(type, object, opts = {}) {
   killPort(H.PORT);
 
   // ---- Billing not configured → 503 (separate server without keys)
-  const env2 = { ...process.env, PORT: H.PORT, MOCK_DATABASE: 'true', STRIPE_SECRET_KEY: '' };
+  const env2 = { ...process.env, PORT: H.PORT, MOCK_DATABASE: process.env.TEST_MOCK_DATABASE || 'true', STRIPE_SECRET_KEY: '' };
   spawn('npx', ['ts-node', 'src/index.ts'], { cwd: H.ROOT, env: env2, stdio: 'ignore', detached: true });
   for (let i = 0; i < 60; i++) { try { if ((await fetch(B + '/api/health')).ok) break; } catch {} await sleep(500); }
   const dl = await (await fetch(B + '/company/demo-rentals/login', { method: 'POST', headers: J, body: JSON.stringify({ email: 'admin@demorentals.com', password: 'demo123' }) })).json();

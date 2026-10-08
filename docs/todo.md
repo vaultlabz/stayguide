@@ -1604,3 +1604,62 @@
 
 **Technical Details:**
 - To launch: choose the price → `OPS_PRICE_MONTHLY=<usd>` → `npm run stripe:setup` → paste `STRIPE_PRICE_OPS_MONTHLY` → restart
+
+## 2026-10-08 - FIX: Tablet tile row, clearer pairing errors, real hero mockup, yarn.lock removed (#31, #33, #34)
+
+**What Changed:**
+- ✅ #31 `public/css/tablet-app.css`: `.tiles` is now flex with `justify-content: center`, so a short last row (7 tiles = 4 + 3) is centered; the Report tile (inside `.report-card`, `display: contents`) gets the same flex basis as the other tiles, so it is 263 px wide like the rest (it was 175 px)
+- ✅ #33 `DeviceController.pair` returns a specific error: `PAIRING_FORMAT` / `PAIRING_EXPIRED` / `PAIRING_USED` / `PAIRING_INVALID`, each with a plain-language message; `DeviceService.whyCodeFailed` + `MockDeviceService.whyCodeFailed`
+- ✅ #33 migration `database/migrations/2026-10-08_device_pairing_reasons.sql` (README step 18) + `schema.sql`: `devices.used_pairing_code`, `devices.paired_at`
+- ✅ Landing hero: `src/views/landing.html` now uses `/img/hero-devices-stayguide.{webp,png}` (1040x860), regenerated with `scripts/render-hero-devices.js` so it shows the centered tile row; the placeholder `hero-devices.{png,webp}` (another brand's UI) removed from git
+- ✅ #34 `yarn.lock` removed from git (the project uses npm / package-lock.json)
+
+**Why:**
+- The 4 + 3 tile layout left the last row hanging left, and the Report tile was narrower than the others
+- "Invalid or expired pairing code" didn't tell installers whether to retype the code or create a new one
+- The landing placeholder showed another brand's UI and could not ship
+
+**How:**
+- Pairing: `redeemPairingCode` is unchanged; only after it fails do we ask why (format check, then pending + expired code, then a code that paired a tablet in the last day, else unknown)
+- Redeeming a code copies it to `used_pairing_code` and stamps `paired_at`, so a reused code can be told apart from a mistyped one
+
+**Impact:**
+- **Tablet**: even, centered home grid on 1280x800
+- **Installers**: each failed pairing says what to do next
+- **Launch**: no third-party UI on the marketing page
+
+**Technical Details:**
+- Tests: `design-test` 326/326, `phase3-test` (incl. 4 pairing error checks) green, `pricing-test` 16/16, build OK
+- Real MySQL now has 18 migrations to apply (#45)
+
+## 2026-10-08 - FIX: Real-MySQL verification (#45), 3 MySQL-only bugs fixed, test:mysql runner
+
+**What Changed:**
+- ✅ Migrations verified on MySQL 9.3: the pre-migration schema (root-commit `schema.sql` minus migrations 1–3) + all 18 migrations in README order matches a fresh `schema.sql` exactly (columns, types, defaults, indexes, foreign keys)
+- ✅ `schema.sql`: 3 indexes named like their migrations (`unique_stripe_customer`, `unique_guest_link_token`, `fk_time_created_by`) so both install paths have identical index names
+- ✅ `src/utils/database.ts` (pool + single connection): session `time_zone = '+00:00'`; `dateStrings: ['DATE']`; `decimalNumbers: true`
+- ✅ `scripts/seed-mysql-from-mock.js`: resets `DB_NAME` (must end in `_dev`/`_test`) from `schema.sql` and copies the mock demo data (users, companies, properties, content, invoices, guest reports, Ops demo jobs/templates/schedule)
+- ✅ `scripts/test-mysql.js` + `npm run test:mysql`: reseeds before each suite, runs every suite with `TEST_MOCK_DATABASE=false`, logs to `tests/e2e/output/mysql-<suite>.log`, reports all failures
+- ✅ Suites: server mode now `MOCK_DATABASE: process.env.TEST_MOCK_DATABASE || 'true'` (default unchanged)
+- ✅ `MockBillingService.mockBillingRecords` and `MockIntegratedReportService.mockGuestReports` exported (for the seed)
+- ✅ Tablet tiles on phones (#31 follow-up): tiles grow to fill the row, so a lone last tile spans the row (the old `:last-child:nth-child(odd)` rule never reached the Report tile and miscounted hidden tiles)
+- ✅ Tests: guest-link counts phone columns from tile positions (flex, not grid); ops-s3 clears `APP_BASE_URL`, picks the Mountain Cabin row by name, tamper check always changes the signature, prints partial results on crash; ops-s7 prints the response on failure; offline revokes the tablet after the restart instead of relying on mock data being wiped
+
+**Why:**
+- Everything had only run in mock mode; production uses MySQL
+- **Time zone bug**: mysql2 wrote JS dates as UTC, but `NOW()`/`CURRENT_TIMESTAMP` used the server's local zone, so on a non-UTC MySQL rows were off by the UTC offset (found by ops-s7: "Check-in can't be in the future")
+- **DECIMAL as strings**: money and coordinates came back as `"34.019500"`; `a + b` would concatenate (found by design-test)
+- **DATE as Date objects**: `guest_checkout_date` came back as `2026-10-08T00:00:00.000Z` instead of `2026-10-08` (found by phase5)
+
+**How:**
+- Schema diff via `information_schema` between a fresh-install DB and a migrated DB
+- Per-suite reseed so each suite starts from the same state as in mock mode
+
+**Impact:**
+- **Launch confidence**: 20/20 suites pass on real MySQL, and the mock run stays the default
+- **Correct times and money on any server**, whatever the MySQL time zone is
+
+**Technical Details:**
+- Local DBs: `stayguide_dev` (test target, reset by the runner) and `stayguide_migtest` (migrated copy, can be dropped)
+- Run: `npm run build && PLAYWRIGHT_CHROMIUM_PATH=… npm run test:mysql [suite …]`
+- Production still needs the 18 migrations applied on the server itself (#46)

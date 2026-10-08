@@ -7,7 +7,7 @@ const kill = () => { try { execSync('lsof -ti tcp:' + H.PORT + ' -sTCP:LISTEN | 
 
 (async () => {
   const out = []; const check = (n, ok, x = '') => out.push(`${ok ? 'PASS' : 'FAIL'} ${n}${x ? ' — ' + x : ''}`);
-  spawn('npx', ['ts-node', 'src/index.ts'], { cwd: H.ROOT, env: { ...process.env, PORT: H.PORT, MOCK_DATABASE: 'true', APP_BASE_URL: '' }, stdio: 'ignore', detached: true });
+  spawn('npx', ['ts-node', 'src/index.ts'], { cwd: H.ROOT, env: { ...process.env, PORT: H.PORT, MOCK_DATABASE: process.env.TEST_MOCK_DATABASE || 'true', APP_BASE_URL: '' }, stdio: 'ignore', detached: true });
   for (let i = 0; i < 60; i++) { try { if ((await fetch(B + '/api/health')).ok) break; } catch {} await sleep(500); }
 
   const J = { 'content-type': 'application/json' };
@@ -81,7 +81,8 @@ const kill = () => { try { execSync('lsof -ti tcp:' + H.PORT + ' -sTCP:LISTEN | 
   check('guide loads on phone, no pairing screen', !(await phone.isVisible('#pairing')));
   // 2026-10-03 23:06, demo company is grandfathered Pro, so branding is hidden (Free accounts are covered in billing-test.js)
   check('"Powered by StayGuide" hidden on Pro', !(await phone.isVisible('.powered-by')));
-  const cols = await phone.evaluate(() => getComputedStyle(document.querySelector('.tiles')).gridTemplateColumns.split(' ').length);
+  // 2026-10-08 12:15, #31: .tiles is flex now, so count columns from where the visible tiles sit
+  const cols = await phone.evaluate(() => new Set([...document.querySelectorAll('.tiles .tile')].filter(e => e.offsetParent).map(e => Math.round(e.getBoundingClientRect().left))).size);
   check('tiles in 2 columns on phone', cols === 2, String(cols));
   check('no horizontal scroll', await phone.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth));
   check('no service worker on phone guide', await phone.evaluate(async () => (await navigator.serviceWorker.getRegistrations()).length === 0));

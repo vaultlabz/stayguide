@@ -10,7 +10,7 @@ const sleep = ms => new Promise(r => setTimeout(r, ms));
 
 function startServer() {
   const p = spawn('npx', ['ts-node', 'src/index.ts'], {
-    cwd: ROOT, env: { ...process.env, PORT: H.PORT, MOCK_DATABASE: 'true' }, stdio: 'ignore', detached: true
+    cwd: ROOT, env: { ...process.env, PORT: H.PORT, MOCK_DATABASE: process.env.TEST_MOCK_DATABASE || 'true' }, stdio: 'ignore', detached: true
   });
   return p;
 }
@@ -86,6 +86,10 @@ function stopServer(p) { try { process.kill(-p.pid); } catch {} try { execSync('
 
   // Server back: mock data resets, so the token is unknown -> 401 -> pairing screen + cache cleared
   server = startServer(); await waitUp();
+  // 2026-10-08 13:25, #45: a real DB keeps the pairing across restarts, so revoke the tablet (mock mode: already gone, nothing to revoke)
+  const DEV = B + '/company/demo-rentals/properties/seaside-villa/devices', AUTH = { Authorization: 'Bearer ' + login.token };
+  const listed = await (await fetch(DEV, { headers: AUTH })).json();
+  for (const d of (listed.devices || listed || []).filter(d => d.status === 'active')) await fetch(`${DEV}/${d.id}`, { method: 'DELETE', headers: AUTH });
   await page.reload();
   await page.waitForSelector('#pairing', { state: 'visible', timeout: 15000 });
   check('unknown/revoked token returns to pairing', true);

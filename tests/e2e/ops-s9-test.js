@@ -60,7 +60,7 @@ async function webhook(type, object) {
   const out = []; const check = (n, ok, x = '') => out.push(`${ok ? 'PASS' : 'FAIL'} ${n}${x ? ' — ' + x : ''}`);
   killPort(FAKE_PORT);
   await new Promise(r => fake.listen(FAKE_PORT, r));
-  const env = { ...process.env, PORT: H.PORT, MOCK_DATABASE: 'true', EMAIL_PROVIDER: 'mock', OPS_SCHEDULER: 'off', APP_BASE_URL: '', STRIPE_SECRET_KEY: 'sk_test_fake', STRIPE_WEBHOOK_SECRET: WEBHOOK_SECRET,
+  const env = { ...process.env, PORT: H.PORT, MOCK_DATABASE: process.env.TEST_MOCK_DATABASE || 'true', EMAIL_PROVIDER: 'mock', OPS_SCHEDULER: 'off', APP_BASE_URL: '', STRIPE_SECRET_KEY: 'sk_test_fake', STRIPE_WEBHOOK_SECRET: WEBHOOK_SECRET,
     STRIPE_API_HOST: 'localhost', STRIPE_API_PORT: String(FAKE_PORT), STRIPE_API_PROTOCOL: 'http', STRIPE_PRICE_PRO_MONTHLY: 'price_pro_m', STRIPE_PRICE_OPS_MONTHLY: 'price_ops_m', OPS_PRICE_MONTHLY: '5' };
   const server = spawn('npx', ['ts-node', 'src/index.ts'], { cwd: H.ROOT, env, stdio: 'ignore', detached: true });
   for (let i = 0; i < 60; i++) { try { if ((await fetch(B + '/api/health')).ok) break; } catch {} await sleep(500); }

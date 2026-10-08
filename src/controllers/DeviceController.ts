@@ -89,7 +89,15 @@ export class DeviceController {
       const code = String(req.body?.code || '').replace(/\D/g, '');
       const result = await this.deviceService.redeemPairingCode(code);
       if (!result) {
-        return res.status(400).json({ error: 'Invalid or expired pairing code' });
+        // 2026-10-08 08:20, #33: say what went wrong (codes are single use and expire after 15 minutes)
+        const why = await this.deviceService.whyCodeFailed(code);
+        const messages = {
+          format: { code: 'PAIRING_FORMAT', error: 'Enter the 6-digit code shown in the StayGuide dashboard.' },
+          expired: { code: 'PAIRING_EXPIRED', error: 'This code has expired (codes last 15 minutes). Create a new one in the dashboard: Tablets → Pair new tablet.' },
+          used: { code: 'PAIRING_USED', error: 'This code was already used to pair a tablet. Each code works once; create a new one in the dashboard.' },
+          unknown: { code: 'PAIRING_INVALID', error: 'That code doesn\'t match any pairing code. Check the 6 digits, or create a new code in the dashboard.' }
+        };
+        return res.status(400).json(messages[why]);
       }
 
       const property = await this.propertyService.findById(result.device.property_id);

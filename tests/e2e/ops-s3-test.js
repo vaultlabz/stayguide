@@ -25,11 +25,12 @@ const upload = async (token, jobId, file, kind = 'after', caption = '', type) =>
 const iso = ms => new Date(Date.now() + ms).toISOString();
 const MIN = 60000, HOUR = 3600000;
 
+const out = []; // 2026-10-08 13:05, #45: module level so a crash still prints the checks that ran
 (async () => {
-  const out = []; const check = (n, ok, x = '') => out.push(`${ok ? 'PASS' : 'FAIL'} ${n}${x ? ' — ' + x : ''}`);
+  const check = (n, ok, x = '') => out.push(`${ok ? 'PASS' : 'FAIL'} ${n}${x ? ' — ' + x : ''}`);
   const STORE = path.join(H.OUT, 'ops-storage');
   fs.rmSync(STORE, { recursive: true, force: true });
-  const server = spawn('npx', ['ts-node', 'src/index.ts'], { cwd: H.ROOT, env: { ...process.env, PORT: H.PORT, MOCK_DATABASE: 'true', EMAIL_PROVIDER: 'mock', OPS_STORAGE_DIR: STORE }, stdio: 'ignore', detached: true });
+  const server = spawn('npx', ['ts-node', 'src/index.ts'], { cwd: H.ROOT, env: { ...process.env, PORT: H.PORT, MOCK_DATABASE: process.env.TEST_MOCK_DATABASE || 'true', EMAIL_PROVIDER: 'mock', OPS_STORAGE_DIR: STORE, APP_BASE_URL: '' }, stdio: 'ignore', detached: true });
   for (let i = 0; i < 60; i++) { try { if ((await fetch(B + '/api/health')).ok) break; } catch {} await sleep(500); }
 
   const img = path.join(H.OUT, 'ops-s3-photo.jpg');
@@ -110,7 +111,9 @@ const MIN = 60000, HOUR = 3600000;
   const meta = await sharp(buf).metadata();
   check('served privately as WebP ≤1600 px, metadata stripped', got.status === 200 && got.headers.get('content-type') === 'image/webp' && meta.width === 1600 && !meta.exif, `${meta.width}x${meta.height} exif:${!!meta.exif}`);
   check('photo file is outside public/', !fs.existsSync(path.join(H.ROOT, 'public', 'uploads', 'ops')) && fs.existsSync(path.join(STORE, '1', String(noWin))));
-  check('tampered photo URL refused', (await fetch(B + up.data.photo.url.replace(/s=./, 's=X'))).status === 403);
+  const tampered = up.data.photo.url.replace(/s=(.)/, (m, ch) => 's=' + (ch === 'X' ? 'Y' : 'X')); // always a different signature // 2026-10-08 13:10, #45: report url + status on failure
+  const tamperedStatus = (await fetch(B + tampered)).status;
+  check('tampered photo URL refused', tamperedStatus === 403, `${tamperedStatus} ${up.data.photo.url} -> ${tampered}`);
   check('expired photo URL refused', (await fetch(B + up.data.photo.url.replace(/e=\d+/, 'e=1000'))).status === 403);
   check('non-image refused (by type)', (await upload(WT, noWin, txt)).status === 400);
   check('non-image refused (octet-stream, by decoder)', (await upload(WT, noWin, txt, 'after', '', 'application/octet-stream')).status === 400);
@@ -132,11 +135,12 @@ const MIN = 60000, HOUR = 3600000;
   await board.goto(B + '/company/demo-rentals/ops');
   await board.waitForSelector('#access-rows tr');
   check('UI board: access table shows Seaside Villa code set', (await board.textContent('#access-rows')).includes('set'));
-  await board.click('#access-rows tr:nth-child(2) button');
+  await board.click('#access-rows tr:has-text("Mountain Cabin") button'); // 2026-10-08 13:15, #45: by name (MySQL lists by name, mock by id)
   await board.fill('#a-code', 'GATE 1290');
   await board.click('#access-form button[type=submit]');
   await board.waitForSelector('.notice.success');
-  check('UI board: add code for Mountain Cabin', (await mgr('/access/2')).data.code === 'GATE 1290');
+  const cabinAccess = await mgr('/access/2'); // 2026-10-08 13:10, #45: report the response on failure
+  check('UI board: add code for Mountain Cabin', cabinAccess.data.code === 'GATE 1290', `${cabinAccess.status} ${cabinAccess.text.slice(0, 200)}`);
   await board.locator('.wo', { hasText: 'No window' }).first().click();
   await board.waitForSelector('#detail[open] .photos img');
   check('UI board: photos + time on site in the job dialog', (await board.locator('#detail .photos img').count()) === 1 && (await board.textContent('#detail')).includes('On site'));
@@ -189,4 +193,4 @@ const MIN = 60000, HOUR = 3600000;
   const failed = out.filter(l => l.startsWith('FAIL')).length;
   console.log(`\n${out.length - failed}/${out.length} ops-s3 checks passed`);
   process.exit(failed ? 1 : 0);
-})().catch(e => { console.error('CRASH', e); kill(); process.exit(1); });
+})().catch(e => { console.log(out.join('\n')); console.error('CRASH', e); kill(); process.exit(1); });
