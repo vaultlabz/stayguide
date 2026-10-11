@@ -66,3 +66,7 @@
 {"ts":"2026-10-08 09:18","tool":"claude-code","event":"task.completed","id":33,"title":"Clearer pairing errors (expired vs used vs invalid code)"}
 {"ts":"2026-10-08 09:18","tool":"claude-code","event":"task.completed","id":34,"title":"Remove or regenerate stale yarn.lock"}
 {"ts":"2026-10-08 12:15","tool":"claude-code","event":"task.completed","id":45,"title":"Verify on real MySQL: apply the 18 migrations (order: database/migrations/README.md) to a staging DB and run the e2e suites against it"}
+{"ts":"2026-10-09 12:10","tool":"claude-code","event":"task.created","ids":[56,57,58,59,60,61],"title":"PRD audit gaps + multi-user audit"}
+{"ts":"2026-10-09 12:17","tool":"claude-code","event":"task.completed","id":56,"title":"Password reset + change password"}
+{"ts":"2026-10-09 12:28","tool":"claude-code","event":"task.completed","id":61,"title":"Multi-user / multi-property audit + several admins per company"}
+{"ts": "2026-10-10 10:40", "tool": "claude-code", "event": "task.completed", "id": 62, "title": "Presence at the property (GPS check-in, alerts, guest activity)"}

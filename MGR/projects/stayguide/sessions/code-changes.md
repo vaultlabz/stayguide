@@ -21,3 +21,6 @@
 2026-10-08 07:55 | claude-code | Wired dashboard functions, helpdesk, email, invoice PDF; G7 Ops add-on S1-S9; src/controllers, src/services, src/views, database/migrations, tests/e2e
 2026-10-08 11:07 | claude-code | #31 tile row centered, #33 pairing errors, StayGuide hero mockup, yarn.lock removed; public/css/tablet-app.css, src/views/landing.html, DeviceService/Controller
 2026-10-08 12:15 | claude-code | #45 real-MySQL verification: UTC session, DECIMAL numbers, DATE strings in src/utils/database.ts; seed + test:mysql runner; schema.sql index names; phone tile flex-grow
+2026-10-09 09:24 | claude-code | #46 deploy prep: production startup config check, env templates, deploy guide
+2026-10-09 12:38 | claude-code | #56 password reset/change; #61 several admins per company + tenancy audit
+2026-10-10 10:40 | claude-code | #62 presence: GPS check-in/out + distance, property spot, arrival prompt, arrived/left + late emails, On site now, guest activity, migration 20

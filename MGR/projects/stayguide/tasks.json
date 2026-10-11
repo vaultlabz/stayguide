@@ -669,7 +669,7 @@
       "id": 46,
       "creationDate": "2026-10-05 08:20",
       "title": "Production deploy prep: HTTPS, Node ≥ 20.9, APP_BASE_URL, TRUST_PROXY=1, live Stripe keys + webhook endpoint, migrations",
-      "description": "Logged at /stop 2026-10-05",
+      "description": "Logged at /stop 2026-10-05. 2026-10-09: code side done (startup config check, .env.production.example, DEPLOYMENT_GUIDE.md checklist). Remaining = on the server: SSL, Node >= 20.9, DB + 18 migrations, secrets, live Stripe keys + webhook",
       "complexity": 4,
       "completionDate": null,
       "status": "pending",
@@ -678,7 +678,7 @@
       "context": {
         "doing": "Preparing the Plesk host for launch",
         "achieve": "the self-serve product can go live safely",
-        "according": "deploy notes in docs/todo.md entries and BILLING_SETUP.md"
+        "according": "DEPLOYMENT_GUIDE.md (rewritten 2026-10-09), BILLING_SETUP.md"
       }
     },
     {
@@ -779,6 +779,118 @@
       "status": "done",
       "priority": "medium",
       "trelloCardId": null
+    },
+    {
+      "id": 56,
+      "creationDate": "2026-10-09 12:10",
+      "title": "Password reset + change password for owners and admins (email link, single-use, expiring)",
+      "description": "From PRD audit 2026-10-09",
+      "complexity": 8,
+      "completionDate": "2026-10-09 12:17",
+      "status": "done",
+      "priority": "high",
+      "trelloCardId": null,
+      "context": {
+        "doing": "Adding forgot-password and change-password flows",
+        "achieve": "owners/admins can recover access without a manual SQL fix (launch blocker)",
+        "according": "PRD audit 2026-10-09 gap 1"
+      }
+    },
+    {
+      "id": 57,
+      "creationDate": "2026-10-09 12:10",
+      "title": "Tablet shows captured restaurant/local data: images, ratings, meal-category tabs, local-info grouping, Maps QR",
+      "description": "From PRD audit 2026-10-09",
+      "complexity": 5,
+      "completionDate": null,
+      "status": "pending",
+      "priority": "medium",
+      "trelloCardId": null,
+      "context": {
+        "doing": "Rendering fields the admin already stores",
+        "achieve": "PRD §2B/§2E met on the tablet and phone guide",
+        "according": "PRD audit 2026-10-09 gap 2"
+      }
+    },
+    {
+      "id": 58,
+      "creationDate": "2026-10-09 12:10",
+      "title": "PRD fields: TV/streaming codes, structured trash/parking/AC/pet info, rotating welcome messages",
+      "description": "From PRD audit 2026-10-09",
+      "complexity": 6,
+      "completionDate": null,
+      "status": "pending",
+      "priority": "medium",
+      "trelloCardId": null,
+      "context": {
+        "doing": "Adding missing PRD content fields (schema + editor + tablet)",
+        "achieve": "PRD §2A/§2C fully met",
+        "according": "PRD audit 2026-10-09 gap 3"
+      }
+    },
+    {
+      "id": 59,
+      "creationDate": "2026-10-09 12:10",
+      "title": "Production hygiene: drop per-request auth email logging, tighten CSP (no unsafe-eval), restrict CORS, trim console.log",
+      "description": "From PRD audit 2026-10-09",
+      "complexity": 4,
+      "completionDate": null,
+      "status": "pending",
+      "priority": "high",
+      "trelloCardId": null,
+      "context": {
+        "doing": "Removing noisy/PII logs and loosening security headers",
+        "achieve": "safe production logs and headers",
+        "according": "PRD audit 2026-10-09 gap 4"
+      }
+    },
+    {
+      "id": 60,
+      "creationDate": "2026-10-09 12:10",
+      "title": "PRD Phase 2: instant announcements, guestbook, optional kiosk PIN",
+      "description": "From PRD audit 2026-10-09",
+      "complexity": 7,
+      "completionDate": null,
+      "status": "pending",
+      "priority": "low",
+      "trelloCardId": null,
+      "context": {
+        "doing": "Scoping PRD Phase 2 items",
+        "achieve": "PRD §6 Phase 2 delivered",
+        "according": "PRD audit 2026-10-09 gap 5"
+      }
+    },
+    {
+      "id": 61,
+      "creationDate": "2026-10-09 12:10",
+      "title": "Multi-user / multi-property audit at every level (super admin, company admins, workers): several users per company, varying property counts and settings",
+      "description": "User request 2026-10-09",
+      "complexity": 7,
+      "completionDate": "2026-10-09 12:28",
+      "status": "done",
+      "priority": "high",
+      "trelloCardId": null,
+      "context": {
+        "doing": "Verifying and fixing per-role scoping with multiple users and properties",
+        "achieve": "every user level works with many users, many properties and different settings",
+        "according": "user request 2026-10-09"
+      }
+    },
+    {
+      "id": 62,
+      "creationDate": "2026-10-10 10:18",
+      "title": "Presence at the property: GPS-verified crew check-in/out, arrived/left + late alerts, anonymous guest activity",
+      "description": "User request 2026-10-09: detect when someone with the app is at the property and for how long. Web app (no background location): location on each check-in/out, arrival/leaving prompt, property spot, emails, late/no-show, guest activity + optional guide location question. Native geofencing out of scope.",
+      "complexity": 7,
+      "completionDate": "2026-10-10 10:40",
+      "status": "done",
+      "priority": "high",
+      "trelloCardId": null,
+      "context": {
+        "doing": "Presence (#62) implemented and tested",
+        "achieve": "managers see who is at each property, since when, and whether the check-in was really at the house",
+        "according": "user request 2026-10-09, plan concurrent-finding-kahan.md"
+      }
     }
   ]
 }

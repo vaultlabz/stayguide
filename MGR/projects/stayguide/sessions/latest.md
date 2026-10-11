@@ -101,3 +101,41 @@
 - Results: MySQL 20/20 suites; mock npm test all green (unit 24/24, design 326/326, …)
 - Local DBs: stayguide_dev (test target), stayguide_migtest (can be dropped)
 - Not committed. Next: commit on feature/g7-ops, PR → main, #46 deploy prep
+
+2026-10-09 09:24
+## Checkpoint (claude-code)
+- #46 code side done (task stays pending for the server steps): src/utils/production-check.ts refuses a production start on old Node, weak JWT_SECRET, MOCK_DATABASE=true, non-https APP_BASE_URL, bad OPS_SECRET_KEY, Stripe without webhook secret; warns on test Stripe key, TRUST_PROXY, mock email, VAPID, SUPPORT_EMAIL
+- database.ts honors DB_PORT; secret-box exports parseOpsKey
+- .env.production.example rewritten (all settings); .env.example + MOCK_DATABASE/DB_PORT/APP_BASE_URL
+- DEPLOYMENT_GUIDE.md rewritten as the single Plesk checklist; plesk-deploy.md + database/DEPLOYMENT_GUIDE.md point to it
+- Tests: unit 28/28; mock npm test all green; MySQL 20/20 (billing-test once took ~39 min in the mock run but passed; 27s on MySQL, not investigated)
+- Not committed, not pushed. Next: commit, push + PR feature/g7-ops → main (needs user OK), then server steps per DEPLOYMENT_GUIDE.md
+
+2026-10-09 12:38
+## Checkpoint (claude-code)
+- PRD audit (StayGuide-PRD.md vs code): MVP ~85% met; gaps logged as tasks #56–#61
+- #56 done: forgot/reset/change password for all roles; sessions before a change are rejected (users.password_changed_at); migration 19 (2026-10-09_password_resets.sql); password-test 33/33 mock + MySQL
+- #61 done: several admins per company (Team page Admins card, super admin Admins dialog, /company/<slug>/admins API); super admin table shows plan/properties/admins and escapes names; tenancy-test 34/34 incl. 63 cross-company probes, mock + MySQL
+- Mock user lookup now case-insensitive and skips deactivated users (like MySQL)
+- Open from audit: #57 tablet shows stored restaurant/local fields, #58 TV codes/structured house info/rotating welcome, #59 prod hygiene (auth email logging, CSP, CORS), #60 Phase 2
+- Not committed, not pushed (#46 work also uncommitted)
+
+2026-10-09 13:12
+## Checkpoint (claude-code)
+- MySQL sessions now TIME_TRUNCATE_FRACTIONAL (rounding made a fresh check-in "in the future"; flaky ops-s7); ops-s8 UI pause wait fixed (raced an earlier paused row)
+- Full runs: mock npm test 22/22 green; MySQL 21/22 then fixes, affected suites 3x green
+- Saved memory: run date before writing code-comment timestamps (rewrote invented 13:xx stamps to real 12:xx)
+
+2026-10-10 10:40
+## Checkpoint (claude-code)
+- #62 done: presence at the property. Crew check-in/out (button, QR, Start, Submit) carries a GPS reading + distance; arrival / leaving prompt in /maint; property spot (pin, maps link, or learned from a precise QR check-in); arrived/left emails (Team page switch) and late/no-show alerts (5-min tick); "On site now" on the board, Where column on Time; dashboard cards show crew on site + anonymous guest activity; optional guide "Are you at …?" (stored only as yes/no)
+- Migration 20 (2026-10-10_presence.sql); presence-test 65/65 mock + MySQL; unit 45/45
+- Background detection with the app closed needs a native app (not done); told the user up front
+- Comment stamps again ran ahead of the clock (10:30–11:45 at 10:28); rewritten to 10:28, every later batch took `date` first
+- Not committed, not pushed (#46, #56, #61, #62 all uncommitted)
+
+2026-10-10 11:49
+## Checkpoint (claude-code)
+- #62 regression: MySQL 23/23 suites, mock npm test all green (unit 45/45, presence 65/65)
+- design-test "Find from address" missed its fixed 800 ms wait once the dashboard loaded presence (mock requests ~1 s each): editor reuses the cards' data, one presence request at a time, test waits for the answer
+- Not committed, not pushed
