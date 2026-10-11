@@ -6,6 +6,7 @@ import { CompanyService } from '../services/CompanyService';
 import { PropertyService } from '../services/PropertyService';
 import { entitlementsFor, upgradeRequired } from '../services/EntitlementService';
 import { resolveOwnedProperty, resolveOwnedCompany } from '../utils/ownership';
+import { parseFix, siteOf, distanceM, AWAY_M } from '../utils/geo'; // 2026-10-10 10:28, #62
 
 export class AnalyticsController {
   private analytics = new AnalyticsService();
@@ -17,7 +18,12 @@ export class AnalyticsController {
     const events = validEvents(body?.events);
     // Only Pro/Portfolio accounts get analytics; others are acknowledged and dropped (no data kept)
     const company = await this.companyService.findById(property.company_id);
-    const stored = entitlementsFor(company).features.analytics ? await this.analytics.record(property.id, source, deviceId, events) : 0;
+    // 2026-10-10 10:28, #62 guide location: reduced to at the property yes/no here; the coordinates are never stored
+    let onSite: boolean | null = null;
+    const fix = source === 'guest_link' && property.guide_location_check ? parseFix(body?.location) : null;
+    const site = siteOf(property);
+    if (fix && site) onSite = distanceM(fix, site) <= AWAY_M + Math.min(fix.accuracy, 100);
+    const stored = entitlementsFor(company).features.analytics ? await this.analytics.record(property.id, source, deviceId, events, onSite) : 0;
     res.status(202).json({ accepted: events.length, stored });
   }
 

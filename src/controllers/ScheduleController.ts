@@ -2,7 +2,7 @@
 import { Response } from 'express';
 import { AuthRequest } from '../types';
 import { TimeController } from './TimeController';
-import { threshold } from './WorkOrderController';
+import { threshold, presenceOn } from './WorkOrderController';
 import { ScheduleService, firstOnOrAfter, Schedule } from '../services/ScheduleService';
 import { WO_TYPES, WO_PRIORITIES } from '../services/WorkOrderService';
 import { todayIn, validTz } from '../services/TimeService';
@@ -122,12 +122,12 @@ export class ScheduleController extends TimeController {
     try {
       const company = await this.opsCompany(req, res);
       if (!company) return;
-      if (req.method !== 'PUT') return res.json({ approval_threshold: threshold(company), timezone: validTz(company.timezone) });
+      if (req.method !== 'PUT') return res.json({ approval_threshold: threshold(company), timezone: validTz(company.timezone), presence_emails: presenceOn(company) }); // 2026-10-10 10:28, #62
       const tz = String(req.body.timezone || '');
       if (validTz(tz) !== tz) return res.status(400).json({ error: 'Unknown time zone' });
       if (MOCK_MODE) (mockCompanies.find(c => c.id === company.id) as any).timezone = tz;
       else await db.execute('UPDATE companies SET timezone = ? WHERE id = ?', [tz, company.id]);
-      if ('approval_threshold' in req.body) return super.settings(req, res);
+      if ('approval_threshold' in req.body || 'presence_emails' in req.body) return super.settings(req, res);
       res.json({ timezone: tz });
     } catch (error) {
       console.error('Error saving time zone:', error);

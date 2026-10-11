@@ -5,6 +5,7 @@ import { PropertyController } from '../controllers/PropertyController';
 import { DeviceController } from '../controllers/DeviceController';
 import { ContentController } from '../controllers/ContentController';
 import { GuestLinkController } from '../controllers/GuestLinkController';
+import { PresenceController } from '../controllers/PresenceController'; // 2026-10-10 10:28, #62
 import { BillingPlanController } from '../controllers/BillingPlanController';
 import { AnalyticsController } from '../controllers/AnalyticsController';
 import { HelpdeskController } from '../controllers/HelpdeskController'; // 2026-10-07 16:00
@@ -14,6 +15,7 @@ import { OnSiteController } from '../controllers/OnSiteController'; // 2026-10-0
 import { ChecklistController } from '../controllers/ChecklistController'; // 2026-10-08 03:20, G7 S4
 import { TimeController } from '../controllers/TimeController'; // 2026-10-08 09:30, G7 S7
 import { ScheduleController } from '../controllers/ScheduleController'; // 2026-10-08 11:30, G7 S8
+import { CompanyAdminsController } from '../controllers/CompanyAdminsController'; // 2026-10-09 12:28, #61
 import { authenticateToken, requireCompanyAdmin } from '../middleware/auth';
 import { uploadPropertyImage, uploadAmenityImage } from '../middleware/upload';
 
@@ -31,6 +33,7 @@ const propertyController = new PropertyController();
 const deviceController = new DeviceController();
 const contentController = new ContentController();
 const guestLinkController = new GuestLinkController();
+const presenceController = new PresenceController(); // 2026-10-10 10:28, #62
 const billingPlanController = new BillingPlanController();
 const analyticsController = new AnalyticsController();
 const helpdeskController = new HelpdeskController();
@@ -38,6 +41,7 @@ const opsController = new OpsController();
 const workOrderController = new WorkOrderController();
 const onSiteController = new OnSiteController();
 const checklistController = new ChecklistController();
+const companyAdminsController = new CompanyAdminsController(); // 2026-10-09 12:28, #61
 const timeController = new TimeController();
 const scheduleController = new ScheduleController();
 
@@ -147,6 +151,9 @@ router.post('/billing/ops', billingPlanController.ops.bind(billingPlanController
 
 // 2026-10-03 22:42, G2 public phone/web guide link
 router.get('/properties/:propertySlug/guest-link', guestLinkController.get.bind(guestLinkController));
+// 2026-10-10 10:28, #62 presence: guest activity + crew on site, precise property spot
+router.get('/presence', presenceController.overview.bind(presenceController));
+router.put('/properties/:propertySlug/site', presenceController.setSite.bind(presenceController));
 router.post('/properties/:propertySlug/guest-link/rotate', guestLinkController.rotate.bind(guestLinkController));
 
 // 2026-10-03 11:39, paired tablets per property
@@ -173,6 +180,11 @@ router.post('/helpdesk/tickets', helpdeskController.companyCreate.bind(helpdeskC
 router.get('/helpdesk/tickets/:ticketId', helpdeskController.companyGet.bind(helpdeskController));
 router.post('/helpdesk/tickets/:ticketId/replies', helpdeskController.companyReply.bind(helpdeskController));
 router.post('/helpdesk/tickets/:ticketId/close', helpdeskController.companyClose.bind(helpdeskController));
+
+// 2026-10-09 12:28, #61 company admins (every plan; not part of Ops)
+router.get('/admins', companyAdminsController.list.bind(companyAdminsController));
+router.post('/admins', companyAdminsController.invite.bind(companyAdminsController));
+router.put('/admins/:userId', companyAdminsController.setStatus.bind(companyAdminsController));
 
 // 2026-10-07 19:00, G7 Ops stage 1: team (needs the Ops add-on; 402 otherwise)
 router.get('/ops/team', opsController.team.bind(opsController));

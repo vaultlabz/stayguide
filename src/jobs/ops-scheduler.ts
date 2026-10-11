@@ -10,6 +10,8 @@ import { PushService } from '../services/PushService';
 import { entitlementsFor } from '../services/EntitlementService';
 import { ScheduleService } from '../services/ScheduleService'; // 2026-10-08 11:10, G7 S8
 import { WorkOrderService, WorkOrder } from '../services/WorkOrderService';
+import { OnSiteService } from '../services/OnSiteService'; // 2026-10-10 10:28, #62 late / no-show
+import { validTz } from '../services/TimeService';
 
 const HOUR = 3600 * 1000;
 let running = false;
@@ -109,15 +111,57 @@ async function managerDigests(now: Date): Promise<{ overdue: number; unassigned:
   return { overdue: nOver, unassigned: nUn };
 }
 
+// ---- 2026-10-10 10:28, #62 late / no-show: nobody checked in a while after the window opened ----
+export const LATE_AFTER_MIN = 30, LATE_AFTER_URGENT_MIN = 15;
+/** Jobs whose window opened longer ago than this are left alone (no alerts for old jobs when this first runs). */
+const LATE_LOOKBACK_MS = 24 * HOUR;
+let lateRunning = false;
+
+/** One email to the company and a push to the worker per late job; each job is reported once. */
+export async function lateAlerts(now: Date): Promise<number> {
+  if (lateRunning) return 0;
+  lateRunning = true;
+  try {
+    const orders = new WorkOrderService(), onsite = new OnSiteService(), companies = new CompanyService();
+    const email = new EmailService(), push = new PushService();
+    const due = (await orders.openForAlerts()).filter(o => {
+      if (!['assigned', 'in_progress'].includes(o.status) || !o.assignee_user_id || !o.window_start || o.late_alerted_at) return false;
+      const late = +new Date(o.window_start) + (o.priority === 'urgent' ? LATE_AFTER_URGENT_MIN : LATE_AFTER_MIN) * 60000;
+      return +now > late && +now - +new Date(o.window_start) < LATE_LOOKBACK_MS;
+    });
+    let sent = 0;
+    for (const o of due) {
+      if ((await onsite.entriesFor(o.id)).some(e => !e.voided_at)) continue; // someone checked in: not late
+      const c = await companies.findById(o.company_id);
+      if (!c || c.status !== 'active' || !entitlementsFor(c).ops) continue;
+      const who = o.assignee_name || 'The assigned worker';
+      const mins = Math.round((+now - +new Date(o.window_start!)) / 60000);
+      const opened = new Date(o.window_start!).toLocaleString('en-US', { timeStyle: 'short', timeZone: validTz(c.timezone) });
+      const link = `${base()}/company/${c.slug}/ops?wo=${o.id}`;
+      const line = `${who} has not checked in at ${o.property_name}. The job window opened at ${opened} (${mins} min ago).`;
+      email.sendEmail({ to: c.email, fromName: 'StayGuide', subject: `Late: ${who} has not arrived at ${o.property_name}`,
+        text: `${line}\n\nJob: #${o.id} ${o.title}\n\nOpen the job: ${link}`,
+        html: `<p>${line.replace(/[&<>]/g, ch => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;' }[ch]!))}</p><p>Job: #${o.id} ${o.title.replace(/[&<>]/g, ch => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;' }[ch]!))}</p><p><a href="${link}">Open the job</a></p>` }).catch(() => {});
+      push.notify(o.assignee_user_id!, { title: `You're due at ${o.property_name}`, body: `${o.title} · the window opened at ${opened}. Check in when you arrive.`, url: `/maint?job=${o.id}`, tag: `/maint?job=${o.id}` }).catch(() => {});
+      await orders.markAlerted(o.id, 'late_alerted_at');
+      sent++;
+    }
+    return sent;
+  } finally {
+    lateRunning = false;
+  }
+}
+
 /** One pass of every Ops check. Safe to call any time; overlapping runs are skipped. */
-export async function runOpsChecks(now = new Date()): Promise<{ certificate_reminders: number; scheduled_jobs: number; overdue_alerts: number; unassigned_alerts: number } | { skipped: true }> {
+export async function runOpsChecks(now = new Date()): Promise<{ certificate_reminders: number; scheduled_jobs: number; overdue_alerts: number; unassigned_alerts: number; late_alerts: number } | { skipped: true }> {
   if (running) return { skipped: true };
   running = true;
   try {
     const certificate_reminders = await certificateReminders();
     const scheduled_jobs = await scheduledJobs(now);
     const digests = await managerDigests(now);
-    return { certificate_reminders, scheduled_jobs, overdue_alerts: digests.overdue, unassigned_alerts: digests.unassigned };
+    const late_alerts = await lateAlerts(now);
+    return { certificate_reminders, scheduled_jobs, overdue_alerts: digests.overdue, unassigned_alerts: digests.unassigned, late_alerts };
   } finally {
     running = false;
   }
@@ -129,4 +173,6 @@ export function startOpsScheduler() {
   setTimeout(tick, 15_000).unref();
   timer = setInterval(tick, HOUR);
   timer.unref();
+  // 2026-10-10 10:28, #62 late arrivals need a shorter beat than the hourly digests
+  setInterval(() => lateAlerts(new Date()).then(n => { if (n) console.log('[ops] late alerts:', n); }).catch(err => console.error('[ops] late alerts failed:', err)), 5 * 60 * 1000).unref();
 }

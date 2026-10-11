@@ -306,6 +306,15 @@
                 grid-template-columns: 1fr;
             }
         }
+        /* 2026-10-09 12:32, #61 company admins dialog */
+        .companies-table .muted, #admins-dialog .muted { color: var(--text-muted); font-size: 0.85rem; }
+        #admins-dialog { margin: auto; border: 0; border-radius: var(--radius-lg); padding: 1.5rem; width: min(640px, calc(100vw - 32px)); background: var(--surface); color: var(--text); }
+        #admins-dialog::backdrop { background: rgb(0 0 0 / 0.45); }
+        #admins-dialog table { width: 100%; border-collapse: collapse; margin: 0.75rem 0 1rem; }
+        #admins-dialog th, #admins-dialog td { text-align: left; padding: 0.5rem 0.4rem; border-bottom: 1px solid var(--border); }
+        #admins-dialog .row { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 0.5rem; margin-bottom: 0.75rem; }
+        #admins-dialog input { width: 100%; box-sizing: border-box; padding: 0.5rem; border: 1px solid var(--border-strong); border-radius: var(--radius-sm); background: var(--surface); color: inherit; }
+        @media (max-width: 600px) { #admins-dialog .row { grid-template-columns: 1fr; } }
     </style>
 </head>
 <body class="sg-app snow">
@@ -320,6 +329,7 @@
         <div class="user-info">
             <div data-theme-toggle></div>
             <span id="user-name">Loading...</span>
+            <!-- 2026-10-09 12:20, #56 --><button type="button" class="btn btn-secondary" data-change-password="stayguide_admin_token">Password</button>
             <button class="btn btn-secondary" onclick="logout()">Logout</button>
         </div>
     </header>
@@ -368,6 +378,25 @@
     </div>
 
     <!-- Company Modal -->
+    <!-- 2026-10-09 12:32, #61 every company's admins (same API the company Team page uses) -->
+    <dialog id="admins-dialog" aria-labelledby="admins-title">
+        <h3 id="admins-title">Admins</h3>
+        <div id="admins-msg" role="alert"></div>
+        <table><thead><tr><th>Name</th><th>Status</th><th>Last sign-in</th><th></th></tr></thead><tbody id="admins-rows"></tbody></table>
+        <form id="admins-form">
+            <div class="row">
+                <input id="adm-first" placeholder="First name" aria-label="First name" maxlength="100" required>
+                <input id="adm-last" placeholder="Last name" aria-label="Last name" maxlength="100" required>
+                <input id="adm-email" type="email" placeholder="Email" aria-label="Email" maxlength="255" required>
+            </div>
+            <div class="actions">
+                <button class="btn btn-primary btn-small" type="submit">Add admin</button>
+                <button class="btn btn-secondary btn-small" type="button" onclick="document.getElementById('admins-dialog').close()">Close</button>
+            </div>
+            <p class="muted">New admins get an email to choose their password (link works for 7 days).</p>
+        </form>
+    </dialog>
+
     <div id="companyModal" class="modal">
         <div class="modal-content">
             <div class="modal-header">
@@ -471,6 +500,10 @@
         const API_BASE = '';
         let authToken = localStorage.getItem('stayguide_admin_token');
         
+        // 2026-10-09 12:32, #61
+        const esc = v => String(v ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+        let companiesById = {};
+
         // Check authentication on page load
         if (!authToken) {
             window.location.href = '/admin/login';
@@ -539,38 +572,40 @@
                 return;
             }
             
+            // 2026-10-09 12:32, #61 plan, property and admin counts per company; every value escaped (a name with an
+            // apostrophe used to break the Delete button)
+            companiesById = Object.fromEntries(companies.map(c => [c.id, c]));
             const tableHTML = `
                 <table class="companies-table">
                     <thead>
                         <tr>
                             <th>Company</th>
-                            <th>Slug</th>
-                            <th>Email</th>
+                            <th>Plan</th>
+                            <th>Properties</th>
+                            <th>Admins</th>
                             <th>Status</th>
-                            <th>Connection Fee</th>
-                            <th>Monthly Fee</th>
                             <th>Actions</th>
                         </tr>
                     </thead>
                     <tbody>
                         ${companies.map(company => `
                             <tr>
-                                <td><strong>${company.name}</strong></td>
-                                <td><code>${company.slug}</code></td>
-                                <td>${company.email}</td>
+                                <td><strong>${esc(company.name)}</strong><div class="muted"><code>${esc(company.slug)}</code> · ${esc(company.email)}</div></td>
+                                <td>${esc(company.plan || 'free')}${company.ops_addon ? ' + Ops' : ''}</td>
+                                <td>${Number(company.active_property_count ?? 0)}${company.property_count > company.active_property_count ? ` <span class="muted">(${Number(company.property_count)} total)</span>` : ''}</td>
+                                <td>${Number(company.admin_count ?? 0)}</td>
                                 <td>
-                                    <span class="status-badge status-${company.status}">
-                                        ${company.status}
+                                    <span class="status-badge status-${esc(company.status)}">
+                                        ${esc(company.status)}
                                     </span>
                                 </td>
-                                <td>$${parseFloat(company.connection_fee).toFixed(2)}</td>
-                                <td>$${parseFloat(company.monthly_fee_per_property).toFixed(2)}</td>
                                 <td>
                                     <div class="actions">
                                         <button class="btn btn-primary btn-small" 
-                                                onclick="editCompany(${company.id})">Edit</button>
+                                                onclick="editCompany(${Number(company.id)})">Edit</button>
+                                        <button class="btn btn-secondary btn-small" onclick="openAdmins(${Number(company.id)})">Admins</button>
                                         <button class="btn btn-danger btn-small" 
-                                                onclick="deleteCompany(${company.id}, '${company.name}')">Delete</button>
+                                                onclick="deleteCompany(${Number(company.id)})">Delete</button>
                                     </div>
                                 </td>
                             </tr>
@@ -730,7 +765,8 @@
         });
         
         // Delete company
-        async function deleteCompany(id, name) {
+        async function deleteCompany(id) {
+            const name = (companiesById[id] || {}).name || 'this company'; // 2026-10-09 12:32, #61
             if (!confirm(`Are you sure you want to delete "${name}"? This will deactivate the company and all its data.`)) {
                 return;
             }
@@ -743,6 +779,46 @@
             }
         }
         
+        // 2026-10-09 12:32, #61 company admins dialog
+        let adminsCompany = null;
+        const adminsMsg = (text, ok) => { const el = document.getElementById('admins-msg'); el.className = text ? (ok ? 'success' : 'error') : ''; el.textContent = text || ''; };
+        async function openAdmins(id) {
+            adminsCompany = companiesById[id];
+            document.getElementById('admins-title').textContent = `Admins · ${adminsCompany.name}`;
+            adminsMsg('');
+            document.getElementById('admins-form').reset();
+            document.getElementById('admins-dialog').showModal();
+            await renderAdmins();
+        }
+        async function renderAdmins() {
+            try {
+                const { admins } = await apiCall(`/company/${encodeURIComponent(adminsCompany.slug)}/admins`);
+                const active = admins.filter(a => a.status === 'active').length;
+                document.getElementById('admins-rows').innerHTML = admins.length ? admins.map(a => `
+                    <tr>
+                        <td><strong>${esc(a.first_name)} ${esc(a.last_name)}</strong><div class="muted">${esc(a.email)}</div></td>
+                        <td>${a.status === 'active' ? (a.last_login ? 'active' : 'invited') : 'deactivated'}</td>
+                        <td>${a.last_login ? new Date(a.last_login).toLocaleDateString() : '—'}</td>
+                        <td>${a.status === 'active' && active < 2 ? '' : `<button class="btn btn-secondary btn-small" type="button" onclick="setAdmin(${Number(a.id)}, '${a.status === 'active' ? 'inactive' : 'active'}')">${a.status === 'active' ? 'Deactivate' : 'Reactivate'}</button>`}</td>
+                    </tr>`).join('') : '<tr><td colspan="4" class="muted">No admins yet. Add one below.</td></tr>';
+            } catch (error) { adminsMsg(error.message); }
+        }
+        async function setAdmin(userId, status) {
+            try { await apiCall(`/company/${encodeURIComponent(adminsCompany.slug)}/admins/${userId}`, { method: 'PUT', body: JSON.stringify({ status }) }); await renderAdmins(); loadCompanies(); }
+            catch (error) { adminsMsg(error.message); }
+        }
+        document.getElementById('admins-form').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const email = document.getElementById('adm-email').value.trim();
+            try {
+                await apiCall(`/company/${encodeURIComponent(adminsCompany.slug)}/admins`, { method: 'POST', body: JSON.stringify({
+                    first_name: document.getElementById('adm-first').value, last_name: document.getElementById('adm-last').value, email }) });
+                e.target.reset();
+                adminsMsg(`${email} was added and emailed a link to choose a password.`, true);
+                await renderAdmins(); loadCompanies();
+            } catch (error) { adminsMsg(error.message); }
+        });
+
         // Logout function
         function logout() {
             console.log('Logout function called');
@@ -790,5 +866,6 @@
             }
         });
     </script>
+    <script src="/js/change-password.js"></script><!-- 2026-10-09 12:20, #56 -->
 </body>
 </html>

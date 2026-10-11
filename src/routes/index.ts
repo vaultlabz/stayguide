@@ -13,6 +13,7 @@ import maintRoutes from './maint'; // 2026-10-07 19:00, G7 Ops worker app
 import { renderLanding } from '../utils/pricing-html';
 import { AuthController } from '../controllers/AuthController';
 import { rateLimit } from '../middleware/rate-limit';
+import { authenticateToken } from '../middleware/auth'; // 2026-10-09 12:17, #56
 
 const router = express.Router();
 
@@ -34,6 +35,17 @@ router.get('/login', (req, res) => {
   res.sendFile(path.join(__dirname, '../views/login.html'));
 });
 router.post('/login', signInLimiter, authController.signIn.bind(authController));
+
+// 2026-10-09 12:17, #56 forgot / reset / change password (one page handles both the request and the new-password step)
+const forgotLimiter = rateLimit({ windowMs: 15 * 60 * 1000, max: 5, key: req => `forgot:${req.ip}:${String(req.body?.email || '').toLowerCase()}`, message: 'Too many reset requests. Please wait 15 minutes.' });
+const resetLimiter = rateLimit({ windowMs: 15 * 60 * 1000, max: 20, key: req => `reset:${req.ip}`, message: 'Too many attempts. Please wait 15 minutes.' });
+const changeLimiter = rateLimit({ windowMs: 15 * 60 * 1000, max: 10, key: req => `pwchange:${req.ip}`, message: 'Too many attempts. Please wait 15 minutes.' });
+const passwordPage = (req: express.Request, res: express.Response) => res.sendFile(path.join(__dirname, '../views/password-reset.html'));
+router.get('/forgot-password', passwordPage);
+router.get('/reset-password', passwordPage);
+router.post('/forgot-password', forgotLimiter, authController.forgotPassword.bind(authController));
+router.post('/reset-password', resetLimiter, authController.resetPassword.bind(authController));
+router.post('/account/password', changeLimiter, authenticateToken, authController.changePassword.bind(authController));
 
 // 2026-10-03 11:39, paired tablets: /tablet, /device/pair, /device/content
 router.use(deviceRoutes);

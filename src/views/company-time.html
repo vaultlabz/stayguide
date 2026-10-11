@@ -74,7 +74,7 @@
 
             <section class="card">
                 <h2>Entries</h2>
-                <div class="table-wrap"><table><thead><tr><th>Date</th><th>Person</th><th>Job</th><th>In</th><th>Out</th><th class="num">Hours</th><th>How</th><th></th></tr></thead><tbody id="entries"></tbody></table></div>
+                <div class="table-wrap"><table><thead><tr><th>Date</th><th>Person</th><th>Job</th><th>In</th><th>Out</th><th class="num">Hours</th><th>How</th><th>Where</th><th></th></tr></thead><tbody id="entries"></tbody></table></div>
             </section>
         </div>
     </main>
@@ -129,6 +129,8 @@
         let entries = [], current = null;
 
         const esc = v => String(v ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+        // 2026-10-10 10:29, #62 where the phone was at check-in / check-out
+        const where = (p, label) => !p ? '' : `<span class="badge ${p.state === 'at' ? 'resolved' : p.state === 'away' ? 'urgent' : ''}" title="${esc(p.label)}">${label}: ${esc(p.state === 'at' ? 'at property' : p.state === 'away' ? p.label.replace(' from the property', ' away') : p.state === 'unset' ? 'property spot not set' : 'no location')}</span>`;
         const ymd = d => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
         const day = d => new Date(d).toLocaleDateString(undefined, { weekday: 'short', month: 'short', day: 'numeric' });
         const hm = d => new Date(d).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' });
@@ -176,9 +178,10 @@
                     <td>${hm(e.clock_in)}</td><td>${e.clock_out ? hm(e.clock_out) + (ymd(new Date(e.clock_out)) !== ymd(new Date(e.clock_in)) ? ' <span class="muted">(+1)</span>' : '') : '<span class="badge awaiting">on site</span>'}</td>
                     <td class="num">${e.clock_out ? hours(e.minutes) : '—'}</td>
                     <td>${HOW[e.method_in] || esc(e.method_in)}${e.edited ? ' <span class="badge">corrected</span>' : ''}${e.voided_at ? ' <span class="badge urgent">voided</span>' : ''}</td>
+                    <td>${where(e.place_in, 'In')}${e.place_out ? '<br>' + where(e.place_out, 'Out') : ''}</td>
                     <td><div class="row-actions">${e.voided_at ? '' : `<button class="btn-link" type="button" onclick="openEdit(${e.id})">${e.clock_out ? 'Correct' : 'Check out'}</button><button class="btn-link" type="button" onclick="openVoid(${e.id})">Void</button>`}
                         ${e.edited || e.method_in === 'manual' || e.voided_at ? `<button class="btn-link" type="button" onclick="openHistory(${e.id})">History</button>` : ''}</div></td></tr>`).join('')
-                    : '<tr><td colspan="8" class="empty">No entries.</td></tr>';
+                    : '<tr><td colspan="9" class="empty">No entries.</td></tr>';
             } catch (error) {
                 if (error.status === 402) document.getElementById('upgrade').hidden = false;
                 else notice(error.message, 'error');

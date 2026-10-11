@@ -109,6 +109,11 @@
                 </form>
             </div>
             <div id="alerts"></div><!-- 2026-10-08 12:00, G7 S8: overdue / waiting for someone -->
+            <!-- 2026-10-10 10:30, #62 crew checked in right now -->
+            <section class="card" id="onsite-card" hidden style="margin-bottom: 1rem;">
+                <h2>On site now <span class="muted" id="onsite-count"></span></h2>
+                <div id="onsite"></div>
+            </section>
             <!-- 2026-10-08 03:40, G7 S4: submitted jobs with their checklist and photos -->
             <section class="card" id="review-card" hidden style="margin-bottom: 1rem;">
                 <h2>Review queue <span class="muted" id="review-count"></span></h2>
@@ -230,6 +235,22 @@
             document.getElementById('closed').innerHTML = closed.map(card).join('') || '<div class="empty-col">None yet</div>';
         }
 
+        // 2026-10-10 10:30, #62 who is checked in now, how long, and whether the check-in was at the property
+        async function loadOnSite() {
+            try {
+                const data = await apiCall('/presence');
+                const crew = (data?.properties || []).flatMap(p => p.crew_on_site.map(c => ({ ...c, property: p.name })));
+                document.getElementById('onsite-card').hidden = !crew.length;
+                document.getElementById('onsite-count').textContent = crew.length ? `(${crew.length})` : '';
+                const d = m => (m < 60 ? `${m} min` : `${Math.floor(m / 60)} h ${m % 60} min`);
+                document.getElementById('onsite').innerHTML = crew.map(c => `<div style="display:flex;flex-wrap:wrap;gap:0.4rem 1rem;align-items:center;padding:0.5rem 0;border-top:1px solid var(--border)">
+                    <strong>${esc(c.worker_name)}</strong><span>${esc(c.property)}</span>
+                    <span class="muted">since ${when(c.since)} · ${d(c.minutes)}</span>
+                    <span class="badge ${c.place.state === 'at' ? 'resolved' : c.place.state === 'away' ? 'urgent' : ''}">${esc(c.place.label)}</span>
+                    <button class="btn-link" type="button" onclick="openDetail(${Number(c.job_id)})">#${Number(c.job_id)} ${esc(c.job_title)}</button></div>`).join('');
+            } catch { document.getElementById('onsite-card').hidden = true; }
+        }
+
         async function load() {
             try {
                 const data = await apiCall('/ops/work-orders');
@@ -244,6 +265,7 @@
                 document.getElementById('alerts').innerHTML = overdue || waiting ? `<div class="notice ${overdue ? 'error' : ''}">${[
                     overdue ? `<strong>${overdue} overdue</strong>` : '', waiting ? `<strong>${waiting} waiting for someone</strong> to be assigned` : ''].filter(Boolean).join(' · ')}</div>` : '';
                 render();
+                loadOnSite();
             } catch (error) {
                 if (error.status === 402) { document.getElementById('upgrade').hidden = false; clearInterval(poll); }
                 else notice(error.message, 'error');
@@ -325,7 +347,7 @@
                     </form>
                     <h3 style="margin-top:1.25rem;font-size:1rem">History</h3>
                     <ol class="timeline">${data.events.map(e => `<li><strong>${ACTION[e.action] || esc(e.action)}</strong> ${e.actor_name ? '· ' + esc(e.actor_name) : e.actor_user_id === null ? '· StayGuide' : ''}
-                        ${e.data?.amount != null ? ' · ' + money(e.data.amount) : ''}${e.data?.cost_actual != null ? ' · ' + money(e.data.cost_actual) : ''}
+                        ${e.data?.amount != null ? ' · ' + money(e.data.amount) : ''}${e.data?.cost_actual != null ? ' · ' + money(e.data.cost_actual) : ''}${(e.action === 'checked_in' || e.action === 'checked_out') && e.data?.distance != null ? ' · ' + (e.data.distance <= 150 ? 'at the property' : (e.data.distance < 1000 ? Math.round(e.data.distance / 10) * 10 + ' m' : (e.data.distance / 1000).toFixed(1) + ' km') + ' away') : ''}
                         <div class="when">${when(e.created_at)}</div>${e.note ? `<div class="note">${esc(e.note)}</div>` : ''}</li>`).join('')}</ol>
                     <form onsubmit="event.preventDefault(); act('comment', { note: this.note.value })">
                         <div class="form-group"><label for="d-note">Comment (the worker gets an email)</label><textarea id="d-note" name="note" maxlength="5000" style="min-height:70px" required></textarea></div>

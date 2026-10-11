@@ -25,9 +25,13 @@ export class CompanyController {
 
   async getAllCompanies(req: AuthRequest, res: Response) {
     try {
-      const companies = await this.companyService.getAllCompanies();
-      
-      console.log(`Retrieved ${companies.length} companies for admin: ${req.user?.email}`);
+      // 2026-10-09 12:31, #61 per-company property and admin counts for the super admin table
+      const companies = await Promise.all((await this.companyService.getAllCompanies()).map(async c => {
+        const [properties, admins] = await Promise.all([this.propertyService.getPropertiesByCompany(c.id), this.userService.listCompanyAdmins(c.id)]);
+        return { ...c, property_count: properties.length, active_property_count: properties.filter(p => p.status === 'active').length,
+          admin_count: admins.filter(u => u.status === 'active').length };
+      }));
+
       res.json({
         message: 'Companies retrieved successfully',
         companies,

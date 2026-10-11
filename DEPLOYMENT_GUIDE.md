@@ -1,213 +1,96 @@
-# StayGuide Plesk Deployment Guide
+# StayGuide production deploy (Plesk)
 
-## 📋 Pre-Deployment Checklist
+<!-- 2026-10-09 08:35, #46: rewritten. Replaces the older guide (Node 18, init.sql demo logins, manual nodemailer step)
+     and the separate plesk-deploy.md / database/DEPLOYMENT_GUIDE.md, which now point here. -->
 
-### 1. Domain & Hosting Setup
-- ✅ Domain pointed to Plesk server
-- ✅ SSL certificate installed
-- ✅ Node.js enabled in Plesk
-- ✅ MySQL database created
+The server checks its own settings at startup. With `NODE_ENV=production` it **refuses to start** while a required
+value is missing or a placeholder, and lists what to fix in the Node.js log. Optional gaps are logged as `[config] warning:`.
 
-### 2. Email Configuration
-- ✅ Email accounts created (billing@yourdomain.com)
-- ✅ SMTP settings configured
-- ✅ Test email sending works
+## 1. Host prerequisites
 
-## 🚀 Deployment Steps
+- [ ] Domain points at the Plesk server, **Let's Encrypt (or other) SSL on**, "Permanent 301 redirect from HTTP to HTTPS" ticked
+- [ ] Plesk Node.js extension with **Node 20.9 or newer** (`package.json` `engines`; the startup check enforces it)
+- [ ] A MySQL 8+ database and a dedicated user with full rights on that database only
+- [ ] A mailbox for sending (e.g. `billing@yourdomain.com`) and its SMTP details
 
-### Step 1: Upload Files
-1. Build the project locally:
-   ```bash
-   npm run build
-   ```
+## 2. Get the code on the server
 
-2. Upload the following files/folders to your Plesk domain:
-   ```
-   /dist/           (compiled JavaScript)
-   /package.json
-   /package-lock.json
-   /.env.production (configured from template)
-   ```
-
-### Step 2: Configure Environment
-1. Copy `.env.production.example` to `.env.production`
-2. Update the production environment variables:
+Recommended: Plesk **Git** extension pulling `main` from GitHub into the domain folder (not `httpdocs` itself; see step 5).
+Then in the Plesk Node.js screen (or SSH, in the app folder):
 
 ```bash
-# Required Production Settings
-NODE_ENV=production
-PORT=3000  # Plesk will assign the actual port
-
-# Database (MySQL in Plesk)
-MOCK_DATABASE=false
-DB_HOST=localhost
-DB_USER=your_plesk_db_user
-DB_PASSWORD=your_plesk_db_password
-DB_NAME=your_plesk_db_name
-
-# Email (Domain SMTP)
-EMAIL_PROVIDER=smtp
-SMTP_HOST=mail.yourdomain.com
-SMTP_PORT=587
-SMTP_USER=billing@yourdomain.com
-SMTP_PASS=your_email_password
-FROM_EMAIL=billing@yourdomain.com
-APP_BASE_URL=https://yourdomain.com
+npm ci                 # needs dev dependencies for the TypeScript build
+npm run build:clean    # dist/ with views
 ```
 
-### Step 3: Database Setup
-1. Import the database schema:
-   ```sql
-   # Upload and run: /database/schema.sql
-   # Upload and run: /database/init.sql (if needed)
-   ```
+Keep these folders across deploys (they hold user data, not code): `public/uploads/`, `storage/ops/` (or `OPS_STORAGE_DIR`).
 
-2. Verify database connection:
-   ```bash
-   node -e "console.log('DB Test:', process.env.DB_HOST)"
-   ```
+## 3. Settings
 
-### Step 4: Install Dependencies
+Copy `.env.production.example` to `.env` in the app folder (or enter the same values in Plesk's environment variables) and fill
+everything in. Required at startup:
+
+| Setting | Value |
+|---|---|
+| `NODE_ENV` | `production` |
+| `APP_BASE_URL` | `https://yourdomain.com` (emails, guest links, QR codes, Stripe redirects) |
+| `TRUST_PROXY` | `1` (warning only, but needed behind Plesk nginx for correct rate limits) |
+| `MOCK_DATABASE` | `false` |
+| `DB_HOST` `DB_PORT` `DB_USER` `DB_PASSWORD` `DB_NAME` | from Plesk → Databases |
+| `JWT_SECRET` | `openssl rand -hex 32` |
+| `OPS_SECRET_KEY` | `openssl rand -hex 32`, **store a copy in your password manager** (encrypted access codes are unreadable without it) |
+| `STRIPE_WEBHOOK_SECRET` | required as soon as `STRIPE_SECRET_KEY` is set (step 6) |
+
+Also set (warnings if missing): `EMAIL_PROVIDER=smtp` + `SMTP_*`, `SUPPORT_EMAIL`, VAPID keys
+(`npx web-push generate-vapid-keys`, generate once and never change them, or every worker must re-enable push).
+
+## 4. Database
+
+**New database:** import `database/schema.sql` only (it already includes every migration). Do **not** run
+`database/init.sql` (demo logins `admin123` / `demo123`). Then set the super admin password:
+
 ```bash
-npm install --production
+node -e "require('bcryptjs').hash(process.argv[1], 12).then(console.log)" 'YOUR-NEW-PASSWORD'
 ```
 
-### Step 5: Start Application
-In Plesk Node.js settings:
-- **Startup File**: `dist/index.js`
-- **Application Mode**: `production`
-- **Environment Variables**: Load from `.env.production`
+```sql
+UPDATE users SET email = 'you@yourdomain.com', password_hash = '<hash from above>' WHERE role = 'super_admin';
+```
 
-## 📧 Email Configuration
+**Existing database:** back it up, then apply the migrations in `database/migrations/` **in the order listed in its README**
+(20 steps; the filename order is not the apply order). Each runs once. Verified on MySQL 9.3 (task #45).
 
-### Option 1: Domain SMTP (Recommended)
+## 5. Plesk Node.js app
+
+- Application root: the app folder; **Document root: `<app folder>/public`** (static files are also served by Node)
+- Application startup file: `dist/index.js`
+- Application mode: `production`
+- Restart the app, then open the log: you want `StayGuide server running` and no `[config] error:` lines
+
+## 6. Stripe live mode (docs/BILLING_SETUP.md)
+
+1. Switch the dashboard to live mode and create the same products/prices as in test mode (BILLING_SETUP §1; `npm run stripe:setup`
+   only accepts test keys, so copy the products to live mode in the dashboard)
+2. Paste `sk_live_...` into `STRIPE_SECRET_KEY` and every `STRIPE_PRICE_*`
+3. Developers → Webhooks → add `https://yourdomain.com/billing/webhook` with the events in BILLING_SETUP §4; paste its signing secret
+   into `STRIPE_WEBHOOK_SECRET`
+4. Payment methods, Customer Portal and branding as in BILLING_SETUP §2–3 (task #42)
+
+## 7. Smoke test
+
 ```bash
-EMAIL_PROVIDER=smtp
-SMTP_HOST=mail.yourdomain.com
-SMTP_PORT=587
-SMTP_SECURE=false
-SMTP_USER=billing@yourdomain.com
-SMTP_PASS=your_email_password
+curl -s https://yourdomain.com/api/health        # {"status":"healthy",...,"database":"connected"}
+curl -sI http://yourdomain.com | head -1          # 301 to https
 ```
 
-### Option 2: Plesk Local SMTP
-```bash
-EMAIL_PROVIDER=smtp
-SMTP_HOST=localhost
-SMTP_PORT=25
-SMTP_SECURE=false
-SMTP_USER=billing@yourdomain.com
-SMTP_PASS=your_email_password
-```
+- [ ] Log in at `/admin/login` as the super admin
+- [ ] Self-serve signup on `/signup` → Stripe Checkout (live card, then refund) → plan shows Active (webhook arrived)
+- [ ] Pair a tablet (open `/tablet` on it, enter a code from the property's Devices page), open the guest phone link, file a guest report → urgent report email arrives
+- [ ] Ops: invite a worker, sign in on a phone, enable push, upload a job photo
+- [ ] Log shows no `[config] warning:` you did not expect
 
-### Option 3: External SMTP (Gmail/Office365)
-```bash
-# For Gmail
-SMTP_HOST=smtp.gmail.com
-SMTP_PORT=587
-SMTP_USER=your_gmail@gmail.com
-SMTP_PASS=your_app_password
+## 8. Afterwards
 
-# For Office365
-SMTP_HOST=smtp-mail.outlook.com
-SMTP_PORT=587
-SMTP_USER=your_email@outlook.com
-SMTP_PASS=your_password
-```
-
-## 🔧 Production Optimizations
-
-### 1. Add Nodemailer Package
-When deploying to production, install the email package:
-```bash
-npm install nodemailer @types/nodemailer
-```
-
-Then uncomment the SMTP implementation in `/src/services/EmailService.ts`
-
-### 2. Environment Security
-- Never commit `.env.production` to git
-- Use strong passwords and JWT secrets
-- Rotate secrets regularly
-
-### 3. SSL Configuration
-Ensure HTTPS is working:
-```bash
-APP_BASE_URL=https://yourdomain.com
-```
-
-### 4. Database Optimization
-- Enable MySQL query caching
-- Set up regular backups
-- Monitor database performance
-
-## 📊 Testing Production Deployment
-
-### 1. Health Check
-```bash
-curl https://yourdomain.com/api/health
-```
-
-### 2. Admin Login Test
-```bash
-curl -X POST https://yourdomain.com/admin/login \
-  -H "Content-Type: application/json" \
-  -d '{"email":"admin@yourdomain.com","password":"your_password"}'
-```
-
-### 3. Email Test
-Create a new invoice and verify email is sent:
-```bash
-# Check server logs for SMTP email sending
-tail -f /var/log/nodejs/your-app.log
-```
-
-## 🚨 Troubleshooting
-
-### Issue: Email Not Sending
-1. Check SMTP credentials
-2. Verify email account exists
-3. Test SMTP connection manually
-4. Check firewall/port blocking
-
-### Issue: Database Connection Failed
-1. Verify MySQL service running
-2. Check database credentials
-3. Confirm database exists
-4. Test connection with MySQL client
-
-### Issue: Port Conflicts
-1. Let Plesk assign port automatically
-2. Update APP_BASE_URL if needed
-3. Check Plesk Node.js logs
-
-## 📝 Production Checklist
-
-- [ ] Environment variables configured
-- [ ] Database schema imported
-- [ ] Email accounts created and tested
-- [ ] SSL certificate working
-- [ ] Admin login working
-- [ ] Invoice creation working
-- [ ] Email sending working
-- [ ] All routes accessible
-- [ ] Error logging configured
-- [ ] Backup strategy in place
-
-## 🔄 Post-Deployment
-
-### Monitoring
-- Set up log rotation
-- Monitor email delivery rates
-- Track database performance
-- Monitor disk space usage
-
-### Maintenance
-- Regular database backups
-- Security updates
-- Performance monitoring
-- Email deliverability monitoring
-
----
-
-**🎉 Your StayGuide platform is now ready for production with full email functionality!**
+- Nightly MySQL backup (Plesk → Backup Manager) including `public/uploads/` and `storage/ops/`
+- Keep `.env` out of git (it is ignored); rotate `JWT_SECRET` only knowing that it signs everyone out
+- Redeploy: pull, `npm ci && npm run build:clean`, apply any new migrations from the README, restart

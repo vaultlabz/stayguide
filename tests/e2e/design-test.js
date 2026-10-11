@@ -402,7 +402,7 @@ const SCAN = () => {
     await p.goto(B + '/company/demo-rentals/dashboard'); await sleep(1200);
     await p.evaluate(() => editProperty('seaside-villa')); await p.waitForSelector('#propertyPanel.open'); await sleep(700);
     check('dashboard loads saved coordinates, unit, clock', (await p.inputValue('#latitude')) === '34.0195' && (await p.inputValue('#temperature-unit')) === 'F' && (await p.inputValue('#clock-format')) === '12h');
-    await p.fill('#latitude', ''); await p.fill('#longitude', ''); await p.click('#geocode-btn'); await sleep(800);
+    await p.fill('#latitude', ''); await p.fill('#longitude', ''); await p.click('#geocode-btn'); await p.waitForFunction(() => document.getElementById('geocode-status').textContent !== 'Searching...', null, { timeout: 10000 }); // 2026-10-10 11:18, wait for the answer (was a fixed 800 ms; mock requests take ~1 s each)
     check('"Find from address" fills lat/lon from the address field', (await p.inputValue('#latitude')) === '34.0901' && (await p.inputValue('#longitude')) === '-118.4065' && /Beverly Hills/.test(await p.textContent('#geocode-status')), await p.textContent('#geocode-status'));
     await p.selectOption('#temperature-unit', 'C'); await p.selectOption('#clock-format', '24h');
     await p.click('#property-submit-btn'); await p.waitForSelector('#panel-success', { state: 'visible', timeout: 10000 });

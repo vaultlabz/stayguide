@@ -1663,3 +1663,146 @@
 - Local DBs: `stayguide_dev` (test target, reset by the runner) and `stayguide_migtest` (migrated copy, can be dropped)
 - Run: `npm run build && PLAYWRIGHT_CHROMIUM_PATH=… npm run test:mysql [suite …]`
 - Production still needs the 18 migrations applied on the server itself (#46)
+
+## 2026-10-09 - FEATURE: Production deploy prep (#46): startup config check, complete env template, one accurate deploy guide
+
+**What Changed:**
+- ✅ `src/utils/production-check.ts` (new): with `NODE_ENV=production` the server refuses to start (exit 1, before listening) on Node < 20.9, weak/placeholder `JWT_SECRET`, `MOCK_DATABASE=true`, missing DB name/user, non-https `APP_BASE_URL`, invalid `OPS_SECRET_KEY`, Stripe key without `STRIPE_WEBHOOK_SECRET`, or `EMAIL_PROVIDER=smtp` without `SMTP_HOST`; warns on test Stripe key, no Stripe, empty `TRUST_PROXY`, mock email, missing VAPID keys, empty `SUPPORT_EMAIL`
+- ✅ `src/index.ts`: calls `assertProductionConfig()` right after `dotenv.config()`
+- ✅ `src/utils/secret-box.ts`: `parseOpsKey()` exported so the check validates the key exactly like encryption does
+- ✅ `src/utils/database.ts`: honors `DB_PORT` (default 3306), like the seed script already did
+- ✅ `.env.production.example` rewritten with every setting the app reads (Ops key/storage/scheduler, VAPID, SUPPORT_EMAIL, Ops price, DB_PORT); `.env.example` gains `MOCK_DATABASE`, `DB_PORT`, `APP_BASE_URL`
+- ✅ `DEPLOYMENT_GUIDE.md` rewritten as the single Plesk checklist (HTTPS, Node ≥ 20.9, settings, new DB vs 18 migrations, super admin password, Node app settings, Stripe live + webhook, smoke test, backups); `plesk-deploy.md` and `database/DEPLOYMENT_GUIDE.md` now point to it
+- ✅ Unit tests: 4 new checks (clean config, old Node, bad config errors, warnings)
+
+**Why:**
+- A half-configured production start used to look healthy and fail later (e.g. the first access code threw on a missing `OPS_SECRET_KEY`; mock mode would silently keep data in memory)
+- The old guides recommended Node 18, importing `init.sql` (demo logins `admin123`/`demo123`) and installing nodemailer by hand, and never mentioned migrations
+- `.env.production.example` was missing the G7 Ops, push and helpdesk settings
+
+**How:**
+- Pure `productionConfigProblems(env, nodeVersion)` (unit-tested) plus a thin `assertProductionConfig()` that logs and exits
+- Guide steps checked against the code: routes (`/signup`, `/tablet`, `/admin/login`, `/billing/webhook`, `/api/health`), `stripe:setup` test-key-only refusal, upload/storage folders
+
+**Impact:**
+- **Safer launch**: misconfiguration is caught at boot with a list of exact fixes in the Plesk log
+- **One source of truth** for deploying, consistent with the migration README
+- **No change in dev/test**: the check only runs with `NODE_ENV=production`
+
+**Technical Details:**
+- Smoke test: `NODE_ENV=production node dist/index.js` with the dev `.env` exits 1 listing 3 errors and 5 warnings; dev start unchanged (`/api/health` healthy)
+- Still needs the user on the server: SSL, Node version, DB + migrations, secrets, live Stripe keys/webhook (#42 for dashboard config)
+
+## 2026-10-09 - FEATURE: Forgot / reset / change password for every account type (#56)
+
+**What Changed:**
+- ✅ `/forgot-password` → emailed single-use link (60 min) → `/reset-password` sets a new password; one page (`src/views/password-reset.html`) handles both steps
+- ✅ `POST /account/password` (signed in): current + new password; returns a fresh token; "Password" button + dialog in the admin and company dashboards (`public/js/change-password.js`)
+- ✅ A reset or change stamps `users.password_changed_at`; `authenticateToken` rejects sessions issued before it (`SESSION_ENDED`), so a stolen session dies with the old password
+- ✅ "Password was changed" email after every reset/change, with a link back to reset if it wasn't them
+- ✅ "Forgot password?" links on `/login`, `/admin/login`, `/company/<slug>/login`
+- ✅ Migration 19 `2026-10-09_password_resets.sql` (+ `schema.sql`): `users.password_changed_at`, `password_resets`
+- ✅ `UserService.updateUser` gained its missing mock-mode branch; `password_changed_at` added to the update whitelist
+- ✅ New suite `tests/e2e/password-test.js` (33 checks), added to `npm test`
+
+**Why:**
+- PRD audit gap 1 / launch blocker: a forgotten password needed a manual SQL fix
+- Changing a password should end other sessions (7-day JWTs otherwise stay valid)
+
+**How:**
+- `PasswordService`: 32-byte random token, stored as SHA-256 only, older open links voided on each request and on any password change; MySQL claim is atomic (`UPDATE … WHERE used_at IS NULL`) so a link can't be used twice
+- Generic answer for unknown emails (no account probing); rate limits: 5 requests / 15 min per IP+email, 20 resets and 10 changes / 15 min per IP
+- `password_changed_at` stored in whole seconds (MySQL rounds fractions up, which could reject the fresh token issued in the same second)
+
+**Impact:**
+- **Self-service recovery** for super admins, company admins and field workers (workers land back on `/maint`)
+- **Safer accounts**: old sessions are signed out on reset/change, and the owner is told by email
+
+**Technical Details:**
+- Tests: password 33/33 (mock and real MySQL), ops-s1 40/40 on MySQL; migration 19 applied to the migrated DB gives the same schema as a fresh `schema.sql` (ignoring column order, as in #45)
+- Production: apply migration 19 (DEPLOYMENT_GUIDE now says 19 steps)
+
+## 2026-10-09 - FEATURE: Several admins per company + multi-tenant audit at every level (#61)
+
+**What Changed:**
+- ✅ Company admins: `GET/POST /company/<slug>/admins`, `PUT /company/<slug>/admins/:userId {status}` (`CompanyAdminsController`); a new admin gets an emailed set-password link (7 days, reuses the #56 reset links)
+- ✅ Guards: can't deactivate yourself, a company always keeps one active admin, deactivated admins are signed out at once and can't sign in; email must be unused across every account
+- ✅ Team page: new "Admins" card on every plan (worker invites stay behind the Ops add-on)
+- ✅ Super admin dashboard: companies table shows plan (+ Ops), active/total properties and active admins; new "Admins" dialog per company (list, add, deactivate/reactivate) using the same API
+- ✅ Super admin table escapes every value (a company name with an apostrophe broke the Delete button; names were inserted as raw HTML)
+- ✅ `GET /admin/companies` returns `property_count`, `active_property_count`, `admin_count`
+- ✅ Mock user lookup now matches MySQL: case-insensitive email, deactivated users can't sign in
+- ✅ New suite `tests/e2e/tenancy-test.js` (34 checks) in `npm test`
+
+**Why:**
+- User request: every level must support many users with different numbers of properties and settings
+- Before this a company had exactly one admin (created at signup / by the super admin) and nothing could add another; Ocean View in the demo data had no admin at all
+- Cross-company isolation had only been checked on a few endpoints
+
+**How:**
+- Isolation probe: a second company (3 properties, own admin, Ops on) calls 63 endpoints with the first company's slug or ids (properties, content, amenities, devices, work orders, access codes, QR, checklists, schedules, workers, invites, time entries, helpdesk, admins, `/billing/*`, `/reports/*`, `/admin/amenities/*`); every one must be refused and the first company's data must be byte-identical afterwards
+- Same suite covers super admin (sees and manages all companies, counts per company) and field workers (no company admin APIs, only their companies' jobs)
+
+**Impact:**
+- **Teams**: owners can share the dashboard with co-managers and remove them safely
+- **Master admin**: one place to see each company's size and who can sign in, and to add the first admin for a company
+- **Confidence**: no cross-tenant read or write found across 63 probes, in mock and real MySQL
+
+**Technical Details:**
+- No schema change (uses `users.role/company_id/status` and #56's `password_resets`)
+- Results: tenancy 34/34 and password 33/33 on mock and MySQL
+
+## 2026-10-09 - FIX: MySQL sessions truncate fractional seconds (flaky "Check-in can't be in the future")
+
+**What Changed:**
+- ✅ `src/utils/database.ts`: every pool connection (and the single connection) runs `SET time_zone = '+00:00', sql_mode = CONCAT(@@SESSION.sql_mode, ',TIME_TRUNCATE_FRACTIONAL')`
+
+**Why:**
+- MySQL rounds fractional seconds when storing `TIMESTAMP`: a check-in at `:09.6` was saved as `:10`, so a manager closing that entry within the same second got "Check-in can't be in the future" (ops-s7 failed once on MySQL in the full run, passed alone)
+
+**How:**
+- Truncation keeps stored times at or before the real moment, which is what mock mode effectively does
+
+**Impact:**
+- **No more sub-second "future" times** for check-ins, events and resets on any MySQL server
+
+**Technical Details:**
+- Verified the app pool reports UTC and TIME_TRUNCATE_FRACTIONAL; ops-s7, ops-s3, password ran 3× in a row on MySQL, all green
+- `tests/e2e/ops-s8-test.js`: the UI pause check now waits for the HVAC row itself (an earlier paused schedule already put "paused" on the page, so the wait returned before the save; surfaced on MySQL after this change shifted timing). ops-s8 3× on MySQL + mock green
+
+
+## 2026-10-10 10:40 - FEATURE: #62 Presence at the property (crew GPS check-in/out, arrived/left + late alerts, guest activity)
+
+**What Changed:**
+- ✅ Crew app (`/maint`): every check-in / check-out (button, QR sticker, Start job, Submit) sends one location reading when the phone allows it; the server stores it with the distance from the property (`time_entries.lat_in … dist_out`)
+- ✅ Arrival prompt: opening the app at a property during a job window shows "You're at Mountain Cabin → Check in (and start)"; checked in but >300 m away shows "Leaving Mountain Cabin? → Check out". "This phone" card offers "Use location for check-in"
+- ✅ Property location for crew check-in: dashboard editor "Use my current location" / paste coordinates or a Google / Apple Maps link / Clear (`PUT /company/:slug/properties/:propertySlug/site`); the first precise (≤50 m) QR-sticker check-in fills an empty spot; a manager pin is never overwritten
+- ✅ Manager emails "Terry arrived at Mountain Cabin (at the property)" / "Terry left Mountain Cabin (2 h 41 min on site)", switchable on the Team page (`companies.presence_emails`, `PUT /ops/settings {presence_emails}`)
+- ✅ Late / no-show alert: no check-in 30 min after the window opened (15 min for urgent) → one email to the company + push to the worker (`work_orders.late_alerted_at`, 5-minute tick, also in `POST /admin/ops/run-checks`); moving the window re-arms it; jobs whose window opened >24 h ago are ignored
+- ✅ Work orders board "On site now" (who, where, since, duration, at the property / N away); job history shows the distance; Time page "Where" column (In/Out: at property · 1.2 km away · no location · property spot not set)
+- ✅ Dashboard property cards: crew on site + anonymous guest activity ("Guests: tablet used 3× today · guide opened 4× (1 at the property) · last 5 min ago"), refreshed every minute (`GET /company/:slug/presence`)
+- ✅ Optional per property (off by default): the phone guide asks "Are you at Mountain Cabin?"; the server reduces the answer to at-the-property yes/no (`section_events.on_site`) and never stores the guest's coordinates
+- ✅ Migration 20 `database/migrations/2026-10-10_presence.sql` (+ `schema.sql`, README step 20, DEPLOYMENT_GUIDE 20 steps)
+
+**Why:**
+- Tony asked to know when someone with the app is at a property and for how long, for crews and guests
+- A web app can't watch location in the background (iOS/Android only allow that for installed native apps), so detection happens when the app is opened or a check-in is tapped; background geofencing would need a native wrapper (not in this task)
+- The weather coordinates come from a city-level geocoder, too coarse for a 150 m check, hence a separate precise spot
+
+**How:**
+- `src/utils/geo.ts`: `parseFix`, `parseCoords` (plain / `@lat,lng` / `!3d!4d` / `?q=` / `ll=`), haversine `distanceM`, `atProperty` (150 m + accuracy, capped at 100 m), `placeOf`, `formatDistance`
+- `WorkOrderController.arrive / leave` replace the four copies of clockIn/clockOut + event (button, QR, Start, Submit); they store the fix, learn the spot from QR, log `checked_in/out` with `distance`, and send the presence email
+- `PresenceController` (new): `overview` (grouped `section_events` + `devices.last_seen_at` + open time entries via `TimeService.list`), `setSite`; `PropertyService.setSite` (`AND site_lat IS NULL` when learning)
+- `ops-scheduler.ts`: `lateAlerts(now)` with its own guard; `WorkOrderService.edit` clears `late_alerted_at` when `window_start` moves
+
+**Impact:**
+- **Managers** see verified arrival/departure and time on site without asking; late jobs surface within ~5 minutes
+- **Owners / hosts** see whether a property is in use (tablet + guide activity) without tracking guests
+- **Privacy**: crew location is read only on check-in/out or when the app is open; guest location never stored; the property spot is never sent to the tablet or guide
+
+**Technical Details:**
+- Guest/tablet content strips `site_lat/site_lng/site_source`; worker job view includes `property.site` for the prompt and `on_site` in the job list
+- Guide on-site radius 300 m (+accuracy); the guide counts the visit after the guest answers (or on leaving), and asks once per phone
+- Tests: `tests/e2e/presence-test.js` 65/65 on mock and on MySQL (2×); unit 45/45 (geo parsing/distances). Migration 20 applied to `stayguide_migtest` gives the same column definitions as a fresh `schema.sql`
+- Not in scope: background detection with the app closed (native app), smart lock / Airbnb stay dates, forgot-to-check-out and off-site alert emails
+- 2026-10-10 11:23: the dashboard's presence load made design-test's "Find from address" miss its fixed 800 ms wait in mock mode (every mock request takes ~1 s; opening the editor already fires ~6 at once). The editor now reuses the cards' presence data, only one presence request runs at a time, and the test waits for the lookup answer instead of sleeping

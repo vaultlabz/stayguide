@@ -63,6 +63,8 @@
         <!-- signed in -->
         <section id="v-home" hidden>
             <h1 id="hello">Your jobs</h1>
+            <!-- 2026-10-10 10:28, #62 "You're at …, check in" / "Leaving? Check out" -->
+            <div id="presence-prompt" hidden></div>
             <!-- 2026-10-07 23:10, G7 S2: job lists -->
             <div id="jobs"></div>
             <!-- 2026-10-08 09:50, G7 S7: own hours -->
@@ -244,7 +246,89 @@
                 ios: '<p class="muted" style="margin-top:10px">Install: tap the Share button, then <strong>Add to Home Screen</strong>.</p>',
                 none: ''
             }[install];
-            box.innerHTML = pushRow + installRow + '<p class="muted" style="margin-top:10px;font-size:0.88rem">Jobs you have opened stay readable without signal. Updates and photos taken offline are sent when the connection is back.</p>';
+            // 2026-10-10 10:28, #62 location for check-in
+            const geo = await geoState();
+            const geoRow = {
+                granted: '<p style="margin-top:10px">Location is <strong>on</strong>: the app suggests checking in when you arrive at a job and records where you checked in and out.</p>',
+                prompt: '<button class="btn btn-secondary" type="button" onclick="enableLocation()" style="margin-top:10px">Use location for check-in</button><p class="muted" style="margin-top:6px;font-size:0.88rem">Only read when you open the app or check in or out, never in the background. Your manager sees whether you were at the property.</p>',
+                denied: '<p class="muted" style="margin-top:10px">Location is blocked for this site. Check-in still works; allow location in the browser settings to have it suggested when you arrive.</p>',
+                unsupported: ''
+            }[geo];
+            box.innerHTML = pushRow + installRow + geoRow + '<p class="muted" style="margin-top:10px;font-size:0.88rem">Jobs you have opened stay readable without signal. Updates and photos taken offline are sent when the connection is back.</p>';
+        }
+
+        // ---- 2026-10-10 10:28, #62 presence: one location reading with each check-in/out, and an arrival / leaving prompt.
+        // A web app cannot watch location in the background, so this runs only while the app is open.
+        const AT_M = 150, AWAY_M = 300, GEO_KEY = 'sg_geo_ok';
+        const geoRemembered = () => { try { return localStorage.getItem(GEO_KEY) === '1'; } catch { return false; } };
+        async function geoState() {
+            if (!navigator.geolocation) return 'unsupported';
+            try { const p = await navigator.permissions.query({ name: 'geolocation' }); return p.state; } catch { return geoRemembered() ? 'granted' : 'prompt'; }
+        }
+        /** One fix, or null (no permission, no signal, timeout). Never throws and never blocks longer than ~8 s. */
+        function getFix(timeoutMs = 8000) {
+            return new Promise(resolve => {
+                if (!navigator.geolocation) return resolve(null);
+                const t = setTimeout(() => resolve(null), timeoutMs + 500);
+                navigator.geolocation.getCurrentPosition(p => {
+                    clearTimeout(t);
+                    try { localStorage.setItem(GEO_KEY, '1'); } catch {}
+                    resolve({ lat: p.coords.latitude, lng: p.coords.longitude, accuracy: Math.round(p.coords.accuracy || 0) });
+                }, () => { clearTimeout(t); resolve(null); }, { enableHighAccuracy: true, timeout: timeoutMs, maximumAge: 30000 });
+            });
+        }
+        async function withLocation(body) { const location = await getFix(); return location ? { ...body, location } : body; }
+        function metres(a, b) {
+            const r = d => d * Math.PI / 180, dLat = r(b.lat - a.lat), dLng = r(b.lng - a.lng);
+            const h = Math.sin(dLat / 2) ** 2 + Math.cos(r(a.lat)) * Math.cos(r(b.lat)) * Math.sin(dLng / 2) ** 2;
+            return 2 * 6371000 * Math.asin(Math.min(1, Math.sqrt(h)));
+        }
+        const windowOpen = (j, now) => {
+            if (!j.window_start) return j.status === 'in_progress';
+            const from = +new Date(j.window_start) - 60 * 60000, to = (j.window_end ? +new Date(j.window_end) : +new Date(j.window_start) + 12 * 3600000) + 60 * 60000;
+            return now >= from && now <= to;
+        };
+        async function enableLocation() {
+            const fix = await getFix();
+            if (!fix) notice('Location is not available. Check-in still works without it.', 'error');
+            renderPhone();
+            if (lastJobs) presencePrompt(lastJobs, lastOnSite);
+        }
+        /** Suggests checking in at a job here, or checking out when the phone is well away from the job it is checked in at. */
+        async function presencePrompt(jobs, onSite) {
+            const box = document.getElementById('presence-prompt');
+            if ((await geoState()) !== 'granted') { box.hidden = true; return; }
+            const fix = await getFix();
+            if (!fix || document.getElementById('v-home').hidden) { box.hidden = true; return; }
+            const slack = Math.min(fix.accuracy, 100), now = Date.now();
+            let html = '';
+            const here = onSite && jobs.find(j => j.id === onSite.job_id);
+            if (here && here.property.site && metres(fix, here.property.site) > AWAY_M + slack) {
+                html = `<div class="card notice" style="display:grid;gap:10px"><strong>Leaving ${esc(here.property.name)}?</strong>
+                    <span class="muted">You are still checked in there.</span>
+                    <button class="btn btn-secondary" type="button" onclick="promptAction(${here.id}, 'check-out')">Check out</button></div>`;
+            } else if (!onSite) {
+                const near = jobs.filter(j => ['assigned', 'in_progress'].includes(j.status) && j.property.site && windowOpen(j, now) && metres(fix, j.property.site) <= AT_M + slack);
+                if (near.length) {
+                    const j = near[0];
+                    html = `<div class="card notice" style="display:grid;gap:10px"><strong>You're at ${esc(j.property.name)}</strong>
+                        <span class="muted">${esc(j.title)}${near.length > 1 ? ` · and ${near.length - 1} more job${near.length > 2 ? 's' : ''} here` : ''}</span>
+                        <button class="btn btn-primary" type="button" onclick="promptAction(${j.id}, 'check-in')">Check in${j.status === 'assigned' ? ' and start' : ''}</button></div>`;
+                }
+            }
+            box.innerHTML = html;
+            box.hidden = !html;
+        }
+        async function promptAction(jobId, action) {
+            const box = document.getElementById('presence-prompt');
+            box.querySelectorAll('button').forEach(b => { b.disabled = true; });
+            try {
+                currentJob = { id: jobId };
+                const r = await update(`/maint/api/jobs/${jobId}/${action}`, { json: await withLocation({}), label: action === 'check-in' ? 'Check in' : 'Check out' });
+                box.hidden = true;
+                await openJob(jobId);
+                notice(r.queued ? QUEUED : action === 'check-in' ? 'Checked in.' : 'Checked out.', r.queued ? '' : 'success');
+            } catch (error) { notice(error.message, 'error'); box.querySelectorAll('button').forEach(b => { b.disabled = false; }); }
         }
         // ---- 2026-10-08 09:50, G7 S7: own hours (this week / last week) ----
         async function loadHours() {
@@ -349,8 +433,11 @@
             </button>`;
         }
 
+        let lastJobs = null, lastOnSite = null; // 2026-10-10 10:28, #62
         async function loadJobs() {
-            const { jobs } = await api('/maint/api/jobs');
+            const { jobs, on_site } = await api('/maint/api/jobs');
+            lastJobs = jobs; lastOnSite = on_site || null;
+            presencePrompt(jobs, lastOnSite).catch(() => {});
             const endOfToday = new Date(); endOfToday.setHours(23, 59, 59, 999);
             const start = j => (j.window_start ? new Date(j.window_start) : j.due_at ? new Date(j.due_at) : null);
             const open = jobs.filter(j => !['done', 'verified'].includes(j.status));
@@ -511,7 +598,7 @@
 
         async function siteAction(action) {
             try {
-                const r = await update(`/maint/api/jobs/${currentJob.id}/${action}`, { json: {}, label: action === 'check-in' ? 'Check in' : 'Check out' });
+                const r = await update(`/maint/api/jobs/${currentJob.id}/${action}`, { json: await withLocation({}), label: action === 'check-in' ? 'Check in' : 'Check out' }); // 2026-10-10 10:28, #62 location
                 await openJob(currentJob.id);
                 notice(r.queued ? QUEUED : action === 'check-in' ? 'Checked in.' : 'Checked out.', r.queued ? '' : 'success');
             } catch (error) { notice(error.message, 'error'); }
@@ -547,7 +634,8 @@
             buttons.forEach(b => { b.disabled = true; });
             try {
                 const LABEL = { start: 'Start job', submit: 'Submit for review', comment: 'Message', estimate: 'Cost estimate' };
-                const data = await update(`/maint/api/jobs/${currentJob.id}/${action}`, { json: body, label: LABEL[action] || action });
+                // 2026-10-10 10:28, #62 starting and submitting also check in / out, so they carry the location too
+                const data = await update(`/maint/api/jobs/${currentJob.id}/${action}`, { json: action === 'start' || action === 'submit' ? await withLocation(body) : body, label: LABEL[action] || action });
                 await openJob(currentJob.id);
                 if (data.queued) return notice(QUEUED);
                 const msg = { start: 'Job started.', submit: 'Submitted for review.', comment: 'Message sent.',

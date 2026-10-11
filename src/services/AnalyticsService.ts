@@ -34,16 +34,17 @@ export interface AnalyticsSummary {
 }
 
 export class AnalyticsService {
-  async record(propertyId: number, source: EventSource, deviceId: number | null, events: { section: string; action: string }[]): Promise<number> {
+  // 2026-10-10 10:28, #62 onSite: the guest guide's answer to "are you at the property" (null = not asked / declined)
+  async record(propertyId: number, source: EventSource, deviceId: number | null, events: { section: string; action: string }[], onSite: boolean | null = null): Promise<number> {
     if (!events.length) return 0;
     if (MOCK_MODE) {
       const now = new Date();
-      for (const e of events) mockSectionEvents.push({ property_id: propertyId, source, device_id: deviceId, ...e, created_at: now });
+      for (const e of events) mockSectionEvents.push({ property_id: propertyId, source, device_id: deviceId, ...e, on_site: onSite, created_at: now });
       return events.length;
     }
-    const placeholders = events.map(() => '(?, ?, ?, ?, ?)').join(', ');
-    const values = events.flatMap(e => [propertyId, source, deviceId, e.section, e.action]);
-    await db.execute(`INSERT INTO section_events (property_id, source, device_id, section, action) VALUES ${placeholders}`, values);
+    const placeholders = events.map(() => '(?, ?, ?, ?, ?, ?)').join(', ');
+    const values = events.flatMap(e => [propertyId, source, deviceId, e.section, e.action, onSite]);
+    await db.execute(`INSERT INTO section_events (property_id, source, device_id, section, action, on_site) VALUES ${placeholders}`, values);
     return events.length;
   }
 

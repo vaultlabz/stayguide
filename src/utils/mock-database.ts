@@ -64,6 +64,7 @@ export const mockCompanies = [
     ops_addon: true, // 2026-10-07 18:30, G7 S1: demo company has the Ops add-on
     ops_approval_threshold: 250, // 2026-10-07 22:10, G7 S2
     timezone: 'America/Denver', // 2026-10-08 10:40, G7 S8
+    presence_emails: true, // 2026-10-10 10:28, #62
     created_at: new Date(),
     updated_at: new Date()
   },
@@ -82,6 +83,7 @@ export const mockCompanies = [
     subscription_status: 'legacy',
     ops_approval_threshold: 250, // 2026-10-07 22:10, G7 S2
     timezone: 'America/Denver', // 2026-10-08 10:40, G7 S8
+    presence_emails: true, // 2026-10-10 10:28, #62
     created_at: new Date(),
     updated_at: new Date()
   }
@@ -347,6 +349,8 @@ export const mockCompanyWorkers: any[] = [
 ];
 export const mockWorkerInvites: any[] = [];
 export const mockLoginCodes: any[] = [];
+// 2026-10-09 12:13, #56 password reset links (starts empty)
+export const mockPasswordResets: any[] = [];
 
 // 2026-10-07 22:10, G7 Ops stage 2: two demo jobs for Demo Rentals (one assigned to Terry Tech, one unassigned)
 const today = (h: number) => { const d = new Date(); d.setHours(h, 0, 0, 0); return d; };

@@ -49,10 +49,28 @@
         <div class="page-head">
             <div>
                 <h1>Team</h1>
-                <p class="lead">Invite the techs, cleaners, contractors and vendors you hire. They get jobs in the StayGuide work app under your company's name.</p>
+                <p class="lead">Admins manage your properties, billing and team with you. With the Ops add-on you can also invite the techs, cleaners, contractors and vendors you hire; they get jobs in the StayGuide work app under your company's name.</p>
             </div>
         </div>
         <div id="notices"></div>
+
+        <!-- 2026-10-09 12:30, #61 company admins (every plan) -->
+        <section class="card" id="admins-card">
+            <h2>Admins</h2>
+            <div class="table-wrap"><table>
+                <thead><tr><th>Name</th><th>Status</th><th>Last sign-in</th><th></th></tr></thead>
+                <tbody id="admins"><tr><td colspan="4" class="empty">Loading…</td></tr></tbody>
+            </table></div>
+            <form id="admin-form" style="margin-top: 1rem;">
+                <div class="grid-3">
+                    <div class="form-group"><label for="adm-first">First name</label><input id="adm-first" maxlength="100" required></div>
+                    <div class="form-group"><label for="adm-last">Last name</label><input id="adm-last" maxlength="100" required></div>
+                    <div class="form-group"><label for="adm-email">Email</label><input id="adm-email" type="email" maxlength="255" required></div>
+                </div>
+                <button class="btn btn-primary" type="submit">Add admin</button>
+                <span class="muted">They get an email to choose their password (link works for 7 days).</span>
+            </form>
+        </section>
 
         <section id="upgrade" class="card" hidden>
             <h2>Ops add-on</h2>
@@ -84,6 +102,13 @@
                     <thead><tr><th>Name</th><th>Type</th><th>Skills</th><th>Rate</th><th>Insurance</th><th>Status</th><th>Last sign-in</th><th></th></tr></thead>
                     <tbody id="members"></tbody>
                 </table></div>
+            </section>
+
+            <!-- 2026-10-10 10:30, #62 arrived / left emails -->
+            <section class="card" id="presence-card">
+                <h2>Arrival emails</h2>
+                <label style="display:flex;gap:0.5rem;align-items:center"><input type="checkbox" id="presence-emails" onchange="savePresenceEmails()"> Email me when someone checks in or out at a property, with where they were and how long they stayed</label>
+                <p class="muted" style="margin-top:0.5rem">Late or no-show alerts are always sent: when nobody has checked in 30 minutes after a job's window opens (15 for urgent jobs).</p>
             </section>
 
             <section class="card" id="invites-card">
@@ -160,10 +185,70 @@
             window.location.href = `${base}/login`;
         }
 
+        // 2026-10-09 12:30, #61 company admins
+        async function loadAdmins() {
+            try {
+                const data = await apiCall('/admins');
+                if (!data) return;
+                const activeCount = data.admins.filter(a => a.status === 'active').length;
+                document.getElementById('admins').innerHTML = data.admins.map(a => `
+                    <tr>
+                        <td><strong>${esc(a.first_name)} ${esc(a.last_name)}</strong>${a.is_me ? ' <span class="tag">you</span>' : ''}<div class="muted">${esc(a.email)}</div></td>
+                        <td><span class="badge ${a.status === 'active' ? 'resolved' : 'urgent'}">${a.status === 'active' ? (a.last_login ? 'active' : 'invited') : 'deactivated'}</span></td>
+                        <td>${day(a.last_login)}</td>
+                        <td><div class="row-actions">${a.is_me || (a.status === 'active' && activeCount < 2) ? '' : `
+                            <button class="btn btn-secondary btn-small" type="button" onclick="setAdminStatus(${a.id}, '${a.status === 'active' ? 'inactive' : 'active'}')">${a.status === 'active' ? 'Deactivate' : 'Reactivate'}</button>`}
+                        </div></td>
+                    </tr>`).join('');
+            } catch (error) {
+                notice(error.message, 'error');
+            }
+        }
+
+        async function setAdminStatus(userId, status) {
+            if (status === 'inactive' && !confirm('Deactivate this admin? They will be signed out and can no longer sign in.')) return;
+            try { await apiCall(`/admins/${userId}`, { method: 'PUT', body: JSON.stringify({ status }) }); await loadAdmins(); }
+            catch (error) { notice(error.message, 'error'); }
+        }
+
+        document.getElementById('admin-form').addEventListener('submit', async e => {
+            e.preventDefault();
+            const button = e.submitter;
+            button.disabled = true;
+            try {
+                const email = document.getElementById('adm-email').value.trim();
+                await apiCall('/admins', { method: 'POST', body: JSON.stringify({
+                    first_name: document.getElementById('adm-first').value,
+                    last_name: document.getElementById('adm-last').value,
+                    email
+                }) });
+                e.target.reset();
+                await loadAdmins();
+                notice(`${email} was added. They'll get an email to choose a password.`, 'success');
+            } catch (error) {
+                notice(error.message, 'error');
+            } finally {
+                button.disabled = false;
+            }
+        });
+
+        // 2026-10-10 10:30, #62
+        async function loadPresenceSetting() {
+            try { const s = await apiCall('/ops/settings'); if (s) document.getElementById('presence-emails').checked = s.presence_emails !== false; } catch {}
+        }
+        async function savePresenceEmails() {
+            const box = document.getElementById('presence-emails');
+            try {
+                await apiCall('/ops/settings', { method: 'PUT', body: JSON.stringify({ presence_emails: box.checked }) });
+                notice(box.checked ? 'Arrival emails are on.' : 'Arrival emails are off.', 'success');
+            } catch (error) { box.checked = !box.checked; notice(error.message, 'error'); }
+        }
+
         async function load() {
             try {
                 const data = await apiCall('/ops/team');
                 if (!data) return;
+                loadPresenceSetting();
                 members = data.members;
                 document.getElementById('team').hidden = false;
                 document.getElementById('members').innerHTML = members.length ? members.map(m => `
@@ -321,6 +406,7 @@
                 const res = await fetch('/api/auth/profile', { headers: { Authorization: `Bearer ${authToken}` } });
                 if (res.ok) { const p = await res.json(); document.getElementById('user-name').textContent = `${p.user.first_name} ${p.user.last_name}`; }
             } catch {}
+            loadAdmins(); // 2026-10-09 12:30, #61
             load();
         })();
     </script>

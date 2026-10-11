@@ -24,7 +24,14 @@ const PHOTO_URL_TTL_SEC = 3600;
 const MAX_PHOTOS_PER_ORDER = 40;
 
 export interface Photo { id: number; work_order_id: number; kind: PhotoKind; path: string; caption: string | null; uploaded_by: number | null; created_at: Date }
-export interface TimeEntry { id: number; work_order_id: number; user_id: number; clock_in: Date; clock_out: Date | null; method_in: 'qr' | 'button' | 'manual'; voided_at?: Date | null; method_out: 'qr' | 'button' | 'submit' | 'system' | null }
+export interface TimeEntry {
+  id: number; work_order_id: number; user_id: number; clock_in: Date; clock_out: Date | null; method_in: 'qr' | 'button' | 'manual'; voided_at?: Date | null; method_out: 'qr' | 'button' | 'submit' | 'system' | null;
+  // 2026-10-10 10:28, #62 phone location at check-in/out and metres from the property spot (null = not given / spot not set)
+  lat_in?: number | null; lng_in?: number | null; acc_in?: number | null; dist_in?: number | null;
+  lat_out?: number | null; lng_out?: number | null; acc_out?: number | null; dist_out?: number | null;
+}
+/** A phone location for a check-in or check-out, with its distance from the property (null when the spot is not set). */
+export interface EntryGeo { lat: number; lng: number; acc: number; dist: number | null }
 
 const sha256 = (v: string) => crypto.createHash('sha256').update(v).digest('hex');
 const nextId = (rows: any[]) => rows.reduce((m, r) => Math.max(m, r.id), 0) + 1;
@@ -149,26 +156,31 @@ export class OnSiteService {
     return rows as TimeEntry[];
   }
 
-  async clockIn(orderId: number, userId: number, method: 'qr' | 'button'): Promise<TimeEntry> {
+  async clockIn(orderId: number, userId: number, method: 'qr' | 'button', geo: EntryGeo | null = null): Promise<TimeEntry> { // 2026-10-10 10:28, #62 geo
     const now = clientNow(); // the phone's time when this was queued offline
+    const g = { lat_in: geo?.lat ?? null, lng_in: geo?.lng ?? null, acc_in: geo?.acc ?? null, dist_in: geo?.dist ?? null };
     if (MOCK_MODE) {
-      const e = { id: nextId(mockTimeEntries), work_order_id: orderId, user_id: userId, clock_in: now, clock_out: null, method_in: method, method_out: null, created_at: now };
+      const e = { id: nextId(mockTimeEntries), work_order_id: orderId, user_id: userId, clock_in: now, clock_out: null, method_in: method, method_out: null, ...g,
+        lat_out: null, lng_out: null, acc_out: null, dist_out: null, created_at: now };
       mockTimeEntries.push(e);
       return e as TimeEntry;
     }
-    const [result] = await db.execute('INSERT INTO time_entries (work_order_id, user_id, clock_in, method_in) VALUES (?, ?, ?, ?)', [orderId, userId, now, method]);
-    return { id: (result as any).insertId, work_order_id: orderId, user_id: userId, clock_in: now, clock_out: null, method_in: method, method_out: null };
+    const [result] = await db.execute('INSERT INTO time_entries (work_order_id, user_id, clock_in, method_in, lat_in, lng_in, acc_in, dist_in) VALUES (?, ?, ?, ?, ?, ?, ?, ?)',
+      [orderId, userId, now, method, g.lat_in, g.lng_in, g.acc_in, g.dist_in]);
+    return { id: (result as any).insertId, work_order_id: orderId, user_id: userId, clock_in: now, clock_out: null, method_in: method, method_out: null, ...g };
   }
 
-  async clockOut(entry: TimeEntry, method: 'qr' | 'button' | 'submit' | 'system'): Promise<TimeEntry> {
+  async clockOut(entry: TimeEntry, method: 'qr' | 'button' | 'submit' | 'system', geo: EntryGeo | null = null): Promise<TimeEntry> { // 2026-10-10 10:28, #62 geo
     // never before the check-in it closes (a late replay can carry an earlier phone time)
     const now = new Date(Math.max(+clientNow(), +new Date(entry.clock_in)));
+    const g = { lat_out: geo?.lat ?? null, lng_out: geo?.lng ?? null, acc_out: geo?.acc ?? null, dist_out: geo?.dist ?? null };
     if (MOCK_MODE) {
-      Object.assign(mockTimeEntries.find(e => e.id === entry.id), { clock_out: now, method_out: method });
+      Object.assign(mockTimeEntries.find(e => e.id === entry.id), { clock_out: now, method_out: method, ...g });
     } else {
-      await db.execute('UPDATE time_entries SET clock_out = ?, method_out = ? WHERE id = ?', [now, method, entry.id]);
+      await db.execute('UPDATE time_entries SET clock_out = ?, method_out = ?, lat_out = ?, lng_out = ?, acc_out = ?, dist_out = ? WHERE id = ?',
+        [now, method, g.lat_out, g.lng_out, g.acc_out, g.dist_out, entry.id]);
     }
-    return { ...entry, clock_out: now, method_out: method };
+    return { ...entry, clock_out: now, method_out: method, ...g };
   }
 
   /** Closes any open entry on this job (job canceled, reassigned or unassigned while someone was on site). */

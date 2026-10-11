@@ -16,6 +16,7 @@ CREATE TABLE companies (
     ops_addon BOOLEAN NOT NULL DEFAULT false, -- 2026-10-07 18:30, G7 S1 Ops add-on
     ops_approval_threshold DECIMAL(10,2) NULL DEFAULT 250.00, -- 2026-10-07 22:10, G7 S2 (NULL = never ask)
     timezone VARCHAR(64) NOT NULL DEFAULT 'America/Denver', -- 2026-10-08 10:30, G7 S8 (schedules, local times)
+    presence_emails BOOLEAN NOT NULL DEFAULT TRUE, -- 2026-10-10 10:18, #62 arrived/left emails
     billing_interval ENUM('month', 'year') NULL,
     subscription_status VARCHAR(32) NULL,
     stripe_customer_id VARCHAR(64) NULL,
@@ -41,6 +42,7 @@ CREATE TABLE users (
     company_id INT NULL,
     status ENUM('active', 'inactive') DEFAULT 'active',
     last_login TIMESTAMP NULL,
+    password_changed_at TIMESTAMP NULL, -- 2026-10-09 12:11, #56 sessions issued before this are rejected
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
     
@@ -73,11 +75,15 @@ CREATE TABLE properties (
     background_image_url VARCHAR(500) NULL,
     latitude DECIMAL(9,6) NULL, -- 2026-10-03 17:00, weather location
     longitude DECIMAL(9,6) NULL,
+    site_lat DECIMAL(9,6) NULL, -- 2026-10-10 10:18, #62 precise spot for crew check-in distance (pin by manager or learned from a QR check-in)
+    site_lng DECIMAL(9,6) NULL,
+    site_source ENUM('pin', 'qr') NULL,
     temperature_unit ENUM('F', 'C') NOT NULL DEFAULT 'F',
     clock_format ENUM('12h', '24h') NOT NULL DEFAULT '12h',
     tablet_background ENUM('solid', 'image', 'manhattan-ice', 'apricot-storm', 'barley-titan', 'silver-cloud', 'erie-charcoal', 'burnham-stone', 'baltic-rose', 'rich-bistre') NOT NULL DEFAULT 'solid', -- 2026-10-03 16:42
     guest_link_token VARCHAR(64) NULL, -- 2026-10-03 22:42, G2 public guide link
     guest_link_show_wifi BOOLEAN NOT NULL DEFAULT TRUE,
+    guide_location_check BOOLEAN NOT NULL DEFAULT FALSE, -- 2026-10-10 10:18, #62 phone guide asks guests for location (stored only as on-site yes/no)
     status ENUM('active', 'inactive') DEFAULT 'active',
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
@@ -444,6 +450,7 @@ CREATE TABLE section_events (
     device_id INT NULL,
     section VARCHAR(20) NOT NULL,
     action VARCHAR(20) NOT NULL,
+    on_site BOOLEAN NULL, -- 2026-10-10 10:18, #62 guest guide: at the property yes/no (only when the property asks)
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     FOREIGN KEY (property_id) REFERENCES properties(id) ON DELETE CASCADE,
     INDEX idx_property_created (property_id, created_at)
@@ -532,6 +539,7 @@ CREATE TABLE work_orders (
     schedule_due_on DATE NULL,
     overdue_alerted_at TIMESTAMP NULL,
     unassigned_alerted_at TIMESTAMP NULL,
+    late_alerted_at TIMESTAMP NULL, -- 2026-10-10 10:18, #62 late / no-show alert sent
     created_by INT NULL, -- NULL = created by the system (urgent guest report)
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
@@ -613,6 +621,14 @@ CREATE TABLE time_entries (
     edited BOOLEAN NOT NULL DEFAULT false,
     voided_at TIMESTAMP NULL,
     void_reason VARCHAR(500) NULL,
+    lat_in DECIMAL(9,6) NULL, -- 2026-10-10 10:18, #62 phone location at check-in/out; dist_* = metres from the property spot
+    lng_in DECIMAL(9,6) NULL,
+    acc_in SMALLINT UNSIGNED NULL,
+    dist_in INT UNSIGNED NULL,
+    lat_out DECIMAL(9,6) NULL,
+    lng_out DECIMAL(9,6) NULL,
+    acc_out SMALLINT UNSIGNED NULL,
+    dist_out INT UNSIGNED NULL,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     FOREIGN KEY (work_order_id) REFERENCES work_orders(id) ON DELETE CASCADE,
     FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
@@ -766,3 +782,16 @@ CREATE TABLE maintenance_schedules (
 ALTER TABLE work_orders
     ADD CONSTRAINT fk_wo_schedule FOREIGN KEY (schedule_id) REFERENCES maintenance_schedules(id) ON DELETE SET NULL,
     ADD UNIQUE KEY uniq_schedule_occurrence (schedule_id, schedule_due_on);
+
+-- 2026-10-09 12:11, #56 password reset links (same as migrations/2026-10-09_password_resets.sql)
+CREATE TABLE password_resets (
+    id INT PRIMARY KEY AUTO_INCREMENT,
+    user_id INT NOT NULL,
+    token_hash CHAR(64) NOT NULL,
+    expires_at TIMESTAMP NOT NULL,
+    used_at TIMESTAMP NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
+    UNIQUE KEY uniq_reset_token (token_hash),
+    INDEX idx_reset_user (user_id, created_at)
+);

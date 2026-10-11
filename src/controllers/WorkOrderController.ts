@@ -13,6 +13,9 @@ import { OnSiteService } from '../services/OnSiteService'; // 2026-10-08 00:50, 
 import { ChecklistService } from '../services/ChecklistService'; // 2026-10-08 03:00, G7 S4
 import { PushService } from '../services/PushService'; // 2026-10-08 05:30, G7 S5
 import { VendorService, coiStatus } from '../services/VendorService'; // 2026-10-08 07:40, G7 S6
+import { EntryGeo, TimeEntry } from '../services/OnSiteService'; // 2026-10-10 10:28, #62 presence
+import { validTz } from '../services/TimeService';
+import { parseFix, siteOf, distanceM, placeOf, LEARN_MAX_ACCURACY_M } from '../utils/geo';
 
 const MANAGER_ACTIONS: WoAction[] = ['assign', 'approve', 'reject', 'verify', 'bounce', 'cancel', 'comment'];
 const WORKER_ACTIONS: WoAction[] = ['start', 'estimate', 'submit', 'comment'];
@@ -22,6 +25,7 @@ const TEXT_MAX = 5000;
 const baseUrl = (req: Request) => (process.env.APP_BASE_URL || `${req.protocol}://${req.get('host')}`).replace(/\/$/, '');
 const esc = (v: unknown) => String(v ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]!));
 const money = (n: number | null | undefined) => (n === null || n === undefined ? '' : `$${Number(n).toFixed(2)}`);
+export const presenceOn = (c: Company) => !(c.presence_emails === false || (c.presence_emails as any) === 0); // 2026-10-10 10:28, #62
 export const threshold = (c: Company) => (c.ops_approval_threshold === null || c.ops_approval_threshold === undefined ? null : Number(c.ops_approval_threshold));
 
 function text(v: unknown, max: number, required: boolean): string | null | undefined {
@@ -87,6 +91,56 @@ export class WorkOrderController {
       text: `${lines.join('\n\n')}\n\n${linkLabel}: ${link}\n\nPowered by StayGuide`,
       html: `${lines.map(l => `<p style="white-space:pre-wrap">${esc(l)}</p>`).join('')}<p><a href="${link}">${esc(linkLabel)}</a></p><p style="color:#999;font-size:12px">Powered by StayGuide</p>`
     }).catch(err => console.error('Work order email failed:', err));
+  }
+
+  // ---- 2026-10-10 10:28, #62 presence: every check-in/out (button, QR, Start, Submit) goes through arrive / leave ----
+
+  /** The phone location sent with the request ({ location: { lat, lng, accuracy } }) and its distance from the property spot. */
+  protected entryGeo(req: Request, order: WorkOrder): EntryGeo | null {
+    const fix = parseFix(req.body?.location);
+    if (!fix) return null;
+    const site = siteOf({ site_lat: order.property_site_lat, site_lng: order.property_site_lng });
+    return { lat: fix.lat, lng: fix.lng, acc: fix.accuracy, dist: site ? distanceM(fix, site) : null };
+  }
+
+  protected async arrive(req: AuthRequest, company: Company, order: WorkOrder, method: 'qr' | 'button'): Promise<TimeEntry> {
+    let geo = this.entryGeo(req, order);
+    // the QR sticker proves the phone is at the house: a precise fix becomes the property spot when none is set yet
+    if (method === 'qr' && geo && geo.dist === null && geo.acc <= LEARN_MAX_ACCURACY_M
+      && await this.properties.setSite(order.property_id, { lat: geo.lat, lng: geo.lng }, 'qr', true)) {
+      geo = { ...geo, dist: 0 };
+    }
+    const entry = await this.onsite.clockIn(order.id, req.user!.id, method, geo);
+    await this.orders.addEvent(order.id, req.user!.id, 'checked_in', null, { method, distance: geo?.dist ?? null });
+    this.presenceEmail(req, company, order, entry, 'in');
+    return entry;
+  }
+
+  protected async leave(req: AuthRequest, company: Company, order: WorkOrder, entry: TimeEntry, method: 'qr' | 'button' | 'submit'): Promise<TimeEntry> {
+    const geo = this.entryGeo(req, order);
+    const closed = await this.onsite.clockOut(entry, method, geo);
+    await this.orders.addEvent(order.id, req.user!.id, 'checked_out', null, { method, distance: geo?.dist ?? null });
+    this.presenceEmail(req, company, order, closed, 'out');
+    return closed;
+  }
+
+  /** "Terry arrived at Mountain Cabin" / "Terry left Mountain Cabin (2 h 41 min on site)" to the company, unless switched off. */
+  private presenceEmail(req: AuthRequest, company: Company, order: WorkOrder, entry: TimeEntry, kind: 'in' | 'out') {
+    if (!presenceOn(company)) return;
+    const who = `${req.user?.first_name ?? ''} ${req.user?.last_name ?? ''}`.trim() || 'Your worker';
+    const place = order.property_name || 'the property';
+    const at = kind === 'in' ? entry.clock_in : entry.clock_out!;
+    const time = new Date(at).toLocaleString('en-US', { timeStyle: 'short', dateStyle: 'medium', timeZone: validTz(company.timezone) });
+    const where = (kind === 'in' ? placeOf(entry.lat_in, entry.dist_in, entry.acc_in) : placeOf(entry.lat_out, entry.dist_out, entry.acc_out)).label;
+    const job = `Job: #${order.id} ${order.title}`;
+    const link = `${baseUrl(req)}/company/${company.slug}/ops?wo=${order.id}`;
+    if (kind === 'in') {
+      this.mail(company.email, company, `${who} arrived at ${place}`, [`${who} checked in at ${place} on ${time} (${where}).`, job], link, 'Open the job');
+    } else {
+      const mins = Math.max(0, Math.round((+new Date(entry.clock_out!) - +new Date(entry.clock_in)) / 60000));
+      const on = mins < 60 ? `${mins} min` : `${Math.floor(mins / 60)} h ${mins % 60} min`;
+      this.mail(company.email, company, `${who} left ${place} (${on} on site)`, [`${who} checked out of ${place} on ${time} (${where}) after ${on} on site.`, job], link, 'Open the job');
+    }
   }
 
   protected async notify(req: Request, company: Company, before: WorkOrder, after: WorkOrder, events: string[], flags: string[], note: string | null) {
@@ -374,12 +428,20 @@ export class WorkOrderController {
       const company = await this.opsCompany(req, res);
       if (!company) return;
       if (req.method === 'PUT') {
+        const out: Record<string, unknown> = {};
+        // 2026-10-10 10:28, #62 presence_emails can be saved on its own
+        if ('presence_emails' in (req.body || {})) {
+          if (typeof req.body.presence_emails !== 'boolean') return res.status(400).json({ error: 'presence_emails must be true or false' });
+          await this.companies.setPresenceEmails(company.id, req.body.presence_emails);
+          out.presence_emails = req.body.presence_emails;
+          if (!('approval_threshold' in req.body)) return res.json(out);
+        }
         const t = amount(req.body?.approval_threshold);
         if (t === undefined) return res.status(400).json({ error: 'Threshold must be between 0 and 1,000,000, or empty for no approvals' });
         await this.companies.setOpsApprovalThreshold(company.id, t);
-        return res.json({ approval_threshold: t });
+        return res.json({ ...out, approval_threshold: t });
       }
-      res.json({ approval_threshold: threshold(company) });
+      res.json({ approval_threshold: threshold(company), presence_emails: presenceOn(company) });
     } catch (error) {
       console.error('Error with Ops settings:', error);
       res.status(500).json({ error: 'Failed to save settings' });
@@ -399,7 +461,8 @@ export class WorkOrderController {
       const companies = await this.activeCompanies(req.user!.id);
       const byId = new Map(companies.map(c => [c.company_id, c]));
       const jobs = await this.orders.listForWorker(req.user!.id, companies.map(c => c.company_id));
-      res.json({ jobs: jobs.map(j => workerView(j, byId.get(j.company_id)!)) });
+      const open = await this.onsite.openEntryFor(req.user!.id); // 2026-10-10 10:28, #62 for the "Leaving? Check out" prompt
+      res.json({ jobs: jobs.map(j => workerView(j, byId.get(j.company_id)!)), on_site: open ? { job_id: open.work_order_id, since: open.clock_in } : null });
     } catch (error) {
       console.error('Error loading worker jobs:', error);
       res.status(500).json({ error: 'Failed to load jobs' });
@@ -462,14 +525,8 @@ export class WorkOrderController {
       }
       const result = await this.orders.transition(found.order, action, { id: req.user!.id, role: 'worker' }, payload, threshold(company));
       if ('error' in result) return res.status(result.status).json({ error: result.error });
-      if (action === 'start' && !openEntry) {
-        await this.onsite.clockIn(found.order.id, req.user!.id, 'button');
-        await this.orders.addEvent(found.order.id, req.user!.id, 'checked_in', null, { method: 'button' });
-      }
-      if (action === 'submit' && openEntry && openEntry.work_order_id === found.order.id) {
-        await this.onsite.clockOut(openEntry, 'submit');
-        await this.orders.addEvent(found.order.id, req.user!.id, 'checked_out', null, { method: 'submit' });
-      }
+      if (action === 'start' && !openEntry) await this.arrive(req, company, found.order, 'button'); // 2026-10-10 10:28, #62
+      if (action === 'submit' && openEntry && openEntry.work_order_id === found.order.id) await this.leave(req, company, found.order, openEntry, 'submit');
       this.notify(req, company, found.order, result.order, result.events, result.flags, payload.note ?? payload.notes ?? null).catch(err => console.error('Work order notification failed:', err));
       res.json({ message: 'Done', job: workerView(result.order, found.membership), flags: result.flags });
     } catch (error) {
@@ -490,7 +547,7 @@ export function workerView(o: WorkOrder, m: { company_id: number; company_name: 
     id: o.id, type: o.type, title: o.title, description: o.description, priority: o.priority, status: o.status,
     window_start: o.window_start, window_end: o.window_end, due_at: o.due_at,
     cost_estimate: o.cost_estimate, approved_amount: o.approved_amount, cost_actual: o.cost_actual, completion_notes: o.completion_notes,
-    property: { name: o.property_name, address: o.property_address ?? null },
+    property: { name: o.property_name, address: o.property_address ?? null, site: siteOf({ site_lat: o.property_site_lat, site_lng: o.property_site_lng }) }, // 2026-10-10 10:28, #62 site for the arrival prompt
     company: { id: m.company_id, name: m.company_name, logo_url: m.logo_url },
     from_guest_report: !!o.guest_report_id,
     updated_at: o.updated_at

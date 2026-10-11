@@ -357,6 +357,7 @@ export class PropertyController {
     }
     if (propertyWithContent && !features.announcements) propertyWithContent.announcements = [];
     delete publicProperty.guest_link_token;
+    delete publicProperty.site_lat; delete publicProperty.site_lng; delete publicProperty.site_source; // 2026-10-10 10:28, #62 crew-only
     const hideWifi = mode === 'guest_link' && (property.guest_link_show_wifi === false || property.guest_link_show_wifi === 0);
     if (hideWifi) publicProperty.wifi_password = null;
 
@@ -529,6 +530,11 @@ export class PropertyController {
       const v = body.guest_link_show_wifi;
       if (typeof v !== 'boolean') return { error: 'guest_link_show_wifi must be true or false' };
       fields.guest_link_show_wifi = v;
+    }
+    // 2026-10-10 10:28, #62 phone guide asks guests whether they're at the property (boolean)
+    if (body.guide_location_check !== undefined) {
+      if (typeof body.guide_location_check !== 'boolean') return { error: 'guide_location_check must be true or false' };
+      fields.guide_location_check = body.guide_location_check;
     }
     if (body.guest_checkout_date !== undefined) {
       const date = typeof body.guest_checkout_date === 'string' ? body.guest_checkout_date.trim() : '';

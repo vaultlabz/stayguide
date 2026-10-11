@@ -23,6 +23,7 @@ export interface Company {
   ops_addon?: boolean | number;
   ops_approval_threshold?: number | string | null;
   timezone?: string; // 2026-10-08 10:40, G7 S8 (IANA; schedules use it for local times) // 2026-10-07 22:10, G7 S2: estimates above this wait for approval (null = never)
+  presence_emails?: boolean | number; // 2026-10-10 10:28, #62 arrived/left emails (default on)
   created_at: Date;
   updated_at: Date;
 }
@@ -37,6 +38,7 @@ export interface User {
   company_id?: number;
   status: 'active' | 'inactive';
   last_login?: Date;
+  password_changed_at?: Date | null; // 2026-10-09 12:13, #56 tokens issued before this are rejected
   created_at: Date;
   updated_at: Date;
 }
@@ -73,6 +75,11 @@ export interface Property {
   // 2026-10-03 22:42, G2 public guide link
   guest_link_token?: string | null;
   guest_link_show_wifi?: boolean | number;
+  // 2026-10-10 10:28, #62 precise spot for crew check-in distance; phone guide on-site question
+  site_lat?: number | string | null;
+  site_lng?: number | string | null;
+  site_source?: 'pin' | 'qr' | null;
+  guide_location_check?: boolean | number;
   status: 'active' | 'inactive';
   created_at: Date;
   updated_at: Date;
@@ -102,6 +109,7 @@ export interface JWTPayload {
   email: string;
   role: string;
   companyId?: number;
+  iat?: number; // 2026-10-09 12:13, #56 set by jsonwebtoken (seconds)
 }
 
 export * from './billing';

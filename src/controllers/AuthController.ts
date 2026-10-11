@@ -1,12 +1,20 @@
 import { Request, Response } from 'express';
 import { UserService } from '../services/UserService';
 import { CompanyService } from '../services/CompanyService';
-import { generateToken } from '../utils/auth';
+import { generateToken, comparePassword } from '../utils/auth';
 import { AuthRequest } from '../types';
+import { PasswordService, passwordProblem, RESET_MINUTES } from '../services/PasswordService'; // 2026-10-09 12:16, #56
+import { EmailService } from '../services/EmailService';
+
+const esc = (v: unknown) => String(v ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]!));
+const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+const baseUrl = (req: Request) => (process.env.APP_BASE_URL || `${req.protocol}://${req.get('host')}`).replace(/\/$/, '');
 
 export class AuthController {
   private userService = new UserService();
   private companyService = new CompanyService();
+  private passwords = new PasswordService();
+  private email = new EmailService();
 
   async adminLogin(req: Request, res: Response) {
     try {
@@ -189,5 +197,72 @@ export class AuthController {
       console.error('Profile error:', error);
       res.status(500).json({ error: 'Internal server error' });
     }
+  }
+
+  // 2026-10-09 12:16, #56 POST /forgot-password { email }: same answer whether or not the account exists
+  async forgotPassword(req: Request, res: Response) {
+    const email = String(req.body?.email || '').trim().toLowerCase();
+    if (!EMAIL_RE.test(email)) return res.status(400).json({ error: 'A valid email is required' });
+    try {
+      const reset = await this.passwords.createReset(email);
+      if (reset) {
+        const link = `${baseUrl(req)}/reset-password?token=${reset.token}`;
+        this.email.sendEmail({
+          to: reset.user.email, fromName: 'StayGuide', subject: 'Reset your StayGuide password',
+          text: `Hi ${reset.user.first_name},\n\nSomeone (hopefully you) asked to reset your StayGuide password.\n\nChoose a new password: ${link}\n\nThe link works once, for ${RESET_MINUTES} minutes. If you didn't ask for this, ignore this email; your password stays the same.`,
+          html: `<p>Hi ${esc(reset.user.first_name)},</p><p>Someone (hopefully you) asked to reset your StayGuide password.</p>`
+            + `<p><a href="${link}">Choose a new password</a></p><p style="color:#666">The link works once, for ${RESET_MINUTES} minutes. If you didn't ask for this, ignore this email; your password stays the same.</p>`
+        }).catch(err => console.error('Reset email failed:', err));
+      }
+      res.json({ message: `If that email has a StayGuide account, a reset link is on its way. It works for ${RESET_MINUTES} minutes.` });
+    } catch (error) {
+      console.error('Forgot password error:', error);
+      res.status(500).json({ error: 'Internal server error' });
+    }
+  }
+
+  // 2026-10-09 12:16, #56 POST /reset-password { token, password }
+  async resetPassword(req: Request, res: Response) {
+    const problem = passwordProblem(req.body?.password);
+    if (problem) return res.status(400).json({ error: problem });
+    try {
+      const user = await this.passwords.resetWithToken(String(req.body?.token || ''), req.body.password);
+      if (!user) return res.status(400).json({ error: 'This reset link is invalid, already used or expired. Request a new one.', code: 'RESET_INVALID' });
+      this.notifyChanged(user.email, user.first_name, baseUrl(req));
+      res.json({ message: 'Password updated. Sign in with your new password.', redirect: user.role === 'field_worker' ? '/maint' : '/login' });
+    } catch (error) {
+      console.error('Reset password error:', error);
+      res.status(500).json({ error: 'Internal server error' });
+    }
+  }
+
+  // 2026-10-09 12:16, #56 POST /account/password { current_password, new_password } (signed in). Other sessions are signed
+  // out; the response carries a fresh token for this one.
+  async changePassword(req: AuthRequest, res: Response) {
+    try {
+      if (!req.user) return res.status(401).json({ error: 'Authentication required' });
+      const { current_password, new_password } = req.body || {};
+      const problem = passwordProblem(new_password);
+      if (problem) return res.status(400).json({ error: problem });
+      if (typeof current_password !== 'string' || !(await comparePassword(current_password, req.user.password_hash))) {
+        return res.status(400).json({ error: 'Current password is incorrect' });
+      }
+      if (current_password === new_password) return res.status(400).json({ error: 'Choose a password different from the current one' });
+      await this.passwords.setPassword(req.user.id, new_password);
+      this.notifyChanged(req.user.email, req.user.first_name, baseUrl(req));
+      const token = generateToken({ userId: req.user.id, email: req.user.email, role: req.user.role, companyId: req.user.company_id });
+      res.json({ message: 'Password changed. Other devices were signed out.', token });
+    } catch (error) {
+      console.error('Change password error:', error);
+      res.status(500).json({ error: 'Internal server error' });
+    }
+  }
+
+  private notifyChanged(to: string, firstName: string, base: string) {
+    this.email.sendEmail({
+      to, fromName: 'StayGuide', subject: 'Your StayGuide password was changed',
+      text: `Hi ${firstName},\n\nYour StayGuide password was just changed and other devices were signed out.\n\nIf this wasn't you, reset it now: ${base}/forgot-password`,
+      html: `<p>Hi ${esc(firstName)},</p><p>Your StayGuide password was just changed and other devices were signed out.</p><p>If this wasn't you, <a href="${base}/forgot-password">reset it now</a>.</p>`
+    }).catch(err => console.error('Password-changed email failed:', err));
   }
 }

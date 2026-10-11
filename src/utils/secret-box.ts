@@ -2,13 +2,17 @@
 // Key: OPS_SECRET_KEY (32 bytes, hex or base64). Without it (dev only) a key is derived from JWT_SECRET, with a warning.
 import crypto from 'crypto';
 
+// 2026-10-09 08:12, #46: exported so the production startup check validates the key the same way
+export function parseOpsKey(raw: string): Buffer | null {
+  if (/^[0-9a-f]{64}$/i.test(raw)) return Buffer.from(raw, 'hex');
+  if (raw) { const b = Buffer.from(raw, 'base64'); if (b.length === 32) return b; }
+  return null;
+}
+
 let cachedKey: Buffer | null = null;
 function key(): Buffer {
   if (cachedKey) return cachedKey;
-  const raw = process.env.OPS_SECRET_KEY || '';
-  let k: Buffer | null = null;
-  if (/^[0-9a-f]{64}$/i.test(raw)) k = Buffer.from(raw, 'hex');
-  else if (raw) { const b = Buffer.from(raw, 'base64'); if (b.length === 32) k = b; }
+  let k = parseOpsKey(process.env.OPS_SECRET_KEY || '');
   if (!k) {
     if (process.env.NODE_ENV === 'production') throw new Error('OPS_SECRET_KEY must be set to 32 bytes (hex or base64) in production');
     console.warn('[secret-box] OPS_SECRET_KEY not set; deriving a development key from JWT_SECRET');

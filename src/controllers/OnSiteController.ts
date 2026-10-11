@@ -138,9 +138,9 @@ export class OnSiteController extends WorkOrderController {
     const userId = req.user!.id;
     const open = await this.onsite.openEntryFor(userId);
     const here = open && open.work_order_id === order.id ? open : null;
+    const company = (await this.companies.findById(order.company_id))!;
     if (here && want !== 'in') {
-      await this.onsite.clockOut(here, method);
-      await this.orders.addEvent(order.id, userId, 'checked_out', null, { method });
+      await this.leave(req, company, order, here, method); // 2026-10-10 10:28, #62 location + arrived/left email
       return { status: 200, body: { checked: 'out' as const } };
     }
     if (want === 'out') return { status: 409, body: { error: 'You are not checked in at this job.' } };
@@ -154,13 +154,11 @@ export class OnSiteController extends WorkOrderController {
       if (w && (now < w.from || now > w.to)) return { status: 409, body: { error: 'This job\'s time window is not open. Check the time, or ask the manager to update it.' } };
     }
     if (order.status === 'assigned') {
-      const company = (await this.companies.findById(order.company_id))!;
       const result = await this.orders.transition(order, 'start', { id: userId, role: 'worker' }, {}, threshold(company));
       if ('error' in result) return { status: result.status, body: { error: result.error } };
     }
-    await this.onsite.clockIn(order.id, userId, method);
-    await this.orders.addEvent(order.id, userId, 'checked_in', null, { method });
-    return { status: 200, body: { checked: 'in' as const } };
+    const entry = await this.arrive(req, company, order, method);
+    return { status: 200, body: { checked: 'in' as const, distance: entry.dist_in ?? null } };
   }
 
   async checkIn(req: AuthRequest, res: Response) { return this.site(req, res, 'in'); }

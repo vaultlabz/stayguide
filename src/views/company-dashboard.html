@@ -182,6 +182,14 @@
             box-shadow: 0 4px 12px var(--accent-ring);
         }
         
+        /* 2026-10-10 10:29, #62 guest activity + crew on site on each property card */
+        .property-presence { font-size: 0.88rem; color: var(--text-muted); margin: -0.25rem 0 1rem; display: grid; gap: 0.3rem; }
+        .property-presence:empty { display: none; }
+        .presence-dot { display: inline-block; width: 8px; height: 8px; border-radius: 50%; background: var(--border-strong); margin-right: 6px; vertical-align: middle; }
+        .presence-dot.on { background: var(--success, #2e7d32); }
+        .presence-crew { color: var(--text); }
+        .presence-away { color: var(--danger, #b3261e); }
+
         .property-name {
             font-size: 1.1rem;
             font-weight: 600;
@@ -597,6 +605,7 @@
             <div class="user-info">
                 <div data-theme-toggle></div>
                 <span id="user-name">Loading...</span>
+                <!-- 2026-10-09 12:20, #56 --><button type="button" class="btn btn-secondary" data-change-password="stayguide_token">Password</button>
                 <button class="btn btn-secondary" onclick="logout()">Logout</button>
             </div>
         </div>
@@ -882,6 +891,21 @@
                     <div id="activity-body"><p class="content-help">Loading…</p></div>
                 </div>
 
+                <!-- 2026-10-10 10:29, #62 precise property spot for crew check-in distance (saved immediately) -->
+                <div class="property-form-section" id="site-section" style="display: none;">
+                    <h3>Property location <span class="content-help" style="font-weight: 400;">for crew check-in</span></h3>
+                    <p class="content-help">Used to show whether your crew checked in and out at the property. Stand at the property and use your location, or paste coordinates or a Google / Apple Maps link.</p>
+                    <p id="site-state" style="margin: 0.5rem 0;"></p>
+                    <a id="site-map" target="_blank" rel="noopener noreferrer" hidden>View on the map</a>
+                    <div style="display: flex; gap: 0.5rem; flex-wrap: wrap; margin-top: 0.75rem;">
+                        <button type="button" class="btn btn-secondary btn-small" onclick="useMyLocation()">Use my current location</button>
+                        <input type="text" id="site-input" class="form-input" placeholder="34.0195, -118.4912 or a maps link" style="flex: 1; min-width: 220px;" aria-label="Coordinates or maps link">
+                        <button type="button" class="btn btn-secondary btn-small" onclick="saveSite({ location: document.getElementById('site-input').value })">Save</button>
+                        <button type="button" class="btn btn-secondary btn-small" onclick="if (confirm('Clear the property location?')) saveSite({ clear: true })">Clear</button>
+                    </div>
+                    <p class="content-error" id="site-status" hidden></p>
+                </div>
+
                 <!-- 2026-10-03 22:42, G2 public phone/web guide link (saved immediately) -->
                 <div class="property-form-section" id="guest-link-section" style="display: none;">
                     <h3>Guest link (phone guide)</h3>
@@ -896,6 +920,8 @@
                                 <a class="btn btn-secondary btn-small" id="guest-link-open" target="_blank" rel="noopener noreferrer">Open</a>
                             </div>
                             <label class="guest-link-toggle"><input type="checkbox" id="guest-link-show-wifi" onchange="saveGuestLinkWifi()"> Show the Wi-Fi password on the guest link</label>
+                            <!-- 2026-10-10 10:29, #62 -->
+                            <label class="guest-link-toggle"><input type="checkbox" id="guide-location-check" onchange="saveGuideLocationCheck()"> Ask guests if they're at the property (checked once; their location is never stored)</label>
                             <button type="button" class="btn btn-secondary btn-small" onclick="rotateGuestLink()">Rotate link</button>
                             <p class="content-error" id="guest-link-status" hidden></p>
                         </div>
@@ -1159,6 +1185,7 @@
                                 ${property.address ? `📍 ${property.address}` : ''}
                                 ${property.wifi_name ? `<br>📶 ${property.wifi_name}` : ''}
                             </div>
+                            <div class="property-presence" id="presence-${Number(property.id)}"></div>
                             <div class="property-actions">
                                 <button class="btn btn-primary btn-small" 
                                         onclick="editProperty('${property.slug}')">Edit</button>
@@ -1173,6 +1200,96 @@
             `;
             
             document.getElementById('properties-content').innerHTML = gridHTML;
+            loadPresence(); // 2026-10-10 10:29, #62
+        }
+
+        // ---- 2026-10-10 10:29, #62 presence: anonymous guest activity (tablet + phone guide) and crew checked in now ----
+        let presenceData = null, presenceTimer = null;
+        const ago = d => {
+            const m = Math.max(0, Math.round((Date.now() - new Date(d)) / 60000));
+            return m < 1 ? 'just now' : m < 60 ? `${m} min ago` : m < 1440 ? `${Math.round(m / 60)} h ago` : `${Math.round(m / 1440)} day${m < 2880 ? '' : 's'} ago`;
+        };
+        const dur = m => (m < 60 ? `${m} min` : `${Math.floor(m / 60)} h ${m % 60} min`);
+        let presenceLoading = false;
+        async function loadPresence() {
+            if (presenceLoading) return; // 2026-10-10 11:18, one request at a time
+            presenceLoading = true;
+            try {
+                presenceData = await apiCall(`/company/${companySlug}/presence`);
+                for (const p of presenceData.properties) {
+                    const el = document.getElementById(`presence-${p.id}`);
+                    if (!el) continue;
+                    const rows = p.crew_on_site.map(c => `<div class="presence-crew"><span class="presence-dot on"></span><strong>${escHtml(c.worker_name)}</strong> on site · ${dur(c.minutes)}`
+                        + `${c.place.state === 'away' ? ` · <span class="presence-away">${escHtml(c.place.label)}</span>` : ''}</div>`);
+                    if (presenceData.analytics) {
+                        const g = p.guests, t = g.tablet, v = g.guide;
+                        const bits = [];
+                        if (t.events_24h) bits.push(`tablet used ${t.events_24h}× today`);
+                        if (v.visits_24h) bits.push(`guide opened ${v.visits_24h}×${v.on_site_visits_24h ? ` (${v.on_site_visits_24h} at the property)` : ''}`);
+                        const active = g.last_activity_at && Date.now() - new Date(g.last_activity_at) < 24 * 3600000;
+                        rows.push(`<div><span class="presence-dot${active ? ' on' : ''}"></span>Guests: ${g.last_activity_at ? (bits.length ? bits.join(' · ') : 'last activity ' + ago(g.last_activity_at)) : 'no activity in 30 days'}`
+                            + `${g.last_activity_at && bits.length ? ` · last ${ago(g.last_activity_at)}` : ''}</div>`);
+                    }
+                    el.innerHTML = rows.join('');
+                }
+            } catch (error) { console.error('Presence failed:', error); }
+            presenceLoading = false;
+            clearTimeout(presenceTimer);
+            presenceTimer = setTimeout(loadPresence, 60000);
+        }
+
+        // property spot for crew check-in (editor)
+        function renderSite(p) {
+            const box = document.getElementById('site-state');
+            box.textContent = p && p.site
+                ? `Set${p.site_source === 'qr' ? ' from a crew QR check-in' : ''}: ${p.site.lat.toFixed(5)}, ${p.site.lng.toFixed(5)}`
+                : 'Not set yet. Crew check-ins are recorded, but their distance from the property can not be shown.';
+            const link = document.getElementById('site-map');
+            link.hidden = !(p && p.site);
+            if (p && p.site) link.href = `https://maps.google.com/?q=${p.site.lat},${p.site.lng}`;
+            document.getElementById('guide-location-check').checked = !!(p && p.guide_location_check);
+        }
+        async function loadSite(slug) {
+            // 2026-10-10 11:05, reuse the cards' data: opening the editor already fires several requests at once
+            try {
+                const data = presenceData || await apiCall(`/company/${companySlug}/presence`);
+                renderSite(data.properties.find(x => x.slug === slug));
+            } catch { renderSite(null); }
+        }
+        function siteStatus(msg, isError) {
+            const el = document.getElementById('site-status');
+            el.textContent = msg; el.hidden = false; el.style.color = isError ? '' : 'var(--text-muted)';
+        }
+        async function saveSite(body) {
+            const slug = document.getElementById('propertyForm').dataset.editingSlug;
+            try {
+                const r = await apiCall(`/company/${companySlug}/properties/${encodeURIComponent(slug)}/site`, { method: 'PUT', body: JSON.stringify(body) });
+                renderSite({ ...r, guide_location_check: document.getElementById('guide-location-check').checked });
+                const cached = presenceData?.properties.find(x => x.slug === slug);
+                if (cached) Object.assign(cached, { site: r.site, site_source: r.site_source });
+                siteStatus(r.site ? 'Location saved.' : 'Location cleared.');
+                document.getElementById('site-input').value = '';
+            } catch (error) { siteStatus(error.message, true); }
+        }
+        function useMyLocation() {
+            if (!navigator.geolocation) return siteStatus('This browser can not read your location. Paste a map link instead.', true);
+            siteStatus('Reading your location…');
+            navigator.geolocation.getCurrentPosition(
+                pos => pos.coords.accuracy > 100
+                    ? siteStatus(`Your location is only accurate to about ${Math.round(pos.coords.accuracy)} m. Try outside, or paste a map link.`, true)
+                    : saveSite({ lat: pos.coords.latitude, lng: pos.coords.longitude }),
+                () => siteStatus('Location is blocked or not available. Paste a map link instead.', true),
+                { enableHighAccuracy: true, timeout: 10000 });
+        }
+        async function saveGuideLocationCheck() {
+            const box = document.getElementById('guide-location-check');
+            const slug = document.getElementById('propertyForm').dataset.editingSlug;
+            try {
+                await apiCall(`/company/${companySlug}/properties/${encodeURIComponent(slug)}`, { method: 'PUT', body: JSON.stringify({ guide_location_check: box.checked }) });
+                guestLinkStatus(box.checked ? 'The guide will ask guests if they are at the property.' : 'The guide will not ask for location.');
+                const cached = presenceData?.properties.find(x => x.slug === slug);
+                if (cached) cached.guide_location_check = box.checked;
+            } catch (error) { box.checked = !box.checked; guestLinkStatus(`Failed to save: ${error.message}`, true); }
         }
         
         // Update dashboard stats
@@ -1212,6 +1329,7 @@
             document.getElementById('tablets-section').style.display = 'none';
             document.getElementById('guide-content-section').style.display = 'none'; // 2026-10-03 22:25
             document.getElementById('guest-link-section').style.display = 'none'; // 2026-10-03 22:42
+            document.getElementById('site-section').style.display = 'none'; // 2026-10-10 10:29, #62
             document.getElementById('activity-section').style.display = 'none'; // 2026-10-04 00:26
 
             // Open slide panel
@@ -1400,6 +1518,10 @@
                 // 2026-10-03 22:42, G2 guest link
                 document.getElementById('guest-link-section').style.display = 'block';
                 loadGuestLink();
+                // 2026-10-10 10:29, #62 property location + guide location question
+                document.getElementById('site-section').style.display = 'block';
+                document.getElementById('site-status').hidden = true;
+                loadSite(propertySlug);
                 // 2026-10-04 00:26, G4 guest activity
                 document.getElementById('activity-section').style.display = 'block';
                 loadActivity(propertySlug);
@@ -2321,5 +2443,6 @@
             }
         }
     </script>
+    <script src="/js/change-password.js"></script><!-- 2026-10-09 12:20, #56 -->
 </body>
 </html>

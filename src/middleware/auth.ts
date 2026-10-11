@@ -47,6 +47,11 @@ export const authenticateToken = async (req: AuthRequest, res: Response, next: N
       return res.status(401).json({ error: 'User account is inactive' });
     }
 
+    // 2026-10-09 12:17, #56 a password reset/change signs out every session issued before it
+    if (user.password_changed_at && decoded.iat !== undefined && decoded.iat < Math.floor(new Date(user.password_changed_at).getTime() / 1000)) {
+      return res.status(401).json({ error: 'Your password was changed. Please sign in again.', code: 'SESSION_ENDED' });
+    }
+
     req.user = user;
     console.log(`Authenticated user: ${user.email} (${user.role})`);
     next();

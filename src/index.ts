@@ -7,8 +7,10 @@ import path from 'path';
 import routes from './routes';
 import { startOpsScheduler } from './jobs/ops-scheduler'; // 2026-10-08 07:50, G7 Ops
 import { BillingPlanController } from './controllers/BillingPlanController';
+import { assertProductionConfig } from './utils/production-check'; // 2026-10-09 08:15, #46
 
 dotenv.config();
+assertProductionConfig(); // 2026-10-09 08:15, #46: stop a misconfigured production start before it listens
 
 const app = express();
 const PORT = process.env.PORT || 3000;

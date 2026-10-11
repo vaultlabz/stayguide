@@ -21,7 +21,7 @@ export class MockUserService {
     if (!MOCK_MODE) return null;
     
     await mockDelay();
-    const user = mockUsers.find(u => u.email === email);
+    const user = mockUsers.find(u => u.email.toLowerCase() === String(email).toLowerCase() && u.status !== 'inactive'); // case-insensitive like MySQL's collation // 2026-10-09 12:27, #61 like the SQL (status = "active"): deactivated users can't sign in
     
     if (user) {
       console.log(`[MOCK] User found by email: ${user.email}`);

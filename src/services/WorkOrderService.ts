@@ -46,6 +46,9 @@ export interface WorkOrder {
   // joined
   property_name?: string;
   property_address?: string | null;
+  property_site_lat?: number | null; // 2026-10-10 10:28, #62 precise property spot
+  property_site_lng?: number | null;
+  late_alerted_at?: Date | null;
   assignee_name?: string | null;
   has_access_override?: boolean;
   schedule_id?: number | null; // 2026-10-08 10:50, G7 S8
@@ -80,7 +83,7 @@ const normalize = ({ access_code_override_enc, ...r }: any): WorkOrder => ({
   cost_estimate: num(r.cost_estimate), cost_actual: num(r.cost_actual), approved_amount: num(r.approved_amount)
 });
 
-const ORDER_SELECT = `SELECT w.*, p.name AS property_name, p.address AS property_address,
+const ORDER_SELECT = `SELECT w.*, p.name AS property_name, p.address AS property_address, p.site_lat AS property_site_lat, p.site_lng AS property_site_lng,
        CONCAT(u.first_name, ' ', u.last_name) AS assignee_name
   FROM work_orders w JOIN properties p ON p.id = w.property_id LEFT JOIN users u ON u.id = w.assignee_user_id`;
 
@@ -92,7 +95,7 @@ export class WorkOrderService {
 
   private decorate(r: any): WorkOrder {
     const p: any = mockProperties.find(x => x.id === r.property_id) || {};
-    return normalize({ ...r, property_name: p.name, property_address: p.address ?? null, assignee_name: userName(r.assignee_user_id) });
+    return normalize({ ...r, property_name: p.name, property_address: p.address ?? null, property_site_lat: p.site_lat ?? null, property_site_lng: p.site_lng ?? null, assignee_name: userName(r.assignee_user_id) });
   }
 
   async get(id: number): Promise<WorkOrder | null> {
@@ -187,12 +190,12 @@ export class WorkOrderService {
   /** Open jobs of every company with the fields alerting needs (2026-10-08 11:10, G7 S8 scheduler). */
   async openForAlerts(): Promise<(WorkOrder & { overdue_alerted_at: Date | null; unassigned_alerted_at: Date | null })[]> {
     const open = ['new', 'assigned', 'awaiting_approval', 'in_progress'];
-    if (MOCK_MODE) return mockWorkOrders.filter(o => open.includes(o.status)).map(o => ({ ...this.decorate(o), overdue_alerted_at: o.overdue_alerted_at ?? null, unassigned_alerted_at: o.unassigned_alerted_at ?? null })) as any;
+    if (MOCK_MODE) return mockWorkOrders.filter(o => open.includes(o.status)).map(o => ({ ...this.decorate(o), overdue_alerted_at: o.overdue_alerted_at ?? null, unassigned_alerted_at: o.unassigned_alerted_at ?? null, late_alerted_at: o.late_alerted_at ?? null })) as any;
     const [rows] = await db.execute<RowDataPacket[]>(`${ORDER_SELECT} WHERE w.status IN ('new', 'assigned', 'awaiting_approval', 'in_progress')`);
     return rows.map(r => ({ ...normalize(r), overdue_alerted_at: r.overdue_alerted_at, unassigned_alerted_at: r.unassigned_alerted_at })) as any;
   }
 
-  async markAlerted(orderId: number, field: 'overdue_alerted_at' | 'unassigned_alerted_at'): Promise<void> {
+  async markAlerted(orderId: number, field: 'overdue_alerted_at' | 'unassigned_alerted_at' | 'late_alerted_at'): Promise<void> { // 2026-10-10 10:28, #62 late
     if (MOCK_MODE) { mockWorkOrders.find(o => o.id === orderId)[field] = new Date(); return; }
     await db.execute(`UPDATE work_orders SET ${field} = CURRENT_TIMESTAMP WHERE id = ?`, [orderId]);
   }
@@ -228,7 +231,9 @@ export class WorkOrderService {
   /** Manager edits of the descriptive fields; not allowed once verified or canceled. */
   async edit(order: WorkOrder, fields: Partial<Pick<WorkOrder, 'title' | 'description' | 'priority' | 'type' | 'window_start' | 'window_end' | 'due_at'>>, actor: Actor): Promise<TransitionResult> {
     if (order.status === 'verified' || order.status === 'canceled') return { error: `A ${order.status} work order can't be edited`, status: 409 };
-    await this.patch(order.id, fields);
+    // 2026-10-10 10:28, #62 a moved window re-arms the late / no-show alert
+    const moved = 'window_start' in fields && +new Date(fields.window_start as any) !== +new Date(order.window_start as any);
+    await this.patch(order.id, moved ? { ...fields, late_alerted_at: null } : fields);
     await this.addEvent(order.id, actor.id, 'edited', null, { fields: Object.keys(fields) });
     return { order: (await this.get(order.id))!, events: ['edited'], flags: [] };
   }

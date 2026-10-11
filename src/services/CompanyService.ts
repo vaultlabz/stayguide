@@ -57,6 +57,16 @@ export class CompanyService {
     await db.execute('UPDATE companies SET ops_approval_threshold = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?', [threshold, id]);
   }
 
+  // 2026-10-10 10:28, #62 arrived/left emails on or off
+  async setPresenceEmails(id: number, on: boolean): Promise<void> {
+    if (MOCK_MODE) {
+      const company: any = mockCompanies.find(c => c.id === id);
+      if (company) company.presence_emails = on;
+      return;
+    }
+    await db.execute('UPDATE companies SET presence_emails = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?', [on, id]);
+  }
+
   async findByStripeCustomerId(customerId: string): Promise<Company | null> {
     if (MOCK_MODE) return (mockCompanies.find((c: any) => c.stripe_customer_id === customerId) as unknown as Company) || null;
     const [rows] = await db.execute<RowDataPacket[]>('SELECT * FROM companies WHERE stripe_customer_id = ?', [customerId]);

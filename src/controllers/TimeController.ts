@@ -4,6 +4,7 @@ import { Response } from 'express';
 import { AuthRequest } from '../types';
 import { ChecklistController } from './ChecklistController';
 import { TimeService, validTz, zonedMidnight, minutesOf, TimeRow } from '../services/TimeService';
+import { placeOf } from '../utils/geo'; // 2026-10-10 10:28, #62
 
 const YMD = /^\d{4}-\d{2}-\d{2}$/;
 const MAX_RANGE_DAYS = 93;
@@ -34,7 +35,9 @@ export class TimeController extends ChecklistController {
   }
 
   private view(e: TimeRow) {
-    return { ...e, minutes: minutesOf(e), open: !e.clock_out && !e.voided_at };
+    const g: any = e; // 2026-10-10 10:28, #62 where the phone was at check-in/out
+    return { ...e, minutes: minutesOf(e), open: !e.clock_out && !e.voided_at,
+      place_in: e.method_in === 'manual' ? null : placeOf(g.lat_in, g.dist_in, g.acc_in), place_out: e.clock_out && e.method_out !== 'system' ? placeOf(g.lat_out, g.dist_out, g.acc_out) : null };
   }
 
   async list(req: AuthRequest, res: Response) {

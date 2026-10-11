@@ -120,7 +120,8 @@ const localHM = (iso, tz) => new Intl.DateTimeFormat('en-GB', { timeZone: tz, ho
   const ui = (await mgr('/schedules')).data.schedules.find(s => s.title === 'HVAC filter');
   check('UI: create schedule (every 90 days, default person)', ui?.interval_days === 90 && ui.default_assignee_user_id === 3);
   await page.locator('#rows tr', { hasText: 'HVAC filter' }).locator('button:has-text("Pause")').click();
-  await page.waitForFunction(() => document.querySelector('#rows').textContent.includes('paused'));
+  // 2026-10-09 13:10, wait for this row: "Paused job" (paused earlier) already put 'paused' on the page, so the old wait raced the save
+  await page.waitForFunction(() => [...document.querySelectorAll('#rows tr')].some(tr => tr.textContent.includes('HVAC filter') && tr.textContent.includes('paused')));
   check('UI: pause', (await mgr('/schedules')).data.schedules.find(s => s.title === 'HVAC filter').active === false);
   await page.screenshot({ path: H.OUT + '/ops-schedules.png', fullPage: true });
   await page.goto(B + '/company/demo-rentals/ops');
