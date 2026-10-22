@@ -40,7 +40,7 @@ const kill = () => { try { execSync('lsof -ti tcp:' + H.PORT + ' -sTCP:LISTEN | 
   check('company summary for stat card', cs.available === true && cs.visits.total === 2);
 
   // Free account: events dropped, summary 402, card shows "Pro"
-  const su = await (await fetch(B + '/api/signup', { method: 'POST', headers: J, body: JSON.stringify({ company_name: 'Free Host', first_name: 'F', last_name: 'H', email: 'free@host.test', password: 'free-host-1' }) })).json();
+  const su = await (await fetch(B + '/api/signup', { method: 'POST', headers: J, body: JSON.stringify({ accept_terms: true, company_name: 'Free Host', first_name: 'F', last_name: 'H', email: 'free@host.test', password: 'free-host-1' }) })).json();
   const FA = { ...J, Authorization: 'Bearer ' + su.token };
   await fetch(B + `/company/${su.company.slug}/properties`, { method: 'POST', headers: FA, body: JSON.stringify({ name: 'Cabin', slug: 'cabin' }) });
   const fl = await (await fetch(B + `/company/${su.company.slug}/properties/cabin/guest-link`, { headers: FA })).json();

@@ -29,6 +29,8 @@ export function productionConfigProblems(env: Env, nodeVersion: string): { error
   else if (env.EMAIL_PROVIDER === 'smtp' && !env.SMTP_HOST) errors.push('EMAIL_PROVIDER=smtp needs SMTP_HOST');
   if (!env.VAPID_PUBLIC_KEY || !env.VAPID_PRIVATE_KEY) warnings.push('VAPID keys missing: worker push notifications are off (npx web-push generate-vapid-keys)');
   if (!env.SUPPORT_EMAIL) warnings.push('SUPPORT_EMAIL is empty: helpdesk tickets go to ADMIN_EMAIL');
+  // 2026-10-22 11:01, #63 the Terms and Privacy pages name the operator and governing law
+  if (!env.LEGAL_NAME || !env.LEGAL_JURISDICTION) warnings.push('LEGAL_NAME / LEGAL_JURISDICTION empty: /terms and /privacy show placeholders (set the company legal name and state)');
   return { errors, warnings };
 }
 

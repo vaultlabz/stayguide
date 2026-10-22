@@ -1,0 +1,97 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Terms of Service - StayGuide</title>
+    <!-- 2026-10-22 10:59, #63 Terms of Service. double-brace values are filled by src/utils/legal.ts from .env -->
+    <link rel="stylesheet" href="/css/theme.css">
+    <link rel="stylesheet" href="/css/legal.css">
+    <script src="/js/theme.js"></script>
+</head>
+<body>
+    <main class="legal">
+        <p class="legal-nav"><a href="/">StayGuide</a> · <a href="/privacy">Privacy Policy</a></p>
+        <h1>Terms of Service</h1>
+        <p class="legal-meta">Effective {{effective_date}}</p>
+
+        <p>These terms are an agreement between you and {{legal_name}} ("we", "us") for the StayGuide service: the dashboard, guest tablet app, phone guide links, Ops crew app and related services. By creating an account or using the service for your business you accept these terms and our <a href="/privacy">Privacy Policy</a>. If you accept for a company, you confirm you may bind it, and "you" means the company.</p>
+
+        <h2>1. Accounts</h2>
+        <ul>
+            <li>You must be at least 18 and give accurate account information.</li>
+            <li>Keep your password private. You are responsible for activity under your account and the accounts of admins and crew you invite.</li>
+            <li>Tell us promptly at <a href="mailto:{{contact_email}}">{{contact_email}}</a> if you suspect unauthorized access.</li>
+        </ul>
+
+        <h2>2. Plans and billing</h2>
+        <ul>
+            <li>The Free plan costs nothing and has the limits shown on our pricing page. Paid plans and add-ons are billed in advance, monthly or yearly, through Stripe, at the prices shown when you subscribe.</li>
+            <li>Subscriptions renew automatically until cancelled. You can cancel anytime in the billing page; the plan stays active until the end of the period already paid, and then the account moves to the Free plan.</li>
+            <li>Fees are not refundable for partial periods, except where the law requires or we decide otherwise.</li>
+            <li>Prices exclude taxes unless stated; you pay applicable taxes.</li>
+            <li>If a payment fails we may limit paid features until it is resolved.</li>
+            <li>We may change prices with at least 30 days' notice by email; the change applies from your next renewal.</li>
+            <li>Tablet kits and other hardware are covered by the order terms shown at purchase.</li>
+        </ul>
+
+        <h2>3. Your content</h2>
+        <ul>
+            <li>You keep ownership of what you add: property details, photos, videos, recommendations, links and messages ("your content").</li>
+            <li>You give us permission to store, process and display your content only as needed to run the service for you, including showing it to your guests and crew.</li>
+            <li>You confirm you have the rights to your content and that it is accurate and lawful. Guest safety information (emergency contacts, hazards, house rules) is your responsibility; keep it current.</li>
+        </ul>
+
+        <h2>4. Guests and crew</h2>
+        <ul>
+            <li>You are responsible for telling your guests and crew how you use StayGuide and for having any consent the law requires, including for crew location at check-in and check-out.</li>
+            <li>You may only invite people who work with you, and you remove access when they stop.</li>
+            <li>StayGuide is not an emergency service. Guest issue reports are passed to you; they are not monitored by us. Guests in an emergency should call the local emergency number.</li>
+        </ul>
+
+        <h2>5. Acceptable use</h2>
+        <p>Do not use StayGuide to:</p>
+        <ul>
+            <li>break the law, infringe others' rights, or post misleading, hateful or harmful content;</li>
+            <li>collect information from guests or crew beyond what the service is designed for, or track people without their knowledge;</li>
+            <li>send spam, or try to access accounts, data or systems that are not yours;</li>
+            <li>overload, probe, reverse engineer or disrupt the service, or resell it without our written permission.</li>
+        </ul>
+        <p>We may remove content or suspend accounts that break these rules, with notice where reasonable.</p>
+
+        <h2>6. Third-party services and links</h2>
+        <p>The service works with outside services such as Stripe, YouTube, Vimeo, maps, and your own booking or review sites. Their terms apply to your use of them, and we are not responsible for them. Bookings guests make through your direct booking links are between you and the guest.</p>
+
+        <h2>7. Availability and changes</h2>
+        <ul>
+            <li>We work to keep the service running and secure but do not promise it will be uninterrupted or error-free. Tablets keep working offline with the last downloaded guide.</li>
+            <li>We may improve or change features. If we remove a major paid feature, we will give notice and you may cancel with a pro-rated refund for the unused paid period.</li>
+        </ul>
+
+        <h2>8. Ending the agreement</h2>
+        <ul>
+            <li>You can close your account anytime by contacting us; cancel any subscription first.</li>
+            <li>We may suspend or close accounts that seriously or repeatedly break these terms, or that stay unpaid.</li>
+            <li>After closing you can ask for an export of your content within 30 days. Data is then handled as described in the Privacy Policy.</li>
+        </ul>
+
+        <h2>9. Disclaimers</h2>
+        <p>The service is provided "as is" and "as available". To the extent the law allows, we disclaim all warranties, express or implied, including merchantability, fitness for a particular purpose and non-infringement. Weather, local recommendations and map information are for convenience and may be inaccurate.</p>
+
+        <h2>10. Limitation of liability</h2>
+        <p>To the extent the law allows, we are not liable for indirect, incidental, special, consequential or punitive damages, or for lost profits, revenue, bookings or data. Our total liability for any claim relating to the service is limited to the amounts you paid us in the 12 months before the claim. Some places do not allow these limits, so they may not fully apply to you.</p>
+
+        <h2>11. Indemnity</h2>
+        <p>You will defend and indemnify us against claims by third parties, including your guests and crew, that arise from your content, your properties, or your breach of these terms or the law.</p>
+
+        <h2>12. Changes to these terms</h2>
+        <p>We may update these terms. We update the date above and, for significant changes, email account owners at least 30 days before they take effect. Continuing to use the service after that means you accept the new terms.</p>
+
+        <h2>13. Law and disputes</h2>
+        <p>These terms are governed by the laws of {{jurisdiction}}, without regard to conflict-of-law rules. Before filing a claim, contact us and give us 30 days to try to resolve it informally. Courts located in {{jurisdiction}} have exclusive jurisdiction, unless the law where you live gives you a different right.</p>
+
+        <h2>14. Contact</h2>
+        <p>{{legal_name}} · <a href="mailto:{{contact_email}}">{{contact_email}}</a></p>
+    </main>
+</body>
+</html>

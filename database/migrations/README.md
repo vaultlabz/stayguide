@@ -24,6 +24,7 @@ Run each file once against existing databases (new installs use `database/schema
 18. `2026-10-08_device_pairing_reasons.sql`: #33 `devices.used_pairing_code`, `paired_at` (clearer pairing errors)
 19. `2026-10-09_password_resets.sql`: #56 `users.password_changed_at`, `password_resets` (forgot / change password)
 20. `2026-10-10_presence.sql`: #62 GPS on `time_entries`, `properties.site_*` + `guide_location_check`, `companies.presence_emails`, `work_orders.late_alerted_at`, `section_events.on_site`
+21. `2026-10-22_terms_acceptance.sql`: #63 `users.terms_accepted_at`, `terms_version` (Terms + Privacy accepted at signup)
 
 Back up the database first.
 

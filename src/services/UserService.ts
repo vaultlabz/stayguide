@@ -62,24 +62,28 @@ export class UserService {
     last_name: string;
     role: 'super_admin' | 'company_admin' | 'field_worker'; // 2026-10-07 18:30, G7 S1
     company_id?: number;
+    terms_version?: string; // 2026-10-22 11:01, #63 set when the person accepted the Terms (signup)
   }): Promise<User> {
     if (MOCK_MODE) {
       return this.mockService.createUser(userData);
     }
-    
+
     try {
       const hashedPassword = await hashPassword(userData.password);
 
+      // 2026-10-22 11:01, #63 terms_accepted_at / terms_version recorded with the account
       const [result] = await db.execute(
-        `INSERT INTO users (email, password_hash, first_name, last_name, role, company_id, status) 
-         VALUES (?, ?, ?, ?, ?, ?, 'active')`,
+        `INSERT INTO users (email, password_hash, first_name, last_name, role, company_id, status, terms_accepted_at, terms_version)
+         VALUES (?, ?, ?, ?, ?, ?, 'active', ?, ?)`,
         [
           userData.email,
           hashedPassword,
           userData.first_name,
           userData.last_name,
           userData.role,
-          userData.company_id || null
+          userData.company_id || null,
+          userData.terms_version ? new Date() : null,
+          userData.terms_version || null
         ]
       );
 

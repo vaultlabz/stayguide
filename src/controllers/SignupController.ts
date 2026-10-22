@@ -4,6 +4,7 @@ import crypto from 'crypto';
 import { CompanyService } from '../services/CompanyService';
 import { UserService } from '../services/UserService';
 import { generateToken } from '../utils/auth';
+import { TERMS_VERSION } from '../utils/legal'; // 2026-10-22 11:01, #63
 
 const EMAIL = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/;
 
@@ -28,6 +29,8 @@ export class SignupController {
       if (!firstName || !lastName || firstName.length > 100 || lastName.length > 100) return res.status(400).json({ error: 'First and last name are required' });
       if (!EMAIL.test(email) || email.length > 255) return res.status(400).json({ error: 'A valid email address is required' });
       if (password.length < 8 || password.length > 128) return res.status(400).json({ error: 'Password must be 8–128 characters' });
+      // 2026-10-22 11:01, #63 Terms + Privacy must be accepted; the time and version are stored on the owner account
+      if (req.body?.accept_terms !== true) return res.status(400).json({ error: 'Please accept the Terms of Service and Privacy Policy' });
 
       if (await this.userService.findByEmail(email)) {
         return res.status(409).json({ error: 'An account with this email already exists. Sign in instead.' });
@@ -50,7 +53,8 @@ export class SignupController {
       await this.companyService.setBillingState(company.id, { plan: 'free', subscription_status: null });
 
       const user = await this.userService.createUser({
-        email, password, first_name: firstName, last_name: lastName, role: 'company_admin', company_id: company.id
+        email, password, first_name: firstName, last_name: lastName, role: 'company_admin', company_id: company.id,
+        terms_version: TERMS_VERSION // 2026-10-22 11:01, #63
       });
 
       const token = generateToken({ userId: user.id, email: user.email, role: user.role, companyId: company.id });

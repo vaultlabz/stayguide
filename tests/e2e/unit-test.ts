@@ -2,6 +2,7 @@ import { wifiQrPayload } from '../../src/utils/wifi';
 import { weatherCondition, geocodeCandidates } from '../../src/utils/weather';
 import { productionConfigProblems } from '../../src/utils/production-check'; // 2026-10-09 08:15, #46
 import { parseCoords, parseFix, distanceM, placeOf, formatDistance } from '../../src/utils/geo'; // 2026-10-10 10:40, #62
+import { legalValues, TERMS_VERSION } from '../../src/utils/legal'; // 2026-10-22 11:01, #63
 let pass = 0, fail = 0;
 const eq = (name: string, a: unknown, b: unknown) => { const ok = JSON.stringify(a) === JSON.stringify(b); ok ? pass++ : fail++; console.log(`${ok ? 'PASS' : 'FAIL'} ${name}${ok ? '' : ' got ' + JSON.stringify(a) + ' want ' + JSON.stringify(b)}`); };
 eq('wifi plain', wifiQrPayload('Home', 'pass123'), 'WIFI:T:WPA;S:Home;P:pass123;;');
@@ -12,13 +13,18 @@ for (const [code, want] of [[0,'clear'],[1,'clear'],[2,'partly'],[3,'cloudy'],[4
 eq('geocode candidates', geocodeCandidates('456 Ocean Drive, Beach City, CA 90210'), ['90210', 'Beach City', '456 Ocean Drive, Beach City, CA 90210']);
 // 2026-10-09 08:15, #46: production startup check
 const goodEnv = { JWT_SECRET: 'a'.repeat(64), DB_NAME: 'sg', DB_USER: 'sg', APP_BASE_URL: 'https://stayguide.app', OPS_SECRET_KEY: 'b'.repeat(64),
-  STRIPE_SECRET_KEY: 'sk_live_x', STRIPE_WEBHOOK_SECRET: 'whsec_x', TRUST_PROXY: '1', EMAIL_PROVIDER: 'smtp', SMTP_HOST: 'mail', VAPID_PUBLIC_KEY: 'p', VAPID_PRIVATE_KEY: 'k', SUPPORT_EMAIL: 's@x' };
+  STRIPE_SECRET_KEY: 'sk_live_x', STRIPE_WEBHOOK_SECRET: 'whsec_x', TRUST_PROXY: '1', EMAIL_PROVIDER: 'smtp', SMTP_HOST: 'mail', VAPID_PUBLIC_KEY: 'p', VAPID_PRIVATE_KEY: 'k', SUPPORT_EMAIL: 's@x',
+  LEGAL_NAME: 'StayGuide LLC', LEGAL_JURISDICTION: 'New Mexico' }; // 2026-10-22 11:01, #63
 eq('prod config clean', productionConfigProblems(goodEnv, 'v20.9.0'), { errors: [], warnings: [] });
 eq('prod config old node', productionConfigProblems(goodEnv, 'v20.8.1').errors.length, 1);
 const bad = productionConfigProblems({ ...goodEnv, JWT_SECRET: 'your_strong_production_jwt_secret_key_here', MOCK_DATABASE: 'true', APP_BASE_URL: 'http://localhost:3000',
   OPS_SECRET_KEY: 'short', STRIPE_WEBHOOK_SECRET: '' }, 'v22.1.0');
 eq('prod config bad errors', bad.errors.map(e => e.split(' ')[0]), ['JWT_SECRET', 'MOCK_DATABASE=true', 'APP_BASE_URL', 'OPS_SECRET_KEY', 'STRIPE_WEBHOOK_SECRET']);
 eq('prod config warnings', productionConfigProblems({ ...goodEnv, STRIPE_SECRET_KEY: 'sk_test_x', TRUST_PROXY: '', EMAIL_PROVIDER: 'mock' }, 'v22.1.0').warnings.length, 3);
+// 2026-10-22 11:01, #63 legal name / jurisdiction
+eq('prod config legal warning', productionConfigProblems({ ...goodEnv, LEGAL_NAME: '' }, 'v22.1.0').warnings.length, 1);
+eq('legal values fallback', legalValues({ ADMIN_EMAIL: 'a@x' }).jurisdiction, 'the state where StayGuide is organized');
+eq('legal values from env', legalValues({ LEGAL_NAME: 'Acme LLC', LEGAL_JURISDICTION: 'New Mexico', SUPPORT_EMAIL: 's@x' }), { legal_name: 'Acme LLC', contact_email: 's@x', jurisdiction: 'New Mexico', effective_date: TERMS_VERSION });
 // 2026-10-10 10:40, #62 presence: coordinates, maps links, distance, place labels
 eq('coords plain', parseCoords('39.7392, -104.9903'), { lat: 39.7392, lng: -104.9903 });
 eq('coords google @', parseCoords('https://www.google.com/maps/place/X/@39.7392,-104.9903,17z/data=!3m1'), { lat: 39.7392, lng: -104.9903 });

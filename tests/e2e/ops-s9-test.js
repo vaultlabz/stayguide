@@ -68,7 +68,7 @@ async function webhook(type, object) {
   const call = async (p, token, method = 'GET', body) => { const r = await fetch(B + p, { method, headers: { ...J, Authorization: `Bearer ${token}` }, body: body ? JSON.stringify(body) : undefined }); return { status: r.status, data: await r.json().catch(() => ({})) }; };
 
   // ---- a self-serve Pro customer
-  const su = await (await fetch(B + '/api/signup', { method: 'POST', headers: J, body: JSON.stringify({ company_name: 'Harbor Homes', first_name: 'Lee', last_name: 'Park', email: 'lee@harbor.test', password: 'harbor-pass-1' }) })).json();
+  const su = await (await fetch(B + '/api/signup', { method: 'POST', headers: J, body: JSON.stringify({ accept_terms: true, company_name: 'Harbor Homes', first_name: 'Lee', last_name: 'Park', email: 'lee@harbor.test', password: 'harbor-pass-1' }) })).json();
   const T = su.token, C = `/company/${su.company.slug}`;
   await call(`${C}/properties`, T, 'POST', { name: 'Dock House', slug: 'dock-house' });
   let st = (await call(`${C}/billing/status`, T)).data;

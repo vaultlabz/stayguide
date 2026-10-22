@@ -11,6 +11,7 @@ import linkRoutes from './links';
 import guestLinkRoutes from './guest-link';
 import maintRoutes from './maint'; // 2026-10-07 19:00, G7 Ops worker app
 import { renderLanding } from '../utils/pricing-html';
+import { renderLegalPage } from '../utils/legal'; // 2026-10-22 11:01, #63
 import { AuthController } from '../controllers/AuthController';
 import { rateLimit } from '../middleware/rate-limit';
 import { authenticateToken } from '../middleware/auth'; // 2026-10-09 12:17, #56
@@ -26,6 +27,14 @@ router.get('/', (req, res) => {
 // 2026-10-03 23:06, G3 self-serve signup page
 router.get('/signup', (req, res) => {
   res.sendFile(path.join(__dirname, '../views/signup.html'));
+});
+
+// 2026-10-22 11:01, #63 Privacy Policy + Terms of Service (legal name, contact, jurisdiction from .env)
+router.get('/privacy', (req, res) => {
+  res.type('html').send(renderLegalPage(path.join(__dirname, '../views'), 'privacy.html'));
+});
+router.get('/terms', (req, res) => {
+  res.type('html').send(renderLegalPage(path.join(__dirname, '../views'), 'terms.html'));
 });
 
 // 2026-10-07 17:15, single sign-in page: email + password, company resolved from the account (replaces the slug prompt())

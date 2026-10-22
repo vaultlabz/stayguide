@@ -60,6 +60,8 @@ export class MockUserService {
       ...rest,
       password_hash: await hashPassword(password),
       status: 'active',
+      terms_accepted_at: rest.terms_version ? new Date() : null, // 2026-10-22 11:01, #63
+      terms_version: rest.terms_version || null,
       created_at: new Date(),
       updated_at: new Date()
     } as User;

@@ -1837,3 +1837,30 @@
 - 'unsafe-inline' stays for scripts: every view uses inline scripts and onclick handlers; moving them out is a larger change
 - Verified on a test server: no Access-Control headers for a foreign Origin, script-src 'self' 'unsafe-inline', log shows /reset-password, /g/***/content, /maint/scan/*** with no tokens
 - 2026-10-10 20:06: found while testing #59: after a password change the dashboards (company + super admin) kept the old token in memory; any request still using it got 401 (old sessions are signed out by #56), which deleted the new token and sent the user to the login page. Hidden before because the test logged in and changed the password within the same second. Fix: apiCall reads the saved token on every call and, on a 401 for a token that has since been replaced, retries with the new one. password-test 33/33 (4 runs; failed 2 of 3 before)
+
+## 2026-10-22 11:18 - FEATURE: #63 Privacy Policy + Terms of Service, accepted at signup
+
+**What Changed:**
+- ✅ `/privacy` and `/terms` pages (`src/views/privacy.html`, `terms.html`, `public/css/legal.css`), readable on phones, light + dark
+- ✅ Operator name, contact email and governing law come from `.env` (`LEGAL_NAME`, `LEGAL_JURISDICTION`, `SUPPORT_EMAIL` → `ADMIN_EMAIL`) via `src/utils/legal.ts`; production startup warns while they are empty
+- ✅ Signup has a required "I agree to the Terms of Service and Privacy Policy" checkbox; `/api/signup` returns 400 without `accept_terms: true`
+- ✅ Acceptance time and version stored on the owner account: `users.terms_accepted_at`, `users.terms_version` (`TERMS_VERSION` in `legal.ts`), migration 21 `2026-10-22_terms_acceptance.sql`
+- ✅ Links: landing footer, phone guide (`/g/…`, not on the kiosk tablet), crew invite page ("location saved only at check-in/out")
+
+**Why:**
+- Launch audit 2026-10-22: no legal pages, while the service takes payments and stores crew GPS check-ins and guest activity
+- A stored, versioned acceptance shows who agreed to which terms and when
+
+**How:**
+- Pages use `{{legal_name}}`-style values filled server-side (HTML-escaped); unknown keys stay untouched
+- Policy content written from what the code actually collects and the third parties it calls (Stripe, SMTP provider, web push, Open-Meteo, YouTube nocookie/Vimeo, Google Maps links, Unsplash images)
+- Billing test: the old bad-email signup request became the no-terms request, because signup allows 5 requests per IP per hour and the suite already used all 5
+
+**Impact:**
+- **Launch blocker cleared on the code side**: the remaining steps are setting the legal name/state and a legal review of the wording
+- **Proof of consent**: every new owner account records the terms version accepted
+
+**Technical Details:**
+- Tests: unit 48/48 (legal values, prod warning); billing 65/65 (no-terms 400, pages served with no unfilled values, UI checkbox blocks signup) mock + MySQL; analytics, guest-link, pricing, ops-s1, ops-s9, design, offline green
+- Migration 21 verified on MySQL: old schema + migration gives the same `users` columns as the new `schema.sql`
+- Not yet covered: invited admins and crew don't store an acceptance (invite page shows a notice only); retention periods in the policy (90 days after closing, logs 90 days, backups 30 days) must match how the server is run (#65)

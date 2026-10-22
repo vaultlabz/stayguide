@@ -39,6 +39,8 @@ export interface User {
   status: 'active' | 'inactive';
   last_login?: Date;
   password_changed_at?: Date | null; // 2026-10-09 12:13, #56 tokens issued before this are rejected
+  terms_accepted_at?: Date | null; // 2026-10-22 11:01, #63 when the Terms/Privacy were accepted (signup)
+  terms_version?: string | null;
   created_at: Date;
   updated_at: Date;
 }

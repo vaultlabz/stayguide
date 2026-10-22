@@ -43,6 +43,8 @@ CREATE TABLE users (
     status ENUM('active', 'inactive') DEFAULT 'active',
     last_login TIMESTAMP NULL,
     password_changed_at TIMESTAMP NULL, -- 2026-10-09 12:11, #56 sessions issued before this are rejected
+    terms_accepted_at TIMESTAMP NULL, -- 2026-10-22 11:01, #63 Terms + Privacy accepted at signup
+    terms_version VARCHAR(20) NULL,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
     

@@ -59,7 +59,7 @@ UPDATE users SET email = 'you@yourdomain.com', password_hash = '<hash from above
 ```
 
 **Existing database:** back it up, then apply the migrations in `database/migrations/` **in the order listed in its README**
-(20 steps; the filename order is not the apply order). Each runs once. Verified on MySQL 9.3 (task #45).
+(21 steps; the filename order is not the apply order). Each runs once. Verified on MySQL 9.3 (task #45).
 
 ## 5. Plesk Node.js app
 

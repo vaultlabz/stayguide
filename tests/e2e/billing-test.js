@@ -87,17 +87,24 @@ async function webhook(type, object, opts = {}) {
   const J = { 'content-type': 'application/json' };
 
   // ---- Signup
-  const bad = await fetch(B + '/api/signup', { method: 'POST', headers: J, body: JSON.stringify({ company_name: 'X', first_name: 'A', last_name: 'B', email: 'nope', password: 'short' }) });
-  check('signup validation → 400', bad.status === 400);
-  const dupe = await fetch(B + '/api/signup', { method: 'POST', headers: J, body: JSON.stringify({ company_name: 'X', first_name: 'A', last_name: 'B', email: 'admin@demorentals.com', password: 'longenough1' }) });
+  const dupe = await fetch(B + '/api/signup', { method: 'POST', headers: J, body: JSON.stringify({ accept_terms: true, company_name: 'X', first_name: 'A', last_name: 'B', email: 'admin@demorentals.com', password: 'longenough1' }) });
   check('duplicate email → 409', dupe.status === 409);
-  const su = await (await fetch(B + '/api/signup', { method: 'POST', headers: J, body: JSON.stringify({ company_name: 'Sunset Stays!', first_name: 'Maya', last_name: 'Lopez', email: 'maya@sunset.test', password: 'sunset-pass-1' }) })).json();
+  // 2026-10-22 11:01, #63 Terms + Privacy: required at signup, pages served with .env values filled in.
+  // Replaces the bad-email request: signup allows 5 requests per hour per IP and this suite already uses all 5
+  const noTerms = await fetch(B + '/api/signup', { method: 'POST', headers: J, body: JSON.stringify({ company_name: 'No Terms', first_name: 'N', last_name: 'T', email: 'noterms@host.test', password: 'long-enough-1' }) });
+  check('signup without accept_terms → 400', noTerms.status === 400 && /Terms/.test((await noTerms.json()).error));
+  for (const [route, heading] of [['/privacy', 'Privacy Policy'], ['/terms', 'Terms of Service']]) {
+    const r = await fetch(B + route);
+    const html = await r.text();
+    check(`${route} page served`, r.status === 200 && html.includes(`<h1>${heading}</h1>`) && !/\{\{\w+\}\}/.test(html));
+  }
+  const su = await (await fetch(B + '/api/signup', { method: 'POST', headers: J, body: JSON.stringify({ accept_terms: true, company_name: 'Sunset Stays!', first_name: 'Maya', last_name: 'Lopez', email: 'maya@sunset.test', password: 'sunset-pass-1' }) })).json();
   check('signup creates Free account + token', su.company && su.company.slug === 'sunset-stays' && su.company.plan === 'free' && !!su.token, JSON.stringify(su.company));
   const login = await (await fetch(B + `/company/${su.company.slug}/login`, { method: 'POST', headers: J, body: JSON.stringify({ email: 'maya@sunset.test', password: 'sunset-pass-1' }) })).json();
   check('new account can log in', !!login.token);
   const A = { ...J, Authorization: 'Bearer ' + su.token };
   const C = B + `/company/${su.company.slug}`;
-  const su2 = await (await fetch(B + '/api/signup', { method: 'POST', headers: J, body: JSON.stringify({ company_name: 'Sunset Stays', first_name: 'Ana', last_name: 'Diaz', email: 'ana@sunset2.test', password: 'sunset-pass-2' }) })).json();
+  const su2 = await (await fetch(B + '/api/signup', { method: 'POST', headers: J, body: JSON.stringify({ accept_terms: true, company_name: 'Sunset Stays', first_name: 'Ana', last_name: 'Diaz', email: 'ana@sunset2.test', password: 'sunset-pass-2' }) })).json();
   check('slug collision gets a unique suffix', /^sunset-stays-[0-9a-f]{6}$/.test(su2.company.slug), su2.company.slug);
 
   // ---- Free plan gating
@@ -230,6 +237,10 @@ async function webhook(type, object, opts = {}) {
   await page.fill('#company_name', 'Harbor Homes');
   await page.fill('#first_name', 'Lee'); await page.fill('#last_name', 'Park');
   await page.fill('#email', 'lee@harbor.test'); await page.fill('#password', 'harbor-pass-1');
+  // 2026-10-22 11:01, #63 the Terms checkbox blocks signup until ticked
+  await page.click('#signupBtn');
+  check('signup needs the Terms checkbox', (await page.textContent('#error-message')).includes('Terms') && page.url().includes('/signup'));
+  await page.check('#accept_terms');
   await page.click('#signupBtn');
   await page.waitForURL(/\/company\/harbor-homes\/billing\?upgrade=pro/, { timeout: 10000 });
   await page.waitForSelector('[data-checkout="pro"]');
