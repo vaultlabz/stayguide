@@ -23,6 +23,8 @@ export interface Company {
   ops_addon?: boolean | number;
   ops_approval_threshold?: number | string | null;
   timezone?: string; // 2026-10-08 10:40, G7 S8 (IANA; schedules use it for local times) // 2026-10-07 22:10, G7 S2: estimates above this wait for approval (null = never)
+  closed_at?: Date | string | null; // 2026-10-22 15:52, #66 closed account (purge pending) / purged
+  purged_at?: Date | string | null;
   presence_emails?: boolean | number; // 2026-10-10 10:28, #62 arrived/left emails (default on)
   created_at: Date;
   updated_at: Date;

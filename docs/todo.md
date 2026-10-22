@@ -1916,3 +1916,36 @@
 - Behavior change: an unhandled promise rejection is now logged + emailed and the process keeps running (Node's default was to crash)
 - New suite `tests/e2e/alerts-test.js` (in `npm test`): db up → 200, no alerts; MySQL on port 1 → 503, alert at once, later errors summarized after the cooldown, guide tokens masked. 8/8 mock, 8/8 MySQL (`connected`)
 - Unit 54/54 (throttle, summary, empty flush, cooldown reset, safePath). billing, ops-s9, presence green on MySQL
+
+## 2026-10-22 15:59 - FEATURE: #66 Close + purge account (super admin)
+
+**What Changed:**
+- ✅ Super admin dashboard: the Delete button (which only set the status to inactive) is now **Close…**, a dialog with Download data export, Close account, Reopen account and Purge now (type the slug to confirm)
+- ✅ Close: cancels the Stripe subscription at once (`prorate: false`), deactivates the company's admins, revokes tablets, clears guest link tokens and QR stickers, suspends worker memberships, revokes pending invites
+- ✅ Purge, automatic `ACCOUNT_PURGE_DAYS` (default 60) after closing via the hourly Ops scheduler (`accounts_purged` in its result), or at once: deletes every company-scoped row, job photos (`OPS_STORAGE_DIR/<company id>`), uploaded images (all three sizes), insurance certificates of removed workers, and audit rows quoting the company's guest reports / amenities
+- ✅ People anonymized, not deleted: the company's admins and workers who belong to no other company get `deleted-<id>@deleted.invalid`, no password, inactive; their login codes, resets, push subscriptions, offline-op records and vendor profiles are deleted
+- ✅ Company row kept but anonymized (`Closed account #id`, `closed-<id>`), so billing records and hardware orders stay attached for tax
+- ✅ Data export (Terms §8): `GET /admin/companies/:id/export`, one JSON file of everything the company stored; password hashes, guest-link tokens, device tokens, door codes (`property_access`, `access_code_override_enc`) and invite tokens left out
+- ✅ Migration 22 `2026-10-22_account_closing.sql`: `companies.closed_at`, `purged_at`; `ACCOUNT_PURGE_DAYS` in both env examples; production check warns above 90; DEPLOYMENT_GUIDE §9
+
+**Why:**
+- The Privacy Policy (#63) promises deletion or anonymization within 90 days of closing, and the Terms promise an export; before this it would have been hand-written SQL
+- Deleting the company row would cascade into `billing` (ON DELETE CASCADE), which must be kept for tax
+- Several foreign keys to `users` have no ON DELETE rule (audit log, helpdesk, announcements), so deleting people would fail or lose the audit trail
+
+**How:**
+- `src/services/AccountClosureService.ts`: one table list (scope: company / property / work order / ticket / template / time entry) drives the export, the purge counts and the mock-mode purge, so a table cannot be exported but forgotten in the purge
+- MySQL: one transaction; parents deleted, foreign keys cascade to the children; files removed only after the commit
+- Mock mode: the same scopes as id sets over the mock arrays (spliced in place)
+- `PUT /admin/companies/:id` refuses to change the status of a closed account (reopen is its own action) and any edit of a purged one
+
+**Impact:**
+- **Privacy promise kept by the system**: no manual SQL, nothing forgotten
+- **Reversible until the purge**: a mistaken close is one click to undo
+- **Tax records safe**: invoices and hardware orders survive with the anonymized company
+
+**Technical Details:**
+- New suite `tests/e2e/closure-test.js` (in `npm test`): export contents and secrets, close effects (sign-in, session, tablet, guest link), reopen, purge refused without close / wrong slug, scheduler at +59 days (nothing) and +61 days (purged), anonymization, files removed, billing kept, second company untouched, super admin dialog in the browser. 39/39 mock and MySQL
+- `ops-s9-test.js`: closing a company with a live subscription sends `DELETE /v1/subscriptions/:id` with `prorate=false`, status becomes canceled and Ops turns off (26/26)
+- Not covered: the Terms still say "cancel any subscription first"; closing cancels it anyway, without a refund for the paid period
+- Regression: tsc clean; unit 54/54; mock admin-functions 24/24, design 326/326, tenancy 34/34, ops-s6 38/38, ops-s8 31/31, presence 65/65, billing 65/65; MySQL closure, ops-s9 26/26, ops-s8 31/31

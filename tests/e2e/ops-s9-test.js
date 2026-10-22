@@ -41,6 +41,9 @@ const fake = http.createServer((req, res) => {
       for (const s of Object.values(subs)) for (const it of s.items.data) if (it.id === m[1]) { it.quantity = Number(form.quantity); return send(it); }
       return send({ error: { message: 'No such item' } }, 404);
     }
+    // 2026-10-22 15:56, #66 closing the account cancels the subscription
+    const sm = url.match(/^\/v1\/subscriptions\/([^/]+)$/);
+    if (sm && req.method === 'DELETE') return subs[sm[1]] ? send(Object.assign(subs[sm[1]], { status: 'canceled' })) : send({ error: { message: 'No such subscription' } }, 404);
     if (m && req.method === 'DELETE') {
       for (const s of Object.values(subs)) { const i = s.items.data.findIndex(it => it.id === m[1]); if (i >= 0) { s.items.data.splice(i, 1); return send({ id: m[1], object: 'subscription_item', deleted: true }); } }
       return send({ error: { message: 'No such item' } }, 404);
@@ -150,6 +153,13 @@ async function webhook(type, object) {
 
   check('no JS errors', errors.length === 0, errors.join(' | '));
   await browser.close();
+
+  // 2026-10-22 15:56, #66 closing the account cancels the Stripe subscription at once (no refund) and turns Ops off
+  const closed = await call(`/admin/companies/${su.company.id}/close`, AT, 'POST');
+  const del = calls.filter(c => c.method === 'DELETE' && c.path === `/v1/subscriptions/${sub2.id}`).pop();
+  const after = (await call('/admin/companies', AT)).data.companies.find(c => c.id === su.company.id);
+  check('close account cancels the Stripe subscription', closed.status === 200 && closed.data.stripe_canceled === true && !!del && del.form.prorate === 'false'
+    && after.subscription_status === 'canceled' && !after.ops_addon, JSON.stringify({ closed: closed.data, del }));
   try { process.kill(-server.pid); } catch {}
   killPort(H.PORT); fake.close(); killPort(FAKE_PORT);
   console.log(out.join('\n'));

@@ -23,7 +23,7 @@ Tick boxes as you go. Tasks in `MGR/projects/stayguide/tasks.json` are in bracke
 
 - [ ] Have a lawyer (or a reviewed template service) check `/privacy` and `/terms`. Text: `src/views/privacy.html`, `src/views/terms.html`
 - [ ] Confirm the promises match how you will operate:
-  - account data deleted within **90 days** after an account closes (the tool for this is task #66; until then it's manual)
+  - account data deleted within **90 days** after an account closes (built, #66: super admin → Companies → Close… ; the data is purged automatically 60 days later, `ACCOUNT_PURGE_DAYS`)
   - server logs kept up to **90 days**, backups roll over within **30 days** (set up in step 6)
   - price changes announced **30 days** ahead; export offered within **30 days** of closing
   - liability capped at 12 months of fees; New Mexico law and courts
@@ -61,7 +61,7 @@ Do this in the dashboard with **Test mode OFF**.
   - `STRIPE_SECRET_KEY`, `STRIPE_WEBHOOK_SECRET`, the 7 `STRIPE_PRICE_*` from step 4
   - VAPID keys: `npx web-push generate-vapid-keys` (once, never change)
   - `LEGAL_NAME`, `LEGAL_JURISDICTION=New Mexico`, `ALERT_EMAIL`
-- [ ] Database: fresh install = `database/schema.sql`; existing database = back up, then migrations **1–21** in the order in `database/migrations/README.md`
+- [ ] Database: fresh install = `database/schema.sql`; existing database = back up, then migrations **1–22** in the order in `database/migrations/README.md`
 - [ ] Change the super admin email + password (DEPLOYMENT_GUIDE §4)
 - [ ] Plesk Node.js app: startup file `dist/index.js`, document root `<app>/public`, mode production → restart. The log must show `StayGuide server running` and no `[config] error:`. Fix any `[config] warning:` you did not expect
 
@@ -95,8 +95,8 @@ Do this in the dashboard with **Test mode OFF**.
 
 - [ ] Restore test every 3 months (§8d)
 - [ ] Send Trinity the new screens (signup checkbox, legal pages, billing) for the design pass [#43]
-- [ ] Decide when to build: close + purge account [#66], Stays/Conversions API for owners' booking sites [#25], tablet restaurant/local data [#57], TV codes / house info [#58]
+- [ ] Decide when to build: Stays/Conversions API for owners' booking sites [#25], tablet restaurant/local data [#57], TV codes / house info [#58]
 
 ---
 
-**Claude can still build** (ask any time): #66 close + purge account, #57, #58, #25, and the owner vs management-company design once you answer its 3 questions.
+**Claude can still build** (ask any time): #57, #58, #25, and the owner vs management-company design once you answer its 3 questions.

@@ -67,6 +67,11 @@ router.post('/companies', companyController.createCompany.bind(companyController
 router.get('/companies/:id', companyController.getCompany.bind(companyController));
 router.put('/companies/:id', companyController.updateCompany.bind(companyController));
 router.delete('/companies/:id', companyController.deleteCompany.bind(companyController));
+// 2026-10-22 15:52, #66 close account, data export, purge
+router.post('/companies/:id/close', companyController.closeAccount.bind(companyController));
+router.post('/companies/:id/reopen', companyController.reopenAccount.bind(companyController));
+router.post('/companies/:id/purge', companyController.purgeAccount.bind(companyController));
+router.get('/companies/:id/export', companyController.exportAccount.bind(companyController));
 
 // Billing overview
 router.get('/billing', (req, res) => {

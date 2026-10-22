@@ -23,6 +23,8 @@ CREATE TABLE companies (
     stripe_subscription_id VARCHAR(64) NULL,
     current_period_end TIMESTAMP NULL,
     cancel_at_period_end BOOLEAN NOT NULL DEFAULT FALSE,
+    closed_at TIMESTAMP NULL, -- 2026-10-22 15:52, #66 account closed; data purge after ACCOUNT_PURGE_DAYS
+    purged_at TIMESTAMP NULL,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
     

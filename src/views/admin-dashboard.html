@@ -315,6 +315,14 @@
         #admins-dialog .row { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 0.5rem; margin-bottom: 0.75rem; }
         #admins-dialog input { width: 100%; box-sizing: border-box; padding: 0.5rem; border: 1px solid var(--border-strong); border-radius: var(--radius-sm); background: var(--surface); color: inherit; }
         @media (max-width: 600px) { #admins-dialog .row { grid-template-columns: 1fr; } }
+        /* 2026-10-22 15:53, #66 close account dialog (same look as the admins dialog) */
+        #close-dialog { margin: auto; border: 0; border-radius: var(--radius-lg); padding: 1.5rem; width: min(560px, calc(100vw - 32px)); background: var(--surface); color: var(--text); }
+        #close-dialog::backdrop { background: rgb(0 0 0 / 0.45); }
+        #close-dialog p, #close-dialog ul { margin: 0 0 0.75rem; line-height: 1.5; }
+        #close-dialog .muted { color: var(--text-muted); font-size: 0.85rem; }
+        #close-dialog .actions { flex-wrap: wrap; margin-top: 1rem; }
+        #close-dialog input { width: 100%; box-sizing: border-box; padding: 0.5rem; border: 1px solid var(--border-strong); border-radius: var(--radius-sm); background: var(--surface); color: inherit; }
+        #close-dialog fieldset { border: 1px solid var(--border); border-radius: var(--radius-sm); padding: 0.75rem; margin-top: 1rem; }
     </style>
 </head>
 <body class="sg-app snow">
@@ -395,6 +403,17 @@
             </div>
             <p class="muted">New admins get an email to choose their password (link works for 7 days).</p>
         </form>
+    </dialog>
+
+    <!-- 2026-10-22 15:53, #66 close account: export, close, reopen, purge -->
+    <dialog id="close-dialog" aria-labelledby="close-title">
+        <h3 id="close-title">Close account</h3>
+        <div id="close-msg" role="alert"></div>
+        <div id="close-body"></div>
+        <div class="actions">
+            <button class="btn btn-secondary btn-small" type="button" id="close-export" onclick="downloadExport()">Download data export</button>
+            <button class="btn btn-secondary btn-small" type="button" onclick="document.getElementById('close-dialog').close()">Done</button>
+        </div>
     </dialog>
 
     <div id="companyModal" class="modal">
@@ -602,8 +621,8 @@
                                 <td>${Number(company.active_property_count ?? 0)}${company.property_count > company.active_property_count ? ` <span class="muted">(${Number(company.property_count)} total)</span>` : ''}</td>
                                 <td>${Number(company.admin_count ?? 0)}</td>
                                 <td>
-                                    <span class="status-badge status-${esc(company.status)}">
-                                        ${esc(company.status)}
+                                    <span class="status-badge status-${company.closed_at ? 'inactive' : esc(company.status)}">
+                                        ${company.purged_at ? 'purged' : company.closed_at ? 'closed' : esc(company.status)}
                                     </span>
                                 </td>
                                 <td>
@@ -611,8 +630,7 @@
                                         <button class="btn btn-primary btn-small" 
                                                 onclick="editCompany(${Number(company.id)})">Edit</button>
                                         <button class="btn btn-secondary btn-small" onclick="openAdmins(${Number(company.id)})">Admins</button>
-                                        <button class="btn btn-danger btn-small" 
-                                                onclick="deleteCompany(${Number(company.id)})">Delete</button>
+                                        <button class="btn btn-danger btn-small" onclick="openClose(${Number(company.id)})">${company.closed_at ? 'Closed…' : 'Close…'}</button>
                                     </div>
                                 </td>
                             </tr>
@@ -660,6 +678,7 @@
         function openCreateModal() {
             editingCompanyId = null;
             document.getElementById('modal-title').textContent = 'Add New Company';
+            document.getElementById('company-status').disabled = false;
             document.getElementById('companyForm').reset();
             setModalMode(false);
             document.getElementById('companyModal').style.display = 'block';
@@ -679,6 +698,7 @@
                 document.getElementById('connection-fee').value = company.connection_fee ?? 0;
                 document.getElementById('monthly-fee').value = company.monthly_fee_per_property ?? 0;
                 document.getElementById('company-status').value = company.status || 'active';
+                document.getElementById('company-status').disabled = !!company.closed_at; // 2026-10-22 15:53, #66 reopen from the Close dialog instead
                 document.getElementById('company-ops').checked = !!company.ops_addon;
                 setModalMode(true);
                 document.getElementById('companyModal').style.display = 'block';
@@ -711,7 +731,7 @@
                             address: document.getElementById('company-address').value,
                             connection_fee: document.getElementById('connection-fee').value,
                             monthly_fee_per_property: document.getElementById('monthly-fee').value,
-                            status: document.getElementById('company-status').value,
+                            status: document.getElementById('company-status').disabled ? undefined : document.getElementById('company-status').value,
                             ops_addon: document.getElementById('company-ops').checked
                         })
                     });
@@ -771,19 +791,59 @@
             document.getElementById('company-slug').value = slug;
         });
         
-        // Delete company
-        async function deleteCompany(id) {
-            const name = (companiesById[id] || {}).name || 'this company'; // 2026-10-09 12:32, #61
-            if (!confirm(`Are you sure you want to delete "${name}"? This will deactivate the company and all its data.`)) {
-                return;
+        // 2026-10-22 15:53, #66 close account dialog (replaces Delete, which only set the status to inactive)
+        let closeCompany = null;
+        const closeMsg = (text, ok) => { const el = document.getElementById('close-msg'); el.className = text ? (ok ? 'success' : 'error') : ''; el.textContent = text || ''; };
+        const day = d => new Date(d).toLocaleDateString(undefined, { dateStyle: 'medium' });
+        function openClose(id) {
+            closeCompany = companiesById[id];
+            closeMsg('');
+            renderClose();
+            document.getElementById('close-dialog').showModal();
+        }
+        function renderClose() {
+            const c = closeCompany;
+            document.getElementById('close-title').textContent = `${c.purged_at ? 'Purged' : c.closed_at ? 'Closed' : 'Close'} · ${c.name}`;
+            document.getElementById('close-export').hidden = !!c.purged_at;
+            const body = document.getElementById('close-body');
+            if (c.purged_at) {
+                body.innerHTML = `<p>The data was deleted on ${esc(day(c.purged_at))} and the people in it anonymized. Billing records and hardware orders are kept for tax.</p>`;
+            } else if (c.closed_at) {
+                body.innerHTML = `<p>Closed on ${esc(day(c.closed_at))}. Everything is deleted automatically on <strong>${esc(day(c.purge_after))}</strong>. Send the customer the data export before then if they ask for it.</p>
+                    <div class="actions"><button class="btn btn-primary btn-small" type="button" onclick="closeAction('reopen')">Reopen account</button></div>
+                    <fieldset><legend>Purge now</legend>
+                        <p class="muted">Deletes properties, content, uploads, guest reports, analytics, jobs, photos and time entries now, and anonymizes the admins and workers who only work for this company. This cannot be undone.</p>
+                        <label class="muted" for="purge-confirm">Type <code>${esc(c.slug)}</code> to confirm</label>
+                        <input id="purge-confirm" autocomplete="off" spellcheck="false">
+                        <div class="actions"><button class="btn btn-danger btn-small" type="button" onclick="closeAction('purge')">Purge now</button></div>
+                    </fieldset>`;
+            } else {
+                body.innerHTML = `<p>Closing the account at once:</p>
+                    <ul><li>cancels the Stripe subscription (no refund)</li><li>signs out the admins and blocks sign-in</li>
+                    <li>unpairs the tablets and stops guest links and QR codes</li><li>pauses its workers</li></ul>
+                    <p>The data is kept until the purge date (shown after closing), so you can reopen it or send an export. Billing records are always kept.</p>
+                    <div class="actions"><button class="btn btn-danger btn-small" type="button" onclick="closeAction('close')">Close account</button></div>`;
             }
-            
+        }
+        async function closeAction(action) {
+            const c = closeCompany;
             try {
-                await apiCall(`/admin/companies/${id}`, { method: 'DELETE' });
-                loadCompanies();
-            } catch (error) {
-                alert(`Failed to delete company: ${error.message}`);
-            }
+                const body = action === 'purge' ? { confirm: document.getElementById('purge-confirm').value.trim() } : {};
+                const r = await apiCall(`/admin/companies/${c.id}/${action}`, { method: 'POST', body: JSON.stringify(body) });
+                const { companies } = await apiCall('/admin/companies');
+                displayCompanies(companies); updateStats(companies);
+                closeCompany = companiesById[c.id] || c;
+                renderClose();
+                closeMsg(action === 'close' ? `Closed.${r.stripe_canceled ? ' The Stripe subscription was canceled.' : ''}` : action === 'reopen' ? 'Reopened. The admins can sign in again; tablets must be paired again.' : 'Purged.', true);
+            } catch (error) { closeMsg(error.message); }
+        }
+        async function downloadExport() {
+            try {
+                const data = await apiCall(`/admin/companies/${closeCompany.id}/export`);
+                const a = Object.assign(document.createElement('a'), { href: URL.createObjectURL(new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' })),
+                    download: `stayguide-${closeCompany.slug}-export-${data.exported_at.slice(0, 10)}.json` });
+                a.click(); URL.revokeObjectURL(a.href);
+            } catch (error) { closeMsg(error.message); }
         }
         
         // 2026-10-09 12:32, #61 company admins dialog

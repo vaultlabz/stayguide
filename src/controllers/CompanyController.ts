@@ -5,6 +5,7 @@ import { AuthRequest, Company } from '../types';
 // 2026-10-07 15:40, admin stats
 import { PropertyService } from '../services/PropertyService';
 import { PLANS, PlanId, billedQuantity } from '../config/plans';
+import { AccountClosureService, ClosureError, purgeDate } from '../services/AccountClosureService'; // 2026-10-22 15:52, #66
 
 /** Estimated monthly revenue for one company. Legacy (grandfathered) accounts pay their manual per-property fee;
  *  Stripe plans use plans.ts prices (annual Pro is spread over 12 months). Past-due and canceled pay nothing. */
@@ -29,7 +30,8 @@ export class CompanyController {
       const companies = await Promise.all((await this.companyService.getAllCompanies()).map(async c => {
         const [properties, admins] = await Promise.all([this.propertyService.getPropertiesByCompany(c.id), this.userService.listCompanyAdmins(c.id)]);
         return { ...c, property_count: properties.length, active_property_count: properties.filter(p => p.status === 'active').length,
-          admin_count: admins.filter(u => u.status === 'active').length };
+          admin_count: admins.filter(u => u.status === 'active').length,
+          purge_after: c.closed_at && !c.purged_at ? purgeDate(c.closed_at) : null }; // 2026-10-22 15:52, #66
       }));
 
       res.json({
@@ -182,6 +184,10 @@ export class CompanyController {
         return res.status(404).json({ error: 'Company not found' });
       }
 
+      // 2026-10-22 15:52, #66 a closed account is reopened (or purged) through its own endpoints, never by editing the status
+      if (existingCompany.purged_at) return res.status(409).json({ error: 'This account was purged.' });
+      if (existingCompany.closed_at && req.body.status !== undefined && req.body.status !== existingCompany.status) return res.status(409).json({ error: 'This account is closed. Use Reopen to restore it.' });
+
       const updates = req.body;
       
       // Don't allow slug changes if it would conflict
@@ -239,6 +245,52 @@ export class CompanyController {
     } catch (error) {
       console.error('Error deleting company:', error);
       res.status(500).json({ error: 'Failed to delete company' });
+    }
+  }
+
+  // ---- 2026-10-22 15:52, #66 close account, data export, purge (super admin) ----
+  private closure = new AccountClosureService();
+
+  private async closureAction(req: AuthRequest, res: Response, run: (id: number) => Promise<unknown>) {
+    const companyId = parseInt(req.params.id);
+    if (isNaN(companyId)) return res.status(400).json({ error: 'Invalid company ID' });
+    try {
+      res.json(await run(companyId));
+    } catch (error) {
+      if (error instanceof ClosureError) return res.status(error.status).json({ error: error.message });
+      console.error('Account closure action failed:', error);
+      res.status(500).json({ error: 'The action failed. Nothing was changed if the error came from the database.' });
+    }
+  }
+
+  closeAccount(req: AuthRequest, res: Response) {
+    return this.closureAction(req, res, async id => ({ message: 'Account closed', ...await this.closure.close(id, req.user?.id ?? null) }));
+  }
+
+  reopenAccount(req: AuthRequest, res: Response) {
+    return this.closureAction(req, res, async id => { await this.closure.reopen(id, req.user?.id ?? null); return { message: 'Account reopened' }; });
+  }
+
+  /** Purge before the waiting period ends: the body must repeat the company slug. */
+  purgeAccount(req: AuthRequest, res: Response) {
+    return this.closureAction(req, res, async id => {
+      const company = await this.companyService.findById(id);
+      if (company && req.body?.confirm !== company.slug) throw new ClosureError('Type the company slug to confirm the purge.', 400);
+      return { message: 'Account data purged', counts: await this.closure.purge(id, req.user?.id ?? null, { early: true }) };
+    });
+  }
+
+  async exportAccount(req: AuthRequest, res: Response) {
+    const companyId = parseInt(req.params.id);
+    if (isNaN(companyId)) return res.status(400).json({ error: 'Invalid company ID' });
+    try {
+      const data = await this.closure.exportData(companyId);
+      res.setHeader('Content-Disposition', `attachment; filename="stayguide-${String(data.company.slug).replace(/[^\w-]/g, '')}-export-${data.exported_at.slice(0, 10)}.json"`);
+      res.json(data);
+    } catch (error) {
+      if (error instanceof ClosureError) return res.status(error.status).json({ error: error.message });
+      console.error('Account export failed:', error);
+      res.status(500).json({ error: 'Export failed' });
     }
   }
 }

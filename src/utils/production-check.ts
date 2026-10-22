@@ -30,6 +30,8 @@ export function productionConfigProblems(env: Env, nodeVersion: string): { error
   if (!env.VAPID_PUBLIC_KEY || !env.VAPID_PRIVATE_KEY) warnings.push('VAPID keys missing: worker push notifications are off (npx web-push generate-vapid-keys)');
   if (!env.SUPPORT_EMAIL) warnings.push('SUPPORT_EMAIL is empty: helpdesk tickets go to ADMIN_EMAIL');
   // 2026-10-22 11:01, #63 the Terms and Privacy pages name the operator and governing law
+  // 2026-10-22 15:59, #66 the Privacy Policy promises deletion within 90 days of closing
+  if (Number(env.ACCOUNT_PURGE_DAYS) > 90) warnings.push('ACCOUNT_PURGE_DAYS is over 90: the Privacy Policy promises closed accounts are deleted within 90 days');
   if (!env.LEGAL_NAME || !env.LEGAL_JURISDICTION) warnings.push('LEGAL_NAME / LEGAL_JURISDICTION empty: /terms and /privacy show placeholders (set the company legal name and state)');
   return { errors, warnings };
 }

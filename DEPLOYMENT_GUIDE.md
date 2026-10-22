@@ -59,7 +59,7 @@ UPDATE users SET email = 'you@yourdomain.com', password_hash = '<hash from above
 ```
 
 **Existing database:** back it up, then apply the migrations in `database/migrations/` **in the order listed in its README**
-(21 steps; the filename order is not the apply order). Each runs once. Verified on MySQL 9.3 (task #45).
+(22 steps; the filename order is not the apply order). Each runs once. Verified on MySQL 9.3 (task #45).
 
 ## 5. Plesk Node.js app
 
@@ -183,7 +183,18 @@ backup password. Write the date and the counts into task #65 / the session log.
 **If production is lost:** new server per steps 1–5 → put `.env` back → import the newest dump (or restore the Plesk
 backup) → copy `public/uploads/` and `storage/ops/` back → start → smoke test (step 7).
 
-## 9. Afterwards
+## 9. Closing a customer account (task #66)
+
+<!-- 2026-10-22 15:59, #66 -->
+Super admin → Companies → **Close…** on the company's row:
+
+1. **Download data export** if the customer asked for their data (JSON of everything they stored; door codes, device tokens and passwords are left out). Available until the purge.
+2. **Close account**: cancels the Stripe subscription at once (no refund; wait until the paid period ends if that matters), blocks admin sign-in, unpairs tablets, stops guest links and QR codes, pauses workers. **Reopen account** undoes it (tablets must be paired again, the plan bought again).
+3. The data is **purged automatically** `ACCOUNT_PURGE_DAYS` (default 60, keep ≤ 90 for the Privacy Policy) after closing, by the hourly scheduler. **Purge now** (type the slug) does it at once.
+
+The purge deletes properties and all their content, uploaded images, guest reports, analytics, jobs, photos, time entries, checklists, schedules and helpdesk tickets; anonymizes the company row and its admins (plus workers who work for no other company). Billing records and hardware orders are kept for tax. Each step is in `system_audit_log` (`table_name = 'companies'`).
+
+## 10. Afterwards
 
 - Keep `.env` out of git (it is ignored); rotate `JWT_SECRET` only knowing that it signs everyone out
 - Redeploy: pull, `npm ci && npm run build:clean`, apply any new migrations from the README, restart

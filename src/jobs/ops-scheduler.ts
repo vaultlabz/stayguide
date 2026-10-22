@@ -13,6 +13,7 @@ import { WorkOrderService, WorkOrder } from '../services/WorkOrderService';
 import { reportError } from '../utils/alerts'; // 2026-10-22 11:37, #64
 import { OnSiteService } from '../services/OnSiteService'; // 2026-10-10 10:28, #62 late / no-show
 import { validTz } from '../services/TimeService';
+import { AccountClosureService } from '../services/AccountClosureService'; // 2026-10-22 15:52, #66
 
 const HOUR = 3600 * 1000;
 let running = false;
@@ -154,7 +155,7 @@ export async function lateAlerts(now: Date): Promise<number> {
 }
 
 /** One pass of every Ops check. Safe to call any time; overlapping runs are skipped. */
-export async function runOpsChecks(now = new Date()): Promise<{ certificate_reminders: number; scheduled_jobs: number; overdue_alerts: number; unassigned_alerts: number; late_alerts: number } | { skipped: true }> {
+export async function runOpsChecks(now = new Date()): Promise<{ certificate_reminders: number; scheduled_jobs: number; overdue_alerts: number; unassigned_alerts: number; late_alerts: number; accounts_purged: number } | { skipped: true }> {
   if (running) return { skipped: true };
   running = true;
   try {
@@ -162,7 +163,9 @@ export async function runOpsChecks(now = new Date()): Promise<{ certificate_remi
     const scheduled_jobs = await scheduledJobs(now);
     const digests = await managerDigests(now);
     const late_alerts = await lateAlerts(now);
-    return { certificate_reminders, scheduled_jobs, overdue_alerts: digests.overdue, unassigned_alerts: digests.unassigned, late_alerts };
+    // 2026-10-22 15:52, #66 closed accounts past their waiting period (Privacy Policy: deleted within 90 days)
+    const accounts_purged = await new AccountClosureService().purgeDue(now);
+    return { certificate_reminders, scheduled_jobs, overdue_alerts: digests.overdue, unassigned_alerts: digests.unassigned, late_alerts, accounts_purged };
   } finally {
     running = false;
   }
