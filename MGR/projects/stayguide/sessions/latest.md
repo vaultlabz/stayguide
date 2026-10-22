@@ -169,3 +169,8 @@
 ## Checkpoint (claude-code)
 - #63: operator Wingu Digital, New Mexico (.env.production.example LEGAL_NAME / LEGAL_JURISDICTION, project memory)
 - #65: DEPLOYMENT_GUIDE.md §8 server steps (Plesk offsite nightly backups 30 days, password-protected; scripts/backup-mysql.sh second copy; 90-day log rotation; restore test); script + restore rehearsed on local MySQL. Server work left for the user
+
+2026-10-22 11:36
+## Checkpoint (claude-code)
+- Added task #66: close + purge account (Privacy Policy 90-day deletion promise)
+- Pushed #63 / #65 commits to PR #3

@@ -80,3 +80,8 @@ x - Fixed MySQL-only bugs: session time zone UTC, DECIMAL as numbers, DATE as st
 - Privacy Policy + Terms pages, signup checkbox (#63)
 - Uptime + error alerts (#64)
 - Nightly backups + test restore (#65)
+
+2026-10-22 11:36
+// stayguide
+# release
+- Close + purge account tool for the 90-day deletion promise (#66)

@@ -356,3 +356,7 @@
 ## 2026-10-22 10:49 | claude-code | task.created
 - **id:** 65
 - **title:** Production backups: nightly MySQL + public/uploads + storage/ops, one test restore
+
+## 2026-10-22 11:36 | claude-code | task.created
+- **id:** 66
+- **title:** Close + purge account (super admin): delete or anonymize a company and its data within 90 days of closing
