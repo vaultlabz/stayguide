@@ -10,6 +10,7 @@ import { PushService } from '../services/PushService';
 import { entitlementsFor } from '../services/EntitlementService';
 import { ScheduleService } from '../services/ScheduleService'; // 2026-10-08 11:10, G7 S8
 import { WorkOrderService, WorkOrder } from '../services/WorkOrderService';
+import { reportError } from '../utils/alerts'; // 2026-10-22 11:37, #64
 import { OnSiteService } from '../services/OnSiteService'; // 2026-10-10 10:28, #62 late / no-show
 import { validTz } from '../services/TimeService';
 
@@ -169,10 +170,10 @@ export async function runOpsChecks(now = new Date()): Promise<{ certificate_remi
 
 export function startOpsScheduler() {
   if (timer || process.env.OPS_SCHEDULER === 'off') return;
-  const tick = () => runOpsChecks().then(r => { if (!('skipped' in r) && Object.values(r).some(Boolean)) console.log('[ops] checks:', r); }).catch(err => console.error('[ops] scheduled checks failed:', err));
+  const tick = () => runOpsChecks().then(r => { if (!('skipped' in r) && Object.values(r).some(Boolean)) console.log('[ops] checks:', r); }).catch(err => { console.error('[ops] scheduled checks failed:', err); reportError('Ops scheduled checks failed', err); }); // 2026-10-22 11:37, #64
   setTimeout(tick, 15_000).unref();
   timer = setInterval(tick, HOUR);
   timer.unref();
   // 2026-10-10 10:28, #62 late arrivals need a shorter beat than the hourly digests
-  setInterval(() => lateAlerts(new Date()).then(n => { if (n) console.log('[ops] late alerts:', n); }).catch(err => console.error('[ops] late alerts failed:', err)), 5 * 60 * 1000).unref();
+  setInterval(() => lateAlerts(new Date()).then(n => { if (n) console.log('[ops] late alerts:', n); }).catch(err => { console.error('[ops] late alerts failed:', err); reportError('Ops late alerts failed', err); }), 5 * 60 * 1000).unref();
 }

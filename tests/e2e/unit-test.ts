@@ -3,6 +3,7 @@ import { weatherCondition, geocodeCandidates } from '../../src/utils/weather';
 import { productionConfigProblems } from '../../src/utils/production-check'; // 2026-10-09 08:15, #46
 import { parseCoords, parseFix, distanceM, placeOf, formatDistance } from '../../src/utils/geo'; // 2026-10-10 10:40, #62
 import { legalValues, TERMS_VERSION } from '../../src/utils/legal'; // 2026-10-22 11:01, #63
+import { ErrorAlerts, safePath } from '../../src/utils/alerts'; // 2026-10-22 11:37, #64
 let pass = 0, fail = 0;
 const eq = (name: string, a: unknown, b: unknown) => { const ok = JSON.stringify(a) === JSON.stringify(b); ok ? pass++ : fail++; console.log(`${ok ? 'PASS' : 'FAIL'} ${name}${ok ? '' : ' got ' + JSON.stringify(a) + ' want ' + JSON.stringify(b)}`); };
 eq('wifi plain', wifiQrPayload('Home', 'pass123'), 'WIFI:T:WPA;S:Home;P:pass123;;');
@@ -43,4 +44,20 @@ eq('place unset', placeOf(39.7, null, 10).state, 'unset');
 eq('place at (accuracy slack)', placeOf(39.7, 200, 80).state, 'at');
 eq('place away label', placeOf(39.7, 1223, 15).label, '1.2 km from the property');
 eq('distance format m', formatDistance(437), '440 m');
+// 2026-10-22 11:37, #64 alert throttling: first error mails at once, the rest of the cooldown becomes one summary
+{
+  let clock = 0; const sent: string[] = [];
+  const al = new ErrorAlerts(async subject => { sent.push(subject); }, 60_000, () => clock);
+  al.report('HTTP 500 GET /api/x', new Error('boom'));
+  eq('alert: first error mails at once', sent, ['[StayGuide] Error: HTTP 500 GET /api/x']);
+  clock = 1000; al.report('HTTP 500 GET /api/y'); al.report('HTTP 503 GET /api/health');
+  eq('alert: held during cooldown', sent.length, 1);
+  al.flush();
+  eq('alert: summary counts held errors', sent[1], '[StayGuide] 2 more errors in the last 1 min');
+  al.flush();
+  eq('alert: empty flush sends nothing', sent.length, 2);
+  clock = 1000 + 60_000; al.report('Ops late alerts failed');
+  eq('alert: after cooldown mails at once', sent[2], '[StayGuide] Error: Ops late alerts failed');
+  eq('safePath masks tokens + query', safePath('/g/abcDEF123/content?x=1'), '/g/***/content');
+}
 console.log(`\n${pass}/${pass + fail} unit checks passed`); process.exit(fail ? 1 : 0);

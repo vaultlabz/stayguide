@@ -3,6 +3,8 @@ import { AuthController } from '../controllers/AuthController';
 import { authenticateToken } from '../middleware/auth';
 import { SignupController } from '../controllers/SignupController';
 import { rateLimit } from '../middleware/rate-limit';
+import { db } from '../utils/database'; // 2026-10-22 11:37, #64 health check
+import { MOCK_MODE } from '../utils/mock-database';
 
 const router = express.Router();
 const authController = new AuthController();
@@ -13,12 +15,22 @@ const signupLimiter = rateLimit({ windowMs: 60 * 60 * 1000, max: 5, key: req => 
 router.post('/signup', signupLimiter, signupController.signup.bind(signupController));
 
 // General API routes (not company-specific)
-router.get('/health', (req, res) => {
-  res.json({ 
-    status: 'healthy',
+// 2026-10-22 11:37, #64 real database check (SELECT 1, 3 s limit) so an uptime monitor sees a database outage as a 503
+router.get('/health', async (req, res) => {
+  let database = 'mock';
+  if (!MOCK_MODE) {
+    try {
+      await Promise.race([db.query('SELECT 1'), new Promise((_, reject) => setTimeout(() => reject(new Error('timeout')), 3000).unref())]);
+      database = 'connected';
+    } catch {
+      database = 'unreachable';
+    }
+  }
+  res.status(database === 'unreachable' ? 503 : 200).json({
+    status: database === 'unreachable' ? 'unhealthy' : 'healthy',
     timestamp: new Date().toISOString(),
     environment: process.env.NODE_ENV,
-    database: 'connected' // TODO: Add actual DB health check
+    database
   });
 });
 

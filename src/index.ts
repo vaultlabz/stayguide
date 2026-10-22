@@ -8,9 +8,11 @@ import routes from './routes';
 import { startOpsScheduler } from './jobs/ops-scheduler'; // 2026-10-08 07:50, G7 Ops
 import { BillingPlanController } from './controllers/BillingPlanController';
 import { assertProductionConfig } from './utils/production-check'; // 2026-10-09 08:15, #46
+import { alertOn5xx, installCrashAlerts, safePath } from './utils/alerts'; // 2026-10-22 11:37, #64
 
 dotenv.config();
 assertProductionConfig(); // 2026-10-09 08:15, #46: stop a misconfigured production start before it listens
+installCrashAlerts(); // 2026-10-22 11:37, #64 crash / unhandled rejection emails
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -45,9 +47,10 @@ const corsOrigins = (process.env.CORS_ORIGINS || '').split(',').map(o => o.trim(
 if (corsOrigins.length) app.use(cors({ origin: corsOrigins }));
 // 2026-10-10 19:27, #59 access log without secrets: query strings (reset tokens) and link tokens (/g/, invite, QR scan) are masked,
 // and the referrer is left out because it can carry the same tokens.
-morgan.token('safe-url', (req: express.Request) =>
-  (req.originalUrl || req.url).split('?')[0].replace(/\/(g|invite|scan)\/[^/]+/, '/$1/***'));
+// 2026-10-22 11:37, #64 masking moved to utils/alerts safePath (alerts use the same rule)
+morgan.token('safe-url', (req: express.Request) => safePath(req.originalUrl || req.url));
 app.use(morgan(':remote-addr - :remote-user [:date[clf]] ":method :safe-url HTTP/:http-version" :status :res[content-length] ":user-agent"'));
+app.use(alertOn5xx); // 2026-10-22 11:37, #64 email on 5xx responses (throttled)
 // 2026-10-03 23:06, G3 Stripe webhook needs the raw body for signature verification, so it is mounted before express.json()
 const billingWebhook = new BillingPlanController();
 app.post('/billing/webhook', express.raw({ type: 'application/json', limit: '1mb' }), billingWebhook.webhook.bind(billingWebhook));

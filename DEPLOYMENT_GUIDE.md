@@ -90,7 +90,7 @@ curl -sI http://yourdomain.com | head -1          # 301 to https
 - [ ] Ops: invite a worker, sign in on a phone, enable push, upload a job photo
 - [ ] Log shows no `[config] warning:` you did not expect
 
-## 8. Backups and log retention (task #65)
+## 8. Backups, log retention and monitoring (tasks #65, #64)
 
 <!-- 2026-10-22 11:33, #65: replaces the one-line backup note. Retention numbers match the Privacy Policy (/privacy):
      backups roll over within 30 days, server logs kept up to 90 days. Change both together. -->
@@ -166,6 +166,19 @@ mysql --defaults-extra-file=~/.stayguide-backup.cnf -e "DROP DATABASE stayguide_
 (The database user needs rights on `stayguide_restore_test`; in Plesk, add the database first and grant the same user.)
 Then check the **offsite** copy: Backup Manager → the latest remote backup → **Download** works and opens with the
 backup password. Write the date and the counts into task #65 / the session log.
+
+### 8e. Uptime monitor and error alerts (task #64)
+
+<!-- 2026-10-22 11:37, #64 -->
+- **Error emails are built in**: 5xx responses, crashes and failed Ops background jobs email `ALERT_EMAIL` (falls back to
+  `SUPPORT_EMAIL`, then `ADMIN_EMAIL`). The first error mails at once; further errors within 15 minutes come as one summary.
+  On by default in production (`ALERTS=off` turns it off). They go out through the normal SMTP settings, so if email
+  is broken, alerts are too. That is why an outside monitor is needed as well
+- **Outside uptime monitor** (a crashed server or dead host can't email anyone): a free UptimeRobot or Better Stack
+  account → new **HTTP(s)** monitor → `https://yourdomain.com/api/health`, every **5 minutes**, alert by email + phone app.
+  The endpoint runs a real database query: it answers **200** `"database":"connected"`, or **503** `"database":"unreachable"`
+  when MySQL is down, so the monitor catches database outages too. Optional: keyword monitor for `"healthy"`
+- Test once: pause the Node.js app in Plesk for ~6 minutes → the monitor alerts; start it again → recovery alert
 
 **If production is lost:** new server per steps 1–5 → put `.env` back → import the newest dump (or restore the Plesk
 backup) → copy `public/uploads/` and `storage/ops/` back → start → smoke test (step 7).

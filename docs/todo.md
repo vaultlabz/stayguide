@@ -1889,3 +1889,30 @@
 - Script tested on local MySQL 9.3: dump + files archive created, `DB_NAME` read from `.env`; a missing `.env` key no longer aborts under `set -euo pipefail` (grep exit 1)
 - Restore rehearsal: dump imported into a scratch database, row counts for companies/users/properties/work_orders/time_entries identical to the source
 - Still on the server (user): configure remote storage + schedule, add the cron task, log rotation, first restore test
+
+## 2026-10-22 11:43 - FEATURE: #64 Real health check + error alert emails; owner launch to-do list
+
+**What Changed:**
+- ✅ `/api/health` runs `SELECT 1` (3 s limit): 200 `"database":"connected"` or 503 `"unhealthy"`/`"unreachable"`; mock mode reports `"mock"` (was a hard-coded "connected")
+- ✅ `src/utils/alerts.ts`: emails `ALERT_EMAIL` (→ `SUPPORT_EMAIL` → `ADMIN_EMAIL`) on every 5xx response, uncaught exceptions (mail, then exit so Plesk restarts the app), unhandled rejections, and failed Ops scheduler / late-alert jobs
+- ✅ Throttle: first error mails at once, the rest of a 15-minute window becomes one summary (count exact, up to 20 lines listed)
+- ✅ On in production by default; `ALERTS=off` disables, `ALERTS=on` enables elsewhere; `ALERT_COOLDOWN_MS` for tests
+- ✅ Access-log path masking moved to `safePath()` and shared with alerts (tokens never appear in alert emails)
+- ✅ `DEPLOYMENT_GUIDE.md` §8e uptime monitor + alert setup; `docs/LAUNCH_TODO.md` owner checklist (decisions, PR merge, legal review, Stripe live, server, backups, monitoring, smoke test, tablet check)
+
+**Why:**
+- Launch audit: nothing told anyone when the site failed; the health check claimed "connected" without asking the database
+- Controllers catch their own errors and answer 500 themselves, so watching responses (not only the Express error handler) catches them all
+
+**How:**
+- `res.on('finish')` middleware for 5xx; `process.on('uncaughtException' | 'unhandledRejection')`; `reportError()` in the scheduler catch blocks
+- `ErrorAlerts` class with injectable sender and clock for unit tests; crash path waits for the in-flight email (max 5 s) before exiting
+
+**Impact:**
+- **Outages noticed in minutes**: built-in emails for app errors, external monitor for a dead server or database
+- **No alert storms**: one email per 15 minutes plus a summary
+
+**Technical Details:**
+- Behavior change: an unhandled promise rejection is now logged + emailed and the process keeps running (Node's default was to crash)
+- New suite `tests/e2e/alerts-test.js` (in `npm test`): db up → 200, no alerts; MySQL on port 1 → 503, alert at once, later errors summarized after the cooldown, guide tokens masked. 8/8 mock, 8/8 MySQL (`connected`)
+- Unit 54/54 (throttle, summary, empty flush, cooldown reset, safePath). billing, ops-s9, presence green on MySQL
