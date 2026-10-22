@@ -26,3 +26,4 @@
 {"at":"2026-10-10 10:40","tool":"claude-code","description":"#62 presence: GPS check-in/out + distance, property spot, arrival prompt, arrived/left + late emails, On site now, guest activity, migration 20"}
 {"at":"2026-10-10 20:06","tool":"claude-code","description":"#59 production hygiene: logs without emails/tokens, CSP no unsafe-eval, CORS allowlist, generic 5xx; dashboard token swap fix after password change"}
 {"at":"2026-10-12 02:33","tool":"claude-code","description":"Dashboard token swap after password change (apiCall reads saved token, retries once); src/views/company-dashboard.html, src/views/admin-dashboard.html"}
+{"ts": "2026-10-22 11:18", "tool": "claude-code", "change": "#63 Privacy + Terms pages, signup acceptance stored (migration 21)"}

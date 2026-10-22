@@ -158,3 +158,9 @@
 - Launch audit: direct booking via owner websites already built (direct_booking_url, /r/* QR redirects, UTM + sg_click); Conversions/Stays APIs planned (#25)
 - Launch blockers: #46 server steps, #42 Stripe live, push/merge to main; new tasks #63 legal pages, #64 uptime/error alerts, #65 backups
 - Pushed feature/g7-ops and opened PR to main
+
+2026-10-22 11:18
+## Checkpoint (claude-code)
+- #63 code done: /privacy + /terms (values from .env LEGAL_NAME, LEGAL_JURISDICTION, SUPPORT_EMAIL), required signup checkbox, users.terms_accepted_at/terms_version (migration 21), links on landing, phone guide, crew invite
+- Tests: unit 48/48; billing 65/65 mock + MySQL; analytics, guest-link, pricing, ops-s1, ops-s9, design, offline green; migration 21 verified
+- #63 stays pending: user sets legal name/state and reviews wording

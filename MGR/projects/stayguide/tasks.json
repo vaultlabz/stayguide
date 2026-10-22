@@ -896,7 +896,7 @@
       "id": 63,
       "creationDate": "2026-10-22 10:49",
       "title": "Privacy Policy + Terms of Service pages, linked from signup (checkbox), footer and guest guide",
-      "description": "Launch audit 2026-10-22: no legal pages exist. App takes payments (Stripe), stores crew GPS check-ins and anonymous guest activity. Wording needs the user/legal review.",
+      "description": "Launch audit 2026-10-22: no legal pages exist. App takes payments (Stripe), stores crew GPS check-ins and anonymous guest activity. Wording needs the user/legal review. 2026-10-22 11:18: code done (pages, signup checkbox, acceptance stored, migration 21). Stays pending until LEGAL_NAME / LEGAL_JURISDICTION are set and the wording is reviewed.",
       "complexity": 4,
       "completionDate": null,
       "status": "pending",
