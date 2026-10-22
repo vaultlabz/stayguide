@@ -3,7 +3,7 @@ import { db } from '../utils/database';
 import { User } from '../types';
 import { hashPassword, comparePassword } from '../utils/auth';
 import { MockUserService } from './MockUserService';
-import { MOCK_MODE } from '../utils/mock-database';
+import { MOCK_MODE, mockUsers } from '../utils/mock-database';
 import { pickAllowedFields, buildSetClause, USER_UPDATE_FIELDS } from '../utils/sql';
 
 export class UserService {
@@ -25,7 +25,6 @@ export class UserService {
       }
 
       const user = rows[0] as User;
-      console.log(`User found: ${user.email}`);
       return user;
     } catch (error) {
       console.error('Error finding user by ID:', error);
@@ -49,7 +48,6 @@ export class UserService {
       }
 
       const user = rows[0] as User;
-      console.log(`User found by email: ${user.email}`);
       return user;
     } catch (error) {
       console.error('Error finding user by email:', error);
@@ -62,26 +60,30 @@ export class UserService {
     password: string;
     first_name: string;
     last_name: string;
-    role: 'super_admin' | 'company_admin';
+    role: 'super_admin' | 'company_admin' | 'field_worker'; // 2026-10-07 18:30, G7 S1
     company_id?: number;
+    terms_version?: string; // 2026-10-22 11:01, #63 set when the person accepted the Terms (signup)
   }): Promise<User> {
     if (MOCK_MODE) {
       return this.mockService.createUser(userData);
     }
-    
+
     try {
       const hashedPassword = await hashPassword(userData.password);
 
+      // 2026-10-22 11:01, #63 terms_accepted_at / terms_version recorded with the account
       const [result] = await db.execute(
-        `INSERT INTO users (email, password_hash, first_name, last_name, role, company_id, status) 
-         VALUES (?, ?, ?, ?, ?, ?, 'active')`,
+        `INSERT INTO users (email, password_hash, first_name, last_name, role, company_id, status, terms_accepted_at, terms_version)
+         VALUES (?, ?, ?, ?, ?, ?, 'active', ?, ?)`,
         [
           userData.email,
           hashedPassword,
           userData.first_name,
           userData.last_name,
           userData.role,
-          userData.company_id || null
+          userData.company_id || null,
+          userData.terms_version ? new Date() : null,
+          userData.terms_version || null
         ]
       );
 
@@ -124,7 +126,6 @@ export class UserService {
         [user.id]
       );
 
-      console.log(`Password validated for user: ${email}`);
       return user;
     } catch (error) {
       console.error('Error validating password:', error);
@@ -133,6 +134,7 @@ export class UserService {
   }
 
   async updateUser(id: number, updates: Partial<User>): Promise<User | null> {
+    if (MOCK_MODE) return this.mockService.updateUser(id, updates); // 2026-10-09 12:15, #56 (had no mock branch; first caller is PasswordService)
     try {
       // 2026-10-03 11:34, whitelist columns (SQL injection fix)
       const fields = pickAllowedFields(updates, USER_UPDATE_FIELDS);
@@ -154,5 +156,23 @@ export class UserService {
       console.error('Error updating user:', error);
       throw new Error('Failed to update user');
     }
+  }
+
+  // 2026-10-09 12:27, #61 company admin accounts (all statuses, oldest first)
+  async listCompanyAdmins(companyId: number): Promise<User[]> {
+    if (MOCK_MODE) {
+      return mockUsers.filter((u: any) => u.company_id === companyId && u.role === 'company_admin')
+        .sort((a: any, b: any) => a.id - b.id) as unknown as User[];
+    }
+    const [rows] = await db.execute<RowDataPacket[]>(
+      "SELECT * FROM users WHERE company_id = ? AND role = 'company_admin' ORDER BY id", [companyId]);
+    return rows as User[];
+  }
+
+  // 2026-10-09 12:27, #61 any account with this email, active or not (emails are unique across every status and role)
+  async emailTaken(email: string): Promise<boolean> {
+    if (MOCK_MODE) return mockUsers.some((u: any) => String(u.email).toLowerCase() === email.toLowerCase());
+    const [rows] = await db.execute<RowDataPacket[]>('SELECT id FROM users WHERE email = ? LIMIT 1', [email]);
+    return rows.length > 0;
   }
 }

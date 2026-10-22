@@ -32,6 +32,17 @@ export class DeviceService {
   }
 
   /** Exchange a pairing code for a device token. Returns null if the code is invalid/expired/used. */
+  /** 2026-10-08 08:20, #33: why a code didn't work (only asked after redeemPairingCode failed). */
+  async whyCodeFailed(code: string): Promise<'format' | 'expired' | 'used' | 'unknown'> {
+    if (!/^\d{6}$/.test(code)) return 'format';
+    if (MOCK_MODE) return this.mockService.whyCodeFailed(code);
+    const [rows] = await db.execute<RowDataPacket[]>(
+      `SELECT (SELECT COUNT(*) FROM devices WHERE pairing_code = ? AND status = 'pending' AND pairing_expires_at <= CURRENT_TIMESTAMP) AS expired,
+              (SELECT COUNT(*) FROM devices WHERE used_pairing_code = ? AND paired_at > CURRENT_TIMESTAMP - INTERVAL 1 DAY) AS used`,
+      [code, code]);
+    return Number(rows[0].expired) ? 'expired' : Number(rows[0].used) ? 'used' : 'unknown';
+  }
+
   async redeemPairingCode(code: string): Promise<{ device: Device; token: string } | null> {
     if (!/^\d{6}$/.test(code)) return null;
 
@@ -135,7 +146,8 @@ export class DeviceService {
     // Conditional update so a code can only be redeemed once, even under concurrent requests
     const [result] = await db.execute<ResultSetHeader>(
       `UPDATE devices
-       SET token_hash = ?, pairing_code = NULL, pairing_expires_at = NULL, status = 'active', last_seen_at = CURRENT_TIMESTAMP
+       SET token_hash = ?, used_pairing_code = pairing_code, paired_at = CURRENT_TIMESTAMP,
+           pairing_code = NULL, pairing_expires_at = NULL, status = 'active', last_seen_at = CURRENT_TIMESTAMP
        WHERE id = ? AND pairing_code = ? AND status = 'pending'`,
       [tokenHash, id, code]
     );

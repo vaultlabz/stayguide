@@ -79,7 +79,6 @@ export class BillingService {
       
       if (rows.length === 0) return null;
       
-      console.log(`Billing record found: ${id}`);
       return rows[0] as BillingRecord;
     } catch (error) {
       console.error('Error fetching billing record:', error);
@@ -100,7 +99,6 @@ export class BillingService {
       `;
       const [rows] = await db.execute<RowDataPacket[]>(query, [companyId]);
       
-      console.log(`Retrieved ${rows.length} billing records for company ${companyId}`);
       return rows as BillingRecord[];
     } catch (error) {
       console.error('Error fetching company billing records:', error);

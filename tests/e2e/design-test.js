@@ -39,7 +39,7 @@ const SCAN = () => {
   const stub = require('http').createServer((req, res) => { stubHits.push(req.url); res.setHeader('content-type', 'application/json'); if (req.url.startsWith('/v1/forecast')) return res.end(JSON.stringify({ current: { temperature_2m: req.url.includes('celsius') ? 22.1 : 71.6, weather_code: 2 } })); if (req.url.startsWith('/v1/search')) return res.end(JSON.stringify({ results: [{ name: 'Beverly Hills', admin1: 'California', country_code: 'US', latitude: 34.0901, longitude: -118.4065 }] })); res.statusCode = 404; res.end('{}'); }).listen(3918);
   const out = []; const check = (n, ok, x = '') => out.push(`${ok ? 'PASS' : 'FAIL'} ${n}${x ? ' — ' + x : ''}`);
   kill();
-  spawn('npx', ['ts-node', 'src/index.ts'], { cwd: ROOT, env: { ...process.env, PORT: H.PORT, MOCK_DATABASE: 'true', OPEN_METEO_BASE_URL: 'http://localhost:3918', OPEN_METEO_GEOCODE_URL: 'http://localhost:3918' }, stdio: 'ignore', detached: true });
+  spawn('npx', ['ts-node', 'src/index.ts'], { cwd: ROOT, env: { ...process.env, PORT: H.PORT, MOCK_DATABASE: process.env.TEST_MOCK_DATABASE || 'true', OPEN_METEO_BASE_URL: 'http://localhost:3918', OPEN_METEO_GEOCODE_URL: 'http://localhost:3918' }, stdio: 'ignore', detached: true });
   for (let i = 0; i < 40; i++) { try { if ((await fetch(B + '/api/health')).ok) break; } catch {} await sleep(500); }
   const J = { 'content-type': 'application/json' };
   const login = await (await fetch(B + '/company/demo-rentals/login', { method: 'POST', headers: J, body: JSON.stringify({ email: 'admin@demorentals.com', password: 'demo123' }) })).json();
@@ -69,7 +69,8 @@ const SCAN = () => {
   // ---- Theme toggle on login / dashboards
   for (const [name, url, token] of [['company login', '/company/demo-rentals/login', null], ['admin login', '/admin/login', null], ['landing', '/', null], ['company dashboard', '/company/demo-rentals/dashboard', login.token], ['admin dashboard', '/admin/dashboard', alogin.token]]) {
     const ctx = await browser.newContext({ viewport: { width: 1280, height: 800 }, colorScheme: 'light' });
-    if (token) await ctx.addInitScript(t => { try { localStorage.setItem('stayguide_token', t); } catch {} }, token);
+    // 2026-10-07 17:55, admin pages use their own storage key
+    if (token) await ctx.addInitScript(([t, key]) => { try { localStorage.setItem(key, t); } catch {} }, [token, url.startsWith('/admin') ? 'stayguide_admin_token' : 'stayguide_token']);
     const p = await ctx.newPage(); watch(p, name);
     await p.goto(B + url); await sleep(1200);
     const light = await bodyBg(p);
@@ -89,7 +90,8 @@ const SCAN = () => {
     const ctx = await browser.newContext({ colorScheme: 'dark' }); const p = await ctx.newPage(); watch(p, 'osdark');
     await p.goto(B + '/company/demo-rentals/login');
     const bg = await bodyBg(p);
-    check('auto + dark OS renders dark', bg !== 'rgb(246, 244, 238)' && bg.startsWith('rgb(17'), bg);
+    // 2026-10-06 16:10, admin skin (Snow kit) dark page bg is rgb(42, 42, 42); the old teal-dark was rgb(17...)
+    check('auto + dark OS renders dark', bg !== 'rgb(246, 244, 238)' && bg !== 'rgb(255, 255, 255)' && (bg.startsWith('rgb(17') || bg === 'rgb(42, 42, 42)'), bg);
     await ctx.close();
   }
   { // storage blocked: no crash
@@ -400,7 +402,7 @@ const SCAN = () => {
     await p.goto(B + '/company/demo-rentals/dashboard'); await sleep(1200);
     await p.evaluate(() => editProperty('seaside-villa')); await p.waitForSelector('#propertyPanel.open'); await sleep(700);
     check('dashboard loads saved coordinates, unit, clock', (await p.inputValue('#latitude')) === '34.0195' && (await p.inputValue('#temperature-unit')) === 'F' && (await p.inputValue('#clock-format')) === '12h');
-    await p.fill('#latitude', ''); await p.fill('#longitude', ''); await p.click('#geocode-btn'); await sleep(800);
+    await p.fill('#latitude', ''); await p.fill('#longitude', ''); await p.click('#geocode-btn'); await p.waitForFunction(() => document.getElementById('geocode-status').textContent !== 'Searching...', null, { timeout: 10000 }); // 2026-10-10 11:18, wait for the answer (was a fixed 800 ms; mock requests take ~1 s each)
     check('"Find from address" fills lat/lon from the address field', (await p.inputValue('#latitude')) === '34.0901' && (await p.inputValue('#longitude')) === '-118.4065' && /Beverly Hills/.test(await p.textContent('#geocode-status')), await p.textContent('#geocode-status'));
     await p.selectOption('#temperature-unit', 'C'); await p.selectOption('#clock-format', '24h');
     await p.click('#property-submit-btn'); await p.waitForSelector('#panel-success', { state: 'visible', timeout: 10000 });

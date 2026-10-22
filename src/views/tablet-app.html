@@ -10,7 +10,7 @@
     <!-- 2026-10-03 17:15, the look is chosen by the property manager, not guests: style = solid | image | one of 8 gradient presets
          (see /js/tablet-backgrounds.js), theme = auto | light | dark (solid + image only; each gradient forces its own
          light or dark treatment). The last known look is cached so it applies before first paint and offline.
-         Default (nothing known yet) is solid black. -->
+         Default (nothing known yet) is the Baltic Rose gradient. -->
     <script src="/js/tablet-backgrounds.js"></script>
     <script>
         var TABLET_LOOK_KEY = 'stayguide_tablet_look';
@@ -58,7 +58,8 @@
                 setTimeout(function () { if (fade.parentNode) fade.parentNode.removeChild(fade); }, 1100);
             }
         }
-        try { var look = JSON.parse(localStorage.getItem(TABLET_LOOK_KEY) || 'null'); applyTabletLook(look ? look.theme : 'dark', look ? look.bg : '', look ? look.style : 'solid'); } catch (e) { applyTabletLook('dark', '', 'solid'); }
+        // 2026-10-06 15:25, default look (pairing screen / nothing cached yet) is the Baltic Rose gradient instead of plain black
+        try { var look = JSON.parse(localStorage.getItem(TABLET_LOOK_KEY) || 'null'); applyTabletLook(look ? look.theme : 'dark', look ? look.bg : '', look ? look.style : 'baltic-rose'); } catch (e) { applyTabletLook('dark', '', 'baltic-rose'); }
         try { window.matchMedia('(prefers-color-scheme: light)').addEventListener('change', function () { applyTabletLook(currentLook.theme, currentLook.bg, currentLook.style); }); } catch (e) {}
     </script>
     <!-- 2026-10-03 11:52, PWA manifest (offline support for paired tablets) -->
@@ -131,6 +132,8 @@
             </nav>
             <!-- 2026-10-03 22:42, G2: shown only on the phone/web guide link -->
             <footer class="powered-by">Powered by <strong>StayGuide</strong></footer>
+            <!-- 2026-10-22 11:01, #63 phone guide only (a kiosk tablet must not navigate away) -->
+            <p class="guide-legal"><a href="/privacy" target="_blank" rel="noopener">Privacy</a></p>
         </div>
     </div>
 
@@ -314,7 +317,7 @@
                 const token = storageGet(DEVICE_TOKEN_KEY);
                 return token ? { 'Authorization': `Device ${token}` } : {};
             }
-            const adminToken = storageGet('stayguide_token');
+            const adminToken = storageGet('stayguide_token') || storageGet('stayguide_admin_token'); // 2026-10-07 17:55, super admins have their own key
             return adminToken ? { 'Authorization': `Bearer ${adminToken}` } : {};
         }
 
@@ -338,7 +341,7 @@
                 const response = await fetch(isDeviceMode ? '/device/events' : `/g/${guestLinkToken}/events`, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json', ...authHeaders() },
-                    body: JSON.stringify({ events: batch }),
+                    body: JSON.stringify({ events: batch, ...(guideLocation ? { location: guideLocation } : {}) }), // 2026-10-10 10:31, #62
                     keepalive: !!keepalive
                 });
                 if (response.status >= 500) eventQueue.unshift(...batch); // retry later
@@ -359,6 +362,49 @@
             track('home', 'visit');
         }
         if (isDeviceMode) document.addEventListener('pointerdown', startVisit, { capture: true, passive: true });
+
+        // 2026-10-10 10:31, #62 optional (per property) "are you at the property?" on the phone guide. The server reduces the
+        // location to at-the-property yes/no and does not store it. The visit is counted once the guest answers.
+        let guideLocation = null;
+        const LOC_KEY = 'sg_guide_loc_' + guestLinkToken;
+        function readGuideLocation() {
+            return new Promise(resolve => {
+                if (!navigator.geolocation) return resolve(null);
+                const t = setTimeout(() => resolve(null), 8500);
+                navigator.geolocation.getCurrentPosition(p => { clearTimeout(t); guideLocation = { lat: p.coords.latitude, lng: p.coords.longitude, accuracy: Math.round(p.coords.accuracy || 0) }; resolve(guideLocation); },
+                    () => { clearTimeout(t); resolve(null); }, { enableHighAccuracy: false, timeout: 8000, maximumAge: 300000 });
+            });
+        }
+        function askGuideLocation(propertyName) {
+            const answer = storageGet(LOC_KEY);
+            if (answer === 'no' || !navigator.geolocation) return startVisit();
+            if (answer === 'yes') return void readGuideLocation().then(() => { startVisit(); flushEvents(); });
+            const bar = document.createElement('div');
+            bar.id = 'guide-location';
+            bar.setAttribute('role', 'dialog');
+            bar.setAttribute('aria-label', 'Share whether you are at the property');
+            bar.style.cssText = 'position:fixed;left:12px;right:12px;bottom:12px;z-index:50;background:var(--surface,#fff);color:var(--text,#111);border:1px solid var(--border,#ddd);border-radius:14px;padding:14px;box-shadow:0 8px 24px rgba(0,0,0,.18);display:grid;gap:10px;max-width:520px;margin:0 auto';
+            const title = document.createElement('strong');
+            title.textContent = `Are you at ${propertyName || 'the property'}?`;
+            const text = document.createElement('span');
+            text.style.cssText = 'font-size:.9rem;opacity:.8';
+            text.textContent = 'Let your host know the guide is being used at the property. Your location is checked once and never stored.';
+            const row = document.createElement('div');
+            row.style.cssText = 'display:flex;gap:8px;flex-wrap:wrap';
+            const yes = document.createElement('button'), no = document.createElement('button');
+            yes.type = no.type = 'button';
+            yes.textContent = 'Share location'; no.textContent = 'No thanks';
+            yes.style.cssText = no.style.cssText = 'flex:1;min-height:44px;border-radius:10px;border:1px solid var(--border,#ccc);font:inherit;cursor:pointer;background:transparent;color:inherit';
+            yes.style.background = 'var(--accent,#1f6f5c)'; yes.style.color = '#fff'; yes.style.borderColor = 'transparent';
+            const done = () => { bar.remove(); window.removeEventListener('pagehide', leaving); };
+            const leaving = () => { startVisit(); flushEvents(true); };
+            yes.onclick = async () => { storageSet(LOC_KEY, 'yes'); yes.disabled = no.disabled = true; await readGuideLocation(); done(); startVisit(); flushEvents(); };
+            no.onclick = () => { storageSet(LOC_KEY, 'no'); done(); startVisit(); };
+            row.append(yes, no);
+            bar.append(title, text, row);
+            document.body.appendChild(bar);
+            window.addEventListener('pagehide', leaving);
+        }
 
         function showPairingScreen(message) {
             document.getElementById('loading').style.display = 'none';
@@ -440,7 +486,7 @@
                 }
 
                 loadedContent = data;
-                if (isGuestLinkMode) startVisit(); // 2026-10-04 00:26
+                if (isGuestLinkMode) { if (data.property?.guide_location_check) askGuideLocation(data.property.name); else startVisit(); } // 2026-10-04 00:26; 2026-10-10 10:31, #62 location question
                 document.documentElement.classList.toggle('show-branding', !!data.show_branding); // 2026-10-03 23:06
                 displayPropertyContent(data);
                 document.getElementById('error').style.display = 'none';

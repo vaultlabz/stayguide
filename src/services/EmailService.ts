@@ -1,5 +1,7 @@
 import { EmailOptions, EmailTemplate, InvoiceEmailData, EmailServiceConfig } from '../types/email';
 import { BillingRecord } from '../types/billing';
+import nodemailer, { Transporter } from 'nodemailer'; // 2026-10-07 16:45
+import { renderInvoicePdf } from '../utils/invoice-pdf'; // 2026-10-07 16:55
 
 export class EmailService {
   private config: EmailServiceConfig;
@@ -22,9 +24,7 @@ export class EmailService {
 
   async sendEmail(options: EmailOptions): Promise<boolean> {
     try {
-      console.log(`[EMAIL] Sending email to: ${options.to}`);
-      console.log(`[EMAIL] Subject: ${options.subject}`);
-
+      // 2026-10-10 19:27, #59 recipients/subjects are logged once per send by the mock or SMTP branch below
       if (this.config.provider === 'mock') {
         return this.sendMockEmail(options);
       }
@@ -48,7 +48,7 @@ export class EmailService {
   private async sendMockEmail(options: EmailOptions): Promise<boolean> {
     // Mock email sending - logs the email instead of actually sending
     console.log('================== MOCK EMAIL ==================');
-    console.log(`From: ${this.config.fromName} <${this.config.fromEmail}>`);
+    console.log(`From: ${options.fromName || this.config.fromName} <${this.config.fromEmail}>`);
     console.log(`To: ${Array.isArray(options.to) ? options.to.join(', ') : options.to}`);
     if (options.cc) console.log(`CC: ${Array.isArray(options.cc) ? options.cc.join(', ') : options.cc}`);
     console.log(`Subject: ${options.subject}`);
@@ -76,68 +76,41 @@ export class EmailService {
     return true;
   }
 
-  private async sendViaSMTP(options: EmailOptions): Promise<boolean> {
-    try {
-      console.log('================== SMTP EMAIL ==================');
-      console.log(`SMTP Host: ${this.config.smtpHost}:${this.config.smtpPort}`);
-      console.log(`From: ${this.config.fromName} <${this.config.fromEmail}>`);
-      console.log(`To: ${Array.isArray(options.to) ? options.to.join(', ') : options.to}`);
-      console.log(`Subject: ${options.subject}`);
-      
-      if (!this.config.smtpHost) {
-        console.error('SMTP configuration missing! Please set SMTP_HOST environment variable.');
-        return false;
-      }
+  // 2026-10-07 16:45, real SMTP via nodemailer (was a logged simulation). One pooled transporter per process.
+  private static transporter: Transporter | null = null;
 
-      // TODO: When nodemailer is installed, replace this with actual SMTP sending
-      console.log('[SMTP] Ready for production - nodemailer package needed');
-      console.log('[SMTP] Configuration:');
-      console.log(`  Host: ${this.config.smtpHost}`);
-      console.log(`  Port: ${this.config.smtpPort}`);
-      console.log(`  Secure: ${this.config.smtpSecure}`);
-      console.log(`  User: ${this.config.smtpUser}`);
-      console.log(`  Pass: ${this.config.smtpPass ? '[CONFIGURED]' : '[NOT SET]'}`);
-      
-      /* 
-      // Real SMTP implementation (requires: npm install nodemailer @types/nodemailer)
-      const nodemailer = require('nodemailer');
-      
-      const transporter = nodemailer.createTransporter({
+  private getTransporter(): Transporter {
+    if (!EmailService.transporter) {
+      EmailService.transporter = nodemailer.createTransport({
         host: this.config.smtpHost,
         port: this.config.smtpPort,
         secure: this.config.smtpSecure,
-        auth: {
-          user: this.config.smtpUser,
-          pass: this.config.smtpPass
-        }
+        auth: this.config.smtpUser ? { user: this.config.smtpUser, pass: this.config.smtpPass } : undefined,
+        pool: true
       });
+    }
+    return EmailService.transporter;
+  }
 
-      const mailOptions = {
-        from: `${this.config.fromName} <${this.config.fromEmail}>`,
-        to: Array.isArray(options.to) ? options.to.join(', ') : options.to,
-        cc: options.cc ? (Array.isArray(options.cc) ? options.cc.join(', ') : options.cc) : undefined,
-        bcc: options.bcc ? (Array.isArray(options.bcc) ? options.bcc.join(', ') : options.bcc) : undefined,
+  private async sendViaSMTP(options: EmailOptions): Promise<boolean> {
+    if (!this.config.smtpHost) {
+      console.error('SMTP configuration missing! Please set SMTP_HOST environment variable.');
+      return false;
+    }
+    try {
+      const list = (v?: string | string[]) => (v ? (Array.isArray(v) ? v.join(', ') : v) : undefined);
+      const info = await this.getTransporter().sendMail({
+        from: `${(options.fromName || this.config.fromName).replace(/["<>\r\n]/g, '')} <${this.config.fromEmail}>`,
+        to: list(options.to),
+        cc: list(options.cc),
+        bcc: list(options.bcc),
         subject: options.subject,
         text: options.text,
         html: options.html,
-        attachments: options.attachments?.map(att => ({
-          filename: att.filename,
-          content: att.content,
-          contentType: att.contentType
-        }))
-      };
-
-      const info = await transporter.sendMail(mailOptions);
-      console.log('SMTP Email sent successfully:', info.messageId);
+        attachments: options.attachments?.map(att => ({ filename: att.filename, content: att.content, contentType: att.contentType }))
+      });
+      console.log(`[SMTP] Sent "${options.subject}" (${info.messageId})`);
       return true;
-      */
-      
-      console.log('=============== END SMTP EMAIL ================');
-      
-      // Simulate success for now
-      await new Promise(resolve => setTimeout(resolve, 200));
-      return true;
-      
     } catch (error) {
       console.error('SMTP sending failed:', error);
       return false;
@@ -152,13 +125,13 @@ export class EmailService {
         to: invoiceData.company.email,
         subject: template.subject,
         html: template.htmlContent,
-        text: template.textContent
-        // TODO: Add PDF attachment when PDF generation is implemented
-        // attachments: [{
-        //   filename: `invoice-${invoiceData.invoice.invoice_number}.pdf`,
-        //   content: await this.generateInvoicePDF(invoiceData.invoice),
-        //   contentType: 'application/pdf'
-        // }]
+        text: template.textContent,
+        // 2026-10-07 16:55, PDF attached (was a TODO)
+        attachments: [{
+          filename: `invoice-${invoiceData.invoice.invoice_number || invoiceData.invoice.id}.pdf`,
+          content: await renderInvoicePdf(invoiceData.invoice, invoiceData.company),
+          contentType: 'application/pdf'
+        }]
       };
 
       const success = await this.sendEmail(emailOptions);
@@ -471,7 +444,7 @@ Overdue Invoice:
 - Invoice Number: ${invoice.invoice_number}
 - Original Due Date: ${new Date(invoice.billing_period_end).toLocaleDateString()}
 - Amount Due: $${invoice.total_amount.toFixed(2)}
-- Days Overdue: ${Math.floor((new Date().getTime() - new Date(invoice.billing_end).getTime()) / (1000 * 60 * 60 * 24))} days
+- Days Overdue: ${Math.floor((new Date().getTime() - new Date(invoice.billing_period_end).getTime()) / (1000 * 60 * 60 * 24))} days
 
 Please log into your StayGuide dashboard to make a payment immediately to avoid any service interruption.
 

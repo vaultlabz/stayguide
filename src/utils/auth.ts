@@ -6,7 +6,6 @@ export const hashPassword = async (password: string): Promise<string> => {
   try {
     const saltRounds = 10;
     const hashedPassword = await bcrypt.hash(password, saltRounds);
-    console.log('Password hashed successfully');
     return hashedPassword;
   } catch (error) {
     console.error('Password hashing failed:', error);
@@ -17,7 +16,6 @@ export const hashPassword = async (password: string): Promise<string> => {
 export const comparePassword = async (password: string, hashedPassword: string): Promise<boolean> => {
   try {
     const isMatch = await bcrypt.compare(password, hashedPassword);
-    console.log('Password comparison completed');
     return isMatch;
   } catch (error) {
     console.error('Password comparison failed:', error);
@@ -34,7 +32,6 @@ export const generateToken = (payload: JWTPayload): string => {
 
     const token = jwt.sign(payload, secret, { expiresIn: '7d' });
 
-    console.log('JWT token generated successfully');
     return token;
   } catch (error) {
     console.error('Token generation failed:', error);
@@ -50,7 +47,6 @@ export const verifyToken = (token: string): JWTPayload => {
     }
 
     const decoded = jwt.verify(token, secret) as JWTPayload;
-    console.log('JWT token verified successfully');
     return decoded;
   } catch (error) {
     console.error('Token verification failed:', error);

@@ -1,0 +1,414 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Team - StayGuide</title>
+    <!-- 2026-10-07 19:10, G7 Ops stage 1: manager invites and manages field workers and vendors -->
+    <link rel="stylesheet" href="/css/theme.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap">
+    <link rel="stylesheet" href="/css/helpdesk.css">
+    <link rel="stylesheet" href="/css/admin-kit.css">
+    <script src="/js/theme.js"></script>
+    <style>
+        table { width: 100%; border-collapse: collapse; font-size: 0.95rem; }
+        th, td { text-align: left; padding: 0.65rem 0.5rem; border-bottom: 1px solid var(--border); vertical-align: middle; }
+        th { color: var(--text-muted); font-weight: 600; font-size: 0.85rem; }
+        .table-wrap { overflow-x: auto; }
+        .tags { display: flex; flex-wrap: wrap; gap: 0.25rem; }
+        .badge.awaiting { background: var(--warning-bg, var(--accent-soft)); color: var(--warning-text, var(--text)); }
+        .tag { font-size: 0.78rem; padding: 0.1rem 0.5rem; border-radius: 999px; background: var(--surface-2); color: var(--text-2); }
+        .row-actions { display: flex; gap: 0.4rem; flex-wrap: wrap; }
+        .btn-small { min-height: 32px; padding: 0.25rem 0.7rem; font-size: 0.85rem; }
+        .grid-3 { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 1rem; }
+        dialog { margin: auto; /* the * { margin: 0 } reset removes native centering */ border: 1px solid var(--border); border-radius: var(--radius-lg); background: var(--surface); color: var(--text); padding: 1.5rem; width: min(520px, calc(100vw - 32px)); }
+        dialog::backdrop { background: rgb(0 0 0 / 0.4); }
+        @media (max-width: 700px) { .grid-3 { grid-template-columns: 1fr; } }
+    </style>
+</head>
+<body class="sg-app snow">
+    <div class="header">
+        <div class="logo">StayGuide</div>
+        <nav class="nav-links" aria-label="Main">
+            <a href="#" data-path="dashboard">Dashboard</a>
+            <a href="#" data-path="ops">Work orders</a><!-- 2026-10-07 23:00, G7 S2 -->
+            <a href="#" data-path="team" class="active" aria-current="page">Team</a>
+            <a href="#" data-path="billing">Billing</a>
+            <a href="#" data-path="helpdesk">Support</a>
+            <a href="#" data-path="help">Help</a>
+        </nav>
+        <div class="user-info">
+            <div data-theme-toggle></div>
+            <span id="user-name">Company Admin</span>
+            <button class="btn btn-secondary" onclick="logout()">Logout</button>
+        </div>
+    </div>
+
+    <main class="container">
+        <div class="page-head">
+            <div>
+                <h1>Team</h1>
+                <p class="lead">Admins manage your properties, billing and team with you. With the Ops add-on you can also invite the techs, cleaners, contractors and vendors you hire; they get jobs in the StayGuide work app under your company's name.</p>
+            </div>
+        </div>
+        <div id="notices"></div>
+
+        <!-- 2026-10-09 12:30, #61 company admins (every plan) -->
+        <section class="card" id="admins-card">
+            <h2>Admins</h2>
+            <div class="table-wrap"><table>
+                <thead><tr><th>Name</th><th>Status</th><th>Last sign-in</th><th></th></tr></thead>
+                <tbody id="admins"><tr><td colspan="4" class="empty">Loading…</td></tr></tbody>
+            </table></div>
+            <form id="admin-form" style="margin-top: 1rem;">
+                <div class="grid-3">
+                    <div class="form-group"><label for="adm-first">First name</label><input id="adm-first" maxlength="100" required></div>
+                    <div class="form-group"><label for="adm-last">Last name</label><input id="adm-last" maxlength="100" required></div>
+                    <div class="form-group"><label for="adm-email">Email</label><input id="adm-email" type="email" maxlength="255" required></div>
+                </div>
+                <button class="btn btn-primary" type="submit">Add admin</button>
+                <span class="muted">They get an email to choose their password (link works for 7 days).</span>
+            </form>
+        </section>
+
+        <section id="upgrade" class="card" hidden>
+            <h2>Ops add-on</h2>
+            <p class="muted">Field workers, work orders and checklists are part of the Ops add-on, which needs a Pro or Portfolio plan. <a href="#" id="upgrade-support">Contact StayGuide support</a> to switch it on.</p>
+        </section>
+
+        <div id="team" hidden>
+            <section class="card">
+                <h2>Invite someone</h2>
+                <form id="invite-form">
+                    <div class="grid-3">
+                        <div class="form-group"><label for="inv-first">First name</label><input id="inv-first" maxlength="100" required></div>
+                        <div class="form-group"><label for="inv-last">Last name</label><input id="inv-last" maxlength="100" required></div>
+                        <div class="form-group"><label for="inv-email">Email</label><input id="inv-email" type="email" maxlength="255" required></div>
+                        <div class="form-group"><label for="inv-phone">Phone (optional)</label><input id="inv-phone" type="tel" maxlength="50"></div>
+                        <div class="form-group"><label for="inv-type">Type</label>
+                            <select id="inv-type"><option value="tech">Maintenance tech</option><option value="cleaner">Cleaner</option><option value="contractor">Contractor</option><option value="vendor">Vendor</option></select>
+                        </div>
+                        <div class="form-group"><label for="inv-skills">Skills (comma separated)</label><input id="inv-skills" placeholder="plumbing, hvac, pool"></div>
+                    </div>
+                    <button class="btn btn-primary" type="submit">Send invite</button>
+                </form>
+            </section>
+
+            <div id="coi-alert"></div><!-- 2026-10-08 08:00, G7 S6 -->
+            <section class="card">
+                <h2>Members</h2>
+                <div class="table-wrap"><table>
+                    <thead><tr><th>Name</th><th>Type</th><th>Skills</th><th>Rate</th><th>Insurance</th><th>Status</th><th>Last sign-in</th><th></th></tr></thead>
+                    <tbody id="members"></tbody>
+                </table></div>
+            </section>
+
+            <!-- 2026-10-10 10:30, #62 arrived / left emails -->
+            <section class="card" id="presence-card">
+                <h2>Arrival emails</h2>
+                <label style="display:flex;gap:0.5rem;align-items:center"><input type="checkbox" id="presence-emails" onchange="savePresenceEmails()"> Email me when someone checks in or out at a property, with where they were and how long they stayed</label>
+                <p class="muted" style="margin-top:0.5rem">Late or no-show alerts are always sent: when nobody has checked in 30 minutes after a job's window opens (15 for urgent jobs).</p>
+            </section>
+
+            <section class="card" id="invites-card">
+                <h2>Pending invites</h2>
+                <div class="table-wrap"><table>
+                    <thead><tr><th>Name</th><th>Email</th><th>Type</th><th>Expires</th><th></th></tr></thead>
+                    <tbody id="invites"></tbody>
+                </table></div>
+            </section>
+        </div>
+    </main>
+
+    <!-- 2026-10-08 08:00, G7 S6: manager corrects a certificate's expiry date (counts as confirmed) -->
+    <dialog id="coi-dialog">
+        <form id="coi-form" method="dialog">
+            <h2 id="coi-title">Insurance expiry</h2>
+            <div class="form-group"><label for="coi-date">Expires on</label><input id="coi-date" type="date" required></div>
+            <div class="actions"><button class="btn btn-primary" type="submit" value="save">Save and confirm</button><button class="btn btn-secondary" type="submit" value="cancel" formnovalidate>Cancel</button></div>
+        </form>
+    </dialog>
+
+    <dialog id="edit-dialog">
+        <form id="edit-form" method="dialog">
+            <h2 id="edit-title">Edit worker</h2>
+            <div class="form-group"><label for="edit-type">Type</label>
+                <select id="edit-type"><option value="tech">Maintenance tech</option><option value="cleaner">Cleaner</option><option value="contractor">Contractor</option><option value="vendor">Vendor</option></select>
+            </div>
+            <div class="form-group"><label for="edit-skills">Skills (comma separated)</label><input id="edit-skills"></div>
+            <div class="form-group"><label for="edit-phone">Phone</label><input id="edit-phone" type="tel" maxlength="50"></div>
+            <div class="form-group"><label for="edit-rate">Hourly rate (USD, for pay exports)</label><input id="edit-rate" type="number" min="0" max="10000" step="0.01"></div>
+            <div class="actions">
+                <button class="btn btn-primary" type="submit" value="save">Save</button>
+                <button class="btn btn-secondary" type="submit" value="cancel" formnovalidate>Cancel</button>
+            </div>
+        </form>
+    </dialog>
+
+    <script>
+        const pathParts = window.location.pathname.split('/');
+        const companySlug = pathParts[1] === 'company' ? pathParts[2] : '';
+        const base = `/company/${companySlug}`;
+        let authToken = null;
+        try { authToken = localStorage.getItem('stayguide_token'); } catch {}
+        if (!authToken) window.location.href = `${base}/login`;
+        document.querySelectorAll('[data-path]').forEach(a => { a.href = `${base}/${a.dataset.path}`; });
+        document.getElementById('upgrade-support').href = `${base}/helpdesk?new=1`;
+
+        const TYPES = { tech: 'Maintenance tech', cleaner: 'Cleaner', contractor: 'Contractor', vendor: 'Vendor' };
+        let members = [];
+        let editing = null;
+
+        const esc = v => String(v ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+        const day = d => d ? new Date(d).toLocaleDateString(undefined, { dateStyle: 'medium' }) : '—';
+        const skillsList = v => v.split(',').map(s => s.trim()).filter(Boolean);
+
+        async function apiCall(endpoint, options = {}) {
+            const response = await fetch(base + endpoint, { ...options, headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${authToken}` } });
+            if (response.status === 401) { logout(); return null; }
+            const data = await response.json();
+            if (!response.ok) { const err = new Error(data.error || 'Request failed'); err.status = response.status; throw err; }
+            return data;
+        }
+
+        function notice(message, kind = '') {
+            const el = document.createElement('div');
+            el.className = `notice ${kind}`;
+            el.setAttribute('role', kind === 'error' ? 'alert' : 'status');
+            el.textContent = message;
+            document.getElementById('notices').replaceChildren(el);
+        }
+
+        function logout() {
+            try { localStorage.removeItem('stayguide_token'); } catch {}
+            window.location.href = `${base}/login`;
+        }
+
+        // 2026-10-09 12:30, #61 company admins
+        async function loadAdmins() {
+            try {
+                const data = await apiCall('/admins');
+                if (!data) return;
+                const activeCount = data.admins.filter(a => a.status === 'active').length;
+                document.getElementById('admins').innerHTML = data.admins.map(a => `
+                    <tr>
+                        <td><strong>${esc(a.first_name)} ${esc(a.last_name)}</strong>${a.is_me ? ' <span class="tag">you</span>' : ''}<div class="muted">${esc(a.email)}</div></td>
+                        <td><span class="badge ${a.status === 'active' ? 'resolved' : 'urgent'}">${a.status === 'active' ? (a.last_login ? 'active' : 'invited') : 'deactivated'}</span></td>
+                        <td>${day(a.last_login)}</td>
+                        <td><div class="row-actions">${a.is_me || (a.status === 'active' && activeCount < 2) ? '' : `
+                            <button class="btn btn-secondary btn-small" type="button" onclick="setAdminStatus(${a.id}, '${a.status === 'active' ? 'inactive' : 'active'}')">${a.status === 'active' ? 'Deactivate' : 'Reactivate'}</button>`}
+                        </div></td>
+                    </tr>`).join('');
+            } catch (error) {
+                notice(error.message, 'error');
+            }
+        }
+
+        async function setAdminStatus(userId, status) {
+            if (status === 'inactive' && !confirm('Deactivate this admin? They will be signed out and can no longer sign in.')) return;
+            try { await apiCall(`/admins/${userId}`, { method: 'PUT', body: JSON.stringify({ status }) }); await loadAdmins(); }
+            catch (error) { notice(error.message, 'error'); }
+        }
+
+        document.getElementById('admin-form').addEventListener('submit', async e => {
+            e.preventDefault();
+            const button = e.submitter;
+            button.disabled = true;
+            try {
+                const email = document.getElementById('adm-email').value.trim();
+                await apiCall('/admins', { method: 'POST', body: JSON.stringify({
+                    first_name: document.getElementById('adm-first').value,
+                    last_name: document.getElementById('adm-last').value,
+                    email
+                }) });
+                e.target.reset();
+                await loadAdmins();
+                notice(`${email} was added. They'll get an email to choose a password.`, 'success');
+            } catch (error) {
+                notice(error.message, 'error');
+            } finally {
+                button.disabled = false;
+            }
+        });
+
+        // 2026-10-10 10:30, #62
+        async function loadPresenceSetting() {
+            try { const s = await apiCall('/ops/settings'); if (s) document.getElementById('presence-emails').checked = s.presence_emails !== false; } catch {}
+        }
+        async function savePresenceEmails() {
+            const box = document.getElementById('presence-emails');
+            try {
+                await apiCall('/ops/settings', { method: 'PUT', body: JSON.stringify({ presence_emails: box.checked }) });
+                notice(box.checked ? 'Arrival emails are on.' : 'Arrival emails are off.', 'success');
+            } catch (error) { box.checked = !box.checked; notice(error.message, 'error'); }
+        }
+
+        async function load() {
+            try {
+                const data = await apiCall('/ops/team');
+                if (!data) return;
+                loadPresenceSetting();
+                members = data.members;
+                document.getElementById('team').hidden = false;
+                document.getElementById('members').innerHTML = members.length ? members.map(m => `
+                    <tr>
+                        <td><strong>${esc(m.first_name)} ${esc(m.last_name)}</strong><div class="muted">${esc(m.email)}${m.phone ? ' · ' + esc(m.phone) : ''}</div></td>
+                        <td>${TYPES[m.worker_type]}</td>
+                        <td><div class="tags">${m.skills.map(s => `<span class="tag">${esc(s)}</span>`).join('')}</div></td>
+                        <td>${m.hourly_rate === null ? '—' : '$' + Number(m.hourly_rate).toFixed(2)}</td>
+                        <td>${coiCell(m)}</td>
+                        <td><span class="badge ${m.status === 'active' ? 'resolved' : 'urgent'}">${m.status}</span></td>
+                        <td>${day(m.last_login)}</td>
+                        <td><div class="row-actions">
+                            <button class="btn btn-secondary btn-small" type="button" onclick="openEdit(${m.user_id})">Edit</button>
+                            <button class="btn btn-secondary btn-small" type="button" onclick="setStatus(${m.user_id}, '${m.status === 'active' ? 'suspended' : 'active'}')">${m.status === 'active' ? 'Suspend' : 'Reactivate'}</button>
+                        </div></td>
+                    </tr>`).join('') : '<tr><td colspan="8" class="empty">No one yet. Invite your first team member above.</td></tr>';
+                // 2026-10-08 08:00, G7 S6: insurance warnings
+                const lapsed = members.filter(m => m.worker_type === 'vendor' && m.vendor.coi.state === 'expired');
+                const soon = members.filter(m => (m.worker_type === 'vendor' || m.worker_type === 'contractor') && m.vendor.coi.state === 'expiring');
+                const missing = members.filter(m => m.worker_type === 'vendor' && m.vendor.coi.state === 'missing');
+                document.getElementById('coi-alert').innerHTML = [
+                    lapsed.length ? `<div class="notice error"><strong>Insurance expired:</strong> ${lapsed.map(m => esc(m.first_name + ' ' + m.last_name)).join(', ')}. They can't be assigned new work until they upload a current certificate.</div>` : '',
+                    soon.length ? `<div class="notice"><strong>Insurance expires soon:</strong> ${soon.map(m => `${esc(m.first_name + ' ' + m.last_name)} (${m.vendor.coi.days_left} day${m.vendor.coi.days_left === 1 ? '' : 's'})`).join(', ')}.</div>` : '',
+                    missing.length ? `<div class="notice">No insurance certificate yet: ${missing.map(m => esc(m.first_name + ' ' + m.last_name)).join(', ')}. They can upload it in the work app.</div>` : ''
+                ].join('');
+                document.getElementById('invites-card').hidden = !data.invites.length;
+                document.getElementById('invites').innerHTML = data.invites.map(i => {
+                    const expired = new Date(i.expires_at) < new Date();
+                    return `<tr>
+                        <td>${esc(i.first_name)} ${esc(i.last_name)}</td>
+                        <td>${esc(i.email)}</td>
+                        <td>${TYPES[i.worker_type]}</td>
+                        <td>${expired ? '<span class="badge urgent">expired</span>' : day(i.expires_at)}</td>
+                        <td><div class="row-actions">
+                            <button class="btn btn-secondary btn-small" type="button" onclick="resend(${i.id})">${expired ? 'Send new link' : 'Resend'}</button>
+                            <button class="btn btn-secondary btn-small" type="button" onclick="revoke(${i.id})">Cancel</button>
+                        </div></td>
+                    </tr>`;
+                }).join('');
+            } catch (error) {
+                if (error.status === 402) document.getElementById('upgrade').hidden = false;
+                else notice(error.message, 'error');
+            }
+        }
+
+        document.getElementById('invite-form').addEventListener('submit', async e => {
+            e.preventDefault();
+            const button = e.submitter;
+            button.disabled = true;
+            try {
+                const email = document.getElementById('inv-email').value.trim();
+                await apiCall('/ops/invites', { method: 'POST', body: JSON.stringify({
+                    first_name: document.getElementById('inv-first').value,
+                    last_name: document.getElementById('inv-last').value,
+                    email,
+                    phone: document.getElementById('inv-phone').value,
+                    worker_type: document.getElementById('inv-type').value,
+                    skills: skillsList(document.getElementById('inv-skills').value)
+                }) });
+                e.target.reset();
+                await load();
+                notice(`Invite sent to ${email}. The link works for 7 days.`, 'success');
+            } catch (error) {
+                notice(error.message, 'error');
+            } finally {
+                button.disabled = false;
+            }
+        });
+
+        // 2026-10-08 08:00, G7 S6: insurance certificate cell
+        function coiCell(m) {
+            const c = m.vendor.coi;
+            if (m.worker_type !== 'vendor' && m.worker_type !== 'contractor') return '<span class="muted">—</span>';
+            if (c.state === 'missing') return `<span class="badge${m.worker_type === 'vendor' ? ' urgent' : ''}">none</span>`;
+            const badge = c.state === 'expired' ? `<span class="badge urgent">expired ${day(c.expires_on + 'T12:00:00')}</span>`
+                : c.state === 'expiring' ? `<span class="badge awaiting">${c.days_left} day${c.days_left === 1 ? '' : 's'} left</span>`
+                : `<span class="badge resolved">until ${day(c.expires_on + 'T12:00:00')}</span>`;
+            return `<div style="display:grid;gap:4px;min-width:150px">${badge}
+                <span class="muted" style="font-size:0.82rem">${esc(m.vendor.business_name || '')}${m.vendor.insurance_provider ? ' · ' + esc(m.vendor.insurance_provider) : ''}</span>
+                <span class="row-actions"><a href="${c.url}" target="_blank" rel="noopener">View</a>
+                ${c.verified ? '<span class="muted" style="font-size:0.82rem">confirmed</span>' : `<button class="btn-link" type="button" onclick="confirmCoi(${m.user_id})">Confirm</button>`}
+                <button class="btn-link" type="button" onclick="fixCoiDate(${m.user_id}, '${c.expires_on}')">Change date</button></span></div>`;
+        }
+        async function confirmCoi(userId) {
+            try { await apiCall(`/ops/workers/${userId}/coi`, { method: 'PUT', body: JSON.stringify({ verify: true }) }); await load(); notice('Certificate confirmed.', 'success'); }
+            catch (error) { notice(error.message, 'error'); }
+        }
+        function fixCoiDate(userId, current) {
+            const m = members.find(x => x.user_id === userId);
+            document.getElementById('coi-title').textContent = `Insurance expiry for ${m.first_name} ${m.last_name}`;
+            document.getElementById('coi-date').value = current;
+            document.getElementById('coi-form').dataset.user = userId;
+            document.getElementById('coi-dialog').showModal();
+        }
+
+        async function resend(id) {
+            try { await apiCall(`/ops/invites/${id}/resend`, { method: 'POST' }); await load(); notice('Invite sent again with a fresh 7-day link.', 'success'); }
+            catch (error) { notice(error.message, 'error'); }
+        }
+
+        async function revoke(id) {
+            if (!confirm('Cancel this invite? The link will stop working.')) return;
+            try { await apiCall(`/ops/invites/${id}`, { method: 'DELETE' }); await load(); notice('Invite canceled.', 'success'); }
+            catch (error) { notice(error.message, 'error'); }
+        }
+
+        async function setStatus(userId, status) {
+            if (status === 'suspended' && !confirm('Suspend this person? They will stop seeing your company\'s jobs until you reactivate them.')) return;
+            try { await apiCall(`/ops/workers/${userId}`, { method: 'PUT', body: JSON.stringify({ status }) }); await load(); notice(status === 'active' ? 'Reactivated.' : 'Suspended.', 'success'); }
+            catch (error) { notice(error.message, 'error'); }
+        }
+
+        function openEdit(userId) {
+            editing = members.find(m => m.user_id === userId);
+            if (!editing) return;
+            document.getElementById('edit-title').textContent = `Edit ${editing.first_name} ${editing.last_name}`;
+            document.getElementById('edit-type').value = editing.worker_type;
+            document.getElementById('edit-skills').value = editing.skills.join(', ');
+            document.getElementById('edit-phone').value = editing.phone || '';
+            document.getElementById('edit-rate').value = editing.hourly_rate ?? '';
+            document.getElementById('edit-dialog').showModal();
+        }
+
+        document.getElementById('edit-form').addEventListener('submit', async e => {
+            if (e.submitter?.value !== 'save' || !editing) return;
+            e.preventDefault();
+            try {
+                await apiCall(`/ops/workers/${editing.user_id}`, { method: 'PUT', body: JSON.stringify({
+                    worker_type: document.getElementById('edit-type').value,
+                    skills: skillsList(document.getElementById('edit-skills').value),
+                    phone: document.getElementById('edit-phone').value,
+                    hourly_rate: document.getElementById('edit-rate').value
+                }) });
+                document.getElementById('edit-dialog').close();
+                await load();
+                notice('Saved.', 'success');
+            } catch (error) {
+                notice(error.message, 'error');
+            }
+        });
+
+        document.getElementById('coi-form').addEventListener('submit', async e => {
+            if (e.submitter?.value !== 'save') return;
+            e.preventDefault();
+            try {
+                await apiCall(`/ops/workers/${e.target.dataset.user}/coi`, { method: 'PUT', body: JSON.stringify({ expires_on: document.getElementById('coi-date').value }) });
+                document.getElementById('coi-dialog').close();
+                await load();
+                notice('Expiry date saved and confirmed.', 'success');
+            } catch (error) { notice(error.message, 'error'); }
+        });
+
+        (async () => {
+            try {
+                const res = await fetch('/api/auth/profile', { headers: { Authorization: `Bearer ${authToken}` } });
+                if (res.ok) { const p = await res.json(); document.getElementById('user-name').textContent = `${p.user.first_name} ${p.user.last_name}`; }
+            } catch {}
+            loadAdmins(); // 2026-10-09 12:30, #61
+            load();
+        })();
+    </script>
+</body>
+</html>

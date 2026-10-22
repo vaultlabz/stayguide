@@ -23,6 +23,15 @@ const ITEMS = [
   { env: 'STRIPE_PRICE_KIT_DESK', lookup: 'stayguide_kit_desk', product: 'StayGuide Desk kit', amount: 39900 },
   { env: 'STRIPE_PRICE_KIT_WALL', lookup: 'stayguide_kit_wall', product: 'StayGuide Wall kit', amount: 69900 }
 ];
+// 2026-10-08 13:10, G7 Ops add-on: created only once a price is chosen (OPS_PRICE_MONTHLY, USD per property per month).
+// Stripe prices can't change, so the amount is part of the lookup key: a new price gets a new id to paste into .env.
+const opsUsd = Number(process.env.OPS_PRICE_MONTHLY);
+if (Number.isFinite(opsUsd) && opsUsd > 0) {
+  const cents = Math.round(opsUsd * 100);
+  ITEMS.push({ env: 'STRIPE_PRICE_OPS_MONTHLY', lookup: `stayguide_ops_monthly_${cents}`, product: 'StayGuide Ops (per property)', amount: cents, recurring: { interval: 'month' } });
+} else {
+  console.log('OPS_PRICE_MONTHLY not set: skipping the Ops add-on price.\n');
+}
 
 (async () => {
   const account = await stripe.accounts.retrieve();

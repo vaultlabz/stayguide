@@ -6,6 +6,10 @@
     <title>StayGuide Admin Dashboard</title>
     <!-- 2026-10-03 15:31, shared design tokens + light/dark theme (set before paint to avoid a flash) -->
     <link rel="stylesheet" href="/css/theme.css">
+    <!-- 2026-10-06 15:50, Snow-kit admin skin (Inter via Google Fonts, allowed by CSP) -->
+    <link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap">
+    <link rel="stylesheet" href="/css/admin-kit.css">
     <script src="/js/theme.js"></script>
     <style>
         * {
@@ -302,19 +306,38 @@
                 grid-template-columns: 1fr;
             }
         }
+        /* 2026-10-09 12:32, #61 company admins dialog */
+        .companies-table .muted, #admins-dialog .muted { color: var(--text-muted); font-size: 0.85rem; }
+        #admins-dialog { margin: auto; border: 0; border-radius: var(--radius-lg); padding: 1.5rem; width: min(640px, calc(100vw - 32px)); background: var(--surface); color: var(--text); }
+        #admins-dialog::backdrop { background: rgb(0 0 0 / 0.45); }
+        #admins-dialog table { width: 100%; border-collapse: collapse; margin: 0.75rem 0 1rem; }
+        #admins-dialog th, #admins-dialog td { text-align: left; padding: 0.5rem 0.4rem; border-bottom: 1px solid var(--border); }
+        #admins-dialog .row { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 0.5rem; margin-bottom: 0.75rem; }
+        #admins-dialog input { width: 100%; box-sizing: border-box; padding: 0.5rem; border: 1px solid var(--border-strong); border-radius: var(--radius-sm); background: var(--surface); color: inherit; }
+        @media (max-width: 600px) { #admins-dialog .row { grid-template-columns: 1fr; } }
+        /* 2026-10-22 15:53, #66 close account dialog (same look as the admins dialog) */
+        #close-dialog { margin: auto; border: 0; border-radius: var(--radius-lg); padding: 1.5rem; width: min(560px, calc(100vw - 32px)); background: var(--surface); color: var(--text); }
+        #close-dialog::backdrop { background: rgb(0 0 0 / 0.45); }
+        #close-dialog p, #close-dialog ul { margin: 0 0 0.75rem; line-height: 1.5; }
+        #close-dialog .muted { color: var(--text-muted); font-size: 0.85rem; }
+        #close-dialog .actions { flex-wrap: wrap; margin-top: 1rem; }
+        #close-dialog input { width: 100%; box-sizing: border-box; padding: 0.5rem; border: 1px solid var(--border-strong); border-radius: var(--radius-sm); background: var(--surface); color: inherit; }
+        #close-dialog fieldset { border: 1px solid var(--border); border-radius: var(--radius-sm); padding: 0.75rem; margin-top: 1rem; }
     </style>
 </head>
-<body class="sg-app">
+<body class="sg-app snow">
     <header class="header">
         <div class="logo">StayGuide Admin</div>
         <!-- 2026-10-03 15:36, nav uses shared .nav-links styles -->
         <nav class="nav-links">
             <a href="/admin/dashboard" class="active" aria-current="page">Dashboard</a>
             <a href="/admin/billing">Billing</a>
+            <a href="/admin/helpdesk">Helpdesk</a><!-- 2026-10-07 16:20 -->
         </nav>
         <div class="user-info">
             <div data-theme-toggle></div>
             <span id="user-name">Loading...</span>
+            <!-- 2026-10-09 12:20, #56 --><button type="button" class="btn btn-secondary" data-change-password="stayguide_admin_token">Password</button>
             <button class="btn btn-secondary" onclick="logout()">Logout</button>
         </div>
     </header>
@@ -344,6 +367,12 @@
             </div>
         </div>
 
+        <!-- 2026-10-08 12:00, G7 Ops: adoption and workload of companies with the Ops add-on -->
+        <div class="companies-section" id="ops-section" hidden style="margin-bottom: 1.5rem;">
+            <div class="section-header"><h2 class="section-title">Ops add-on</h2><span id="ops-summary" style="color: var(--text-muted)"></span></div>
+            <div id="ops-content"></div>
+        </div>
+
         <div class="companies-section">
             <div class="section-header">
                 <h2 class="section-title">Companies</h2>
@@ -357,6 +386,36 @@
     </div>
 
     <!-- Company Modal -->
+    <!-- 2026-10-09 12:32, #61 every company's admins (same API the company Team page uses) -->
+    <dialog id="admins-dialog" aria-labelledby="admins-title">
+        <h3 id="admins-title">Admins</h3>
+        <div id="admins-msg" role="alert"></div>
+        <table><thead><tr><th>Name</th><th>Status</th><th>Last sign-in</th><th></th></tr></thead><tbody id="admins-rows"></tbody></table>
+        <form id="admins-form">
+            <div class="row">
+                <input id="adm-first" placeholder="First name" aria-label="First name" maxlength="100" required>
+                <input id="adm-last" placeholder="Last name" aria-label="Last name" maxlength="100" required>
+                <input id="adm-email" type="email" placeholder="Email" aria-label="Email" maxlength="255" required>
+            </div>
+            <div class="actions">
+                <button class="btn btn-primary btn-small" type="submit">Add admin</button>
+                <button class="btn btn-secondary btn-small" type="button" onclick="document.getElementById('admins-dialog').close()">Close</button>
+            </div>
+            <p class="muted">New admins get an email to choose their password (link works for 7 days).</p>
+        </form>
+    </dialog>
+
+    <!-- 2026-10-22 15:53, #66 close account: export, close, reopen, purge -->
+    <dialog id="close-dialog" aria-labelledby="close-title">
+        <h3 id="close-title">Close account</h3>
+        <div id="close-msg" role="alert"></div>
+        <div id="close-body"></div>
+        <div class="actions">
+            <button class="btn btn-secondary btn-small" type="button" id="close-export" onclick="downloadExport()">Download data export</button>
+            <button class="btn btn-secondary btn-small" type="button" onclick="document.getElementById('close-dialog').close()">Done</button>
+        </div>
+    </dialog>
+
     <div id="companyModal" class="modal">
         <div class="modal-content">
             <div class="modal-header">
@@ -406,6 +465,22 @@
                     </div>
                 </div>
                 
+                <!-- 2026-10-07 15:40, status is editable when editing an existing company -->
+                <div class="form-group" id="status-group" style="display: none;">
+                    <label class="form-label" for="company-status">Status</label>
+                    <select id="company-status" class="form-input">
+                        <option value="active">active</option>
+                        <option value="inactive">inactive</option>
+                        <option value="suspended">suspended</option>
+                    </select>
+                    <!-- 2026-10-07 18:30, G7 Ops add-on (manual until Stripe billing for Ops) -->
+                    <label style="display: flex; gap: 0.5rem; align-items: center; margin-top: 0.75rem;">
+                        <input type="checkbox" id="company-ops"> Ops add-on (field workers &amp; work orders; needs Pro or Portfolio)
+                    </label>
+                </div>
+
+                <!-- 2026-10-07 15:40, admin user fields only apply when creating a company -->
+                <div id="admin-user-fields">
                 <hr style="margin: 1.5rem 0;">
                 <h4 style="margin-bottom: 1rem; color: var(--text-2);">Company Admin User</h4>
                 
@@ -430,9 +505,10 @@
                         <input type="password" id="admin-password" class="form-input" required>
                     </div>
                 </div>
+                </div>
                 
                 <div style="display: flex; gap: 1rem; margin-top: 2rem;">
-                    <button type="submit" class="btn btn-primary">Create Company</button>
+                    <button type="submit" class="btn btn-primary" id="company-submit">Create Company</button>
                     <button type="button" class="btn btn-secondary" onclick="closeModal()">Cancel</button>
                 </div>
             </form>
@@ -441,8 +517,12 @@
 
     <script>
         const API_BASE = '';
-        let authToken = localStorage.getItem('stayguide_token');
+        let authToken = localStorage.getItem('stayguide_admin_token');
         
+        // 2026-10-09 12:32, #61
+        const esc = v => String(v ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+        let companiesById = {};
+
         // Check authentication on page load
         if (!authToken) {
             window.location.href = '/admin/login';
@@ -450,6 +530,10 @@
         
         // API helper function
         async function apiCall(endpoint, options = {}) {
+            // 2026-10-10 20:04, #59 use the saved token on every call: a password change (Password dialog) swaps it, and the
+            // old one is signed out, so a request still holding it would have logged the user out
+            try { authToken = localStorage.getItem('stayguide_admin_token') || authToken; } catch {}
+            const sentToken = authToken;
             const config = {
                 headers: {
                     'Content-Type': 'application/json',
@@ -462,7 +546,10 @@
                 const response = await fetch(API_BASE + endpoint, config);
                 
                 if (response.status === 401) {
-                    localStorage.removeItem('stayguide_token');
+                    // 2026-10-10 20:04, #59 the token was replaced while this request was in flight: retry with the new one
+                    let saved = null; try { saved = localStorage.getItem('stayguide_admin_token'); } catch {}
+                    if (saved && saved !== sentToken) return apiCall(endpoint, options);
+                    localStorage.removeItem('stayguide_admin_token');
                     window.location.href = '/admin/login';
                     return;
                 }
@@ -511,38 +598,39 @@
                 return;
             }
             
+            // 2026-10-09 12:32, #61 plan, property and admin counts per company; every value escaped (a name with an
+            // apostrophe used to break the Delete button)
+            companiesById = Object.fromEntries(companies.map(c => [c.id, c]));
             const tableHTML = `
                 <table class="companies-table">
                     <thead>
                         <tr>
                             <th>Company</th>
-                            <th>Slug</th>
-                            <th>Email</th>
+                            <th>Plan</th>
+                            <th>Properties</th>
+                            <th>Admins</th>
                             <th>Status</th>
-                            <th>Connection Fee</th>
-                            <th>Monthly Fee</th>
                             <th>Actions</th>
                         </tr>
                     </thead>
                     <tbody>
                         ${companies.map(company => `
                             <tr>
-                                <td><strong>${company.name}</strong></td>
-                                <td><code>${company.slug}</code></td>
-                                <td>${company.email}</td>
+                                <td><strong>${esc(company.name)}</strong><div class="muted"><code>${esc(company.slug)}</code> · ${esc(company.email)}</div></td>
+                                <td>${esc(company.plan || 'free')}${company.ops_addon ? ' + Ops' : ''}</td>
+                                <td>${Number(company.active_property_count ?? 0)}${company.property_count > company.active_property_count ? ` <span class="muted">(${Number(company.property_count)} total)</span>` : ''}</td>
+                                <td>${Number(company.admin_count ?? 0)}</td>
                                 <td>
-                                    <span class="status-badge status-${company.status}">
-                                        ${company.status}
+                                    <span class="status-badge status-${company.closed_at ? 'inactive' : esc(company.status)}">
+                                        ${company.purged_at ? 'purged' : company.closed_at ? 'closed' : esc(company.status)}
                                     </span>
                                 </td>
-                                <td>$${parseFloat(company.connection_fee).toFixed(2)}</td>
-                                <td>$${parseFloat(company.monthly_fee_per_property).toFixed(2)}</td>
                                 <td>
                                     <div class="actions">
                                         <button class="btn btn-primary btn-small" 
-                                                onclick="editCompany(${company.id})">Edit</button>
-                                        <button class="btn btn-danger btn-small" 
-                                                onclick="deleteCompany(${company.id}, '${company.name}')">Delete</button>
+                                                onclick="editCompany(${Number(company.id)})">Edit</button>
+                                        <button class="btn btn-secondary btn-small" onclick="openAdmins(${Number(company.id)})">Admins</button>
+                                        <button class="btn btn-danger btn-small" onclick="openClose(${Number(company.id)})">${company.closed_at ? 'Closed…' : 'Close…'}</button>
                                     </div>
                                 </td>
                             </tr>
@@ -561,15 +649,62 @@
             
             document.getElementById('total-companies').textContent = totalCompanies;
             document.getElementById('active-companies').textContent = activeCompanies;
-            document.getElementById('total-properties').textContent = '-'; // TODO: Calculate from properties
-            document.getElementById('monthly-revenue').textContent = '-'; // TODO: Calculate from billing
+            loadStats(); // 2026-10-07 15:40, was a TODO placeholder
+        }
+
+        // 2026-10-07 15:40, active properties + estimated monthly revenue from /admin/stats
+        async function loadStats() {
+            try {
+                const stats = await apiCall('/admin/stats');
+                document.getElementById('total-properties').textContent = stats.total_properties;
+                document.getElementById('monthly-revenue').textContent =
+                    '$' + Number(stats.monthly_revenue).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+            } catch (error) {
+                console.error('Failed to load stats:', error);
+            }
         }
         
         // Modal functions
+        // 2026-10-07 15:40, one modal for create and edit; editingCompanyId is null when creating
+        let editingCompanyId = null;
+
+        function setModalMode(isEdit) {
+            document.getElementById('admin-user-fields').style.display = isEdit ? 'none' : '';
+            document.getElementById('status-group').style.display = isEdit ? '' : 'none';
+            document.querySelectorAll('#admin-user-fields input').forEach(input => { input.required = !isEdit; });
+            document.getElementById('company-submit').textContent = isEdit ? 'Save Changes' : 'Create Company';
+        }
+
         function openCreateModal() {
+            editingCompanyId = null;
             document.getElementById('modal-title').textContent = 'Add New Company';
+            document.getElementById('company-status').disabled = false;
             document.getElementById('companyForm').reset();
+            setModalMode(false);
             document.getElementById('companyModal').style.display = 'block';
+        }
+
+        async function editCompany(id) {
+            try {
+                const { company } = await apiCall(`/admin/companies/${id}`);
+                editingCompanyId = id;
+                document.getElementById('modal-title').textContent = `Edit ${company.name}`;
+                document.getElementById('companyForm').reset();
+                document.getElementById('company-name').value = company.name || '';
+                document.getElementById('company-slug').value = company.slug || '';
+                document.getElementById('company-email').value = company.email || '';
+                document.getElementById('company-phone').value = company.phone || '';
+                document.getElementById('company-address').value = company.address || '';
+                document.getElementById('connection-fee').value = company.connection_fee ?? 0;
+                document.getElementById('monthly-fee').value = company.monthly_fee_per_property ?? 0;
+                document.getElementById('company-status').value = company.status || 'active';
+                document.getElementById('company-status').disabled = !!company.closed_at; // 2026-10-22 15:53, #66 reopen from the Close dialog instead
+                document.getElementById('company-ops').checked = !!company.ops_addon;
+                setModalMode(true);
+                document.getElementById('companyModal').style.display = 'block';
+            } catch (error) {
+                alert(`Failed to load company: ${error.message}`);
+            }
         }
         
         function closeModal() {
@@ -582,6 +717,34 @@
         document.getElementById('companyForm').addEventListener('submit', async (e) => {
             e.preventDefault();
             
+            // 2026-10-07 15:40, edit mode: PUT the company fields only
+            if (editingCompanyId !== null) {
+                try {
+                    document.getElementById('modal-error').style.display = 'none';
+                    await apiCall(`/admin/companies/${editingCompanyId}`, {
+                        method: 'PUT',
+                        body: JSON.stringify({
+                            name: document.getElementById('company-name').value,
+                            slug: document.getElementById('company-slug').value,
+                            email: document.getElementById('company-email').value,
+                            phone: document.getElementById('company-phone').value,
+                            address: document.getElementById('company-address').value,
+                            connection_fee: document.getElementById('connection-fee').value,
+                            monthly_fee_per_property: document.getElementById('monthly-fee').value,
+                            status: document.getElementById('company-status').disabled ? undefined : document.getElementById('company-status').value,
+                            ops_addon: document.getElementById('company-ops').checked
+                        })
+                    });
+                    document.getElementById('modal-success').textContent = 'Company updated successfully!';
+                    document.getElementById('modal-success').style.display = 'block';
+                    setTimeout(() => { closeModal(); loadCompanies(); }, 1000);
+                } catch (error) {
+                    document.getElementById('modal-error').textContent = error.message;
+                    document.getElementById('modal-error').style.display = 'block';
+                }
+                return;
+            }
+
             const formData = {
                 name: document.getElementById('company-name').value,
                 slug: document.getElementById('company-slug').value,
@@ -620,6 +783,7 @@
         
         // Auto-generate slug from company name
         document.getElementById('company-name').addEventListener('input', (e) => {
+            if (editingCompanyId !== null) return; // 2026-10-07 15:40, keep the existing slug when editing
             const slug = e.target.value
                 .toLowerCase()
                 .replace(/[^a-z0-9]+/g, '-')
@@ -627,29 +791,109 @@
             document.getElementById('company-slug').value = slug;
         });
         
-        // Delete company
-        async function deleteCompany(id, name) {
-            if (!confirm(`Are you sure you want to delete "${name}"? This will deactivate the company and all its data.`)) {
-                return;
-            }
-            
-            try {
-                await apiCall(`/admin/companies/${id}`, { method: 'DELETE' });
-                loadCompanies();
-            } catch (error) {
-                alert(`Failed to delete company: ${error.message}`);
+        // 2026-10-22 15:53, #66 close account dialog (replaces Delete, which only set the status to inactive)
+        let closeCompany = null;
+        const closeMsg = (text, ok) => { const el = document.getElementById('close-msg'); el.className = text ? (ok ? 'success' : 'error') : ''; el.textContent = text || ''; };
+        const day = d => new Date(d).toLocaleDateString(undefined, { dateStyle: 'medium' });
+        function openClose(id) {
+            closeCompany = companiesById[id];
+            closeMsg('');
+            renderClose();
+            document.getElementById('close-dialog').showModal();
+        }
+        function renderClose() {
+            const c = closeCompany;
+            document.getElementById('close-title').textContent = `${c.purged_at ? 'Purged' : c.closed_at ? 'Closed' : 'Close'} · ${c.name}`;
+            document.getElementById('close-export').hidden = !!c.purged_at;
+            const body = document.getElementById('close-body');
+            if (c.purged_at) {
+                body.innerHTML = `<p>The data was deleted on ${esc(day(c.purged_at))} and the people in it anonymized. Billing records and hardware orders are kept for tax.</p>`;
+            } else if (c.closed_at) {
+                body.innerHTML = `<p>Closed on ${esc(day(c.closed_at))}. Everything is deleted automatically on <strong>${esc(day(c.purge_after))}</strong>. Send the customer the data export before then if they ask for it.</p>
+                    <div class="actions"><button class="btn btn-primary btn-small" type="button" onclick="closeAction('reopen')">Reopen account</button></div>
+                    <fieldset><legend>Purge now</legend>
+                        <p class="muted">Deletes properties, content, uploads, guest reports, analytics, jobs, photos and time entries now, and anonymizes the admins and workers who only work for this company. This cannot be undone.</p>
+                        <label class="muted" for="purge-confirm">Type <code>${esc(c.slug)}</code> to confirm</label>
+                        <input id="purge-confirm" autocomplete="off" spellcheck="false">
+                        <div class="actions"><button class="btn btn-danger btn-small" type="button" onclick="closeAction('purge')">Purge now</button></div>
+                    </fieldset>`;
+            } else {
+                body.innerHTML = `<p>Closing the account at once:</p>
+                    <ul><li>cancels the Stripe subscription (no refund)</li><li>signs out the admins and blocks sign-in</li>
+                    <li>unpairs the tablets and stops guest links and QR codes</li><li>pauses its workers</li></ul>
+                    <p>The data is kept until the purge date (shown after closing), so you can reopen it or send an export. Billing records are always kept.</p>
+                    <div class="actions"><button class="btn btn-danger btn-small" type="button" onclick="closeAction('close')">Close account</button></div>`;
             }
         }
+        async function closeAction(action) {
+            const c = closeCompany;
+            try {
+                const body = action === 'purge' ? { confirm: document.getElementById('purge-confirm').value.trim() } : {};
+                const r = await apiCall(`/admin/companies/${c.id}/${action}`, { method: 'POST', body: JSON.stringify(body) });
+                const { companies } = await apiCall('/admin/companies');
+                displayCompanies(companies); updateStats(companies);
+                closeCompany = companiesById[c.id] || c;
+                renderClose();
+                closeMsg(action === 'close' ? `Closed.${r.stripe_canceled ? ' The Stripe subscription was canceled.' : ''}` : action === 'reopen' ? 'Reopened. The admins can sign in again; tablets must be paired again.' : 'Purged.', true);
+            } catch (error) { closeMsg(error.message); }
+        }
+        async function downloadExport() {
+            try {
+                const data = await apiCall(`/admin/companies/${closeCompany.id}/export`);
+                const a = Object.assign(document.createElement('a'), { href: URL.createObjectURL(new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' })),
+                    download: `stayguide-${closeCompany.slug}-export-${data.exported_at.slice(0, 10)}.json` });
+                a.click(); URL.revokeObjectURL(a.href);
+            } catch (error) { closeMsg(error.message); }
+        }
         
+        // 2026-10-09 12:32, #61 company admins dialog
+        let adminsCompany = null;
+        const adminsMsg = (text, ok) => { const el = document.getElementById('admins-msg'); el.className = text ? (ok ? 'success' : 'error') : ''; el.textContent = text || ''; };
+        async function openAdmins(id) {
+            adminsCompany = companiesById[id];
+            document.getElementById('admins-title').textContent = `Admins · ${adminsCompany.name}`;
+            adminsMsg('');
+            document.getElementById('admins-form').reset();
+            document.getElementById('admins-dialog').showModal();
+            await renderAdmins();
+        }
+        async function renderAdmins() {
+            try {
+                const { admins } = await apiCall(`/company/${encodeURIComponent(adminsCompany.slug)}/admins`);
+                const active = admins.filter(a => a.status === 'active').length;
+                document.getElementById('admins-rows').innerHTML = admins.length ? admins.map(a => `
+                    <tr>
+                        <td><strong>${esc(a.first_name)} ${esc(a.last_name)}</strong><div class="muted">${esc(a.email)}</div></td>
+                        <td>${a.status === 'active' ? (a.last_login ? 'active' : 'invited') : 'deactivated'}</td>
+                        <td>${a.last_login ? new Date(a.last_login).toLocaleDateString() : '—'}</td>
+                        <td>${a.status === 'active' && active < 2 ? '' : `<button class="btn btn-secondary btn-small" type="button" onclick="setAdmin(${Number(a.id)}, '${a.status === 'active' ? 'inactive' : 'active'}')">${a.status === 'active' ? 'Deactivate' : 'Reactivate'}</button>`}</td>
+                    </tr>`).join('') : '<tr><td colspan="4" class="muted">No admins yet. Add one below.</td></tr>';
+            } catch (error) { adminsMsg(error.message); }
+        }
+        async function setAdmin(userId, status) {
+            try { await apiCall(`/company/${encodeURIComponent(adminsCompany.slug)}/admins/${userId}`, { method: 'PUT', body: JSON.stringify({ status }) }); await renderAdmins(); loadCompanies(); }
+            catch (error) { adminsMsg(error.message); }
+        }
+        document.getElementById('admins-form').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const email = document.getElementById('adm-email').value.trim();
+            try {
+                await apiCall(`/company/${encodeURIComponent(adminsCompany.slug)}/admins`, { method: 'POST', body: JSON.stringify({
+                    first_name: document.getElementById('adm-first').value, last_name: document.getElementById('adm-last').value, email }) });
+                e.target.reset();
+                adminsMsg(`${email} was added and emailed a link to choose a password.`, true);
+                await renderAdmins(); loadCompanies();
+            } catch (error) { adminsMsg(error.message); }
+        });
+
         // Logout function
         function logout() {
             console.log('Logout function called');
             try {
-                // Clear all possible tokens
-                localStorage.removeItem('stayguide_token');
+                // 2026-10-07 17:55, remove only this dashboard's session (clear() also wiped the other dashboard's
+                // session, the theme choice and, on the same origin, a paired tablet's token)
+                localStorage.removeItem('stayguide_admin_token');
                 localStorage.removeItem('authToken');
-                localStorage.clear(); // Clear all localStorage
-                sessionStorage.clear(); // Clear sessionStorage too
                 
                 console.log('Storage cleared, redirecting...');
                 
@@ -662,10 +906,24 @@
             }
         }
         
+        // 2026-10-08 12:00, G7 Ops metrics
+        async function loadOpsMetrics() {
+            try {
+                const data = await apiCall('/admin/ops/metrics');
+                if (!data || !data.companies.length) return;
+                const t = data.totals;
+                document.getElementById('ops-section').hidden = false;
+                document.getElementById('ops-summary').textContent = `${t.companies} compan${t.companies === 1 ? 'y' : 'ies'} · ${t.properties} properties · ${t.workers} workers · revenue ${t.monthly_revenue === null ? 'price not set' : '$' + t.monthly_revenue.toFixed(2) + '/mo'}`;
+                document.getElementById('ops-content').innerHTML = `<table class="companies-table"><thead><tr><th>Company</th><th>Properties</th><th>Workers</th><th>Open jobs</th><th>Overdue</th><th>Verified (30 days)</th><th>Schedules</th></tr></thead><tbody>${
+                    data.companies.map(c => `<tr><td><strong>${String(c.name).replace(/[&<>"']/g, ch => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[ch]))}</strong></td><td>${c.properties}</td><td>${c.workers}</td><td>${c.open}</td><td>${c.overdue ? '<strong>' + c.overdue + '</strong>' : 0}</td><td>${c.verified_30d}</td><td>${c.schedules}</td></tr>`).join('')}</tbody></table>`;
+            } catch (error) { console.error('Ops metrics failed:', error); }
+        }
+
         // Initialize dashboard
         document.addEventListener('DOMContentLoaded', () => {
             loadUserProfile();
             loadCompanies();
+            loadOpsMetrics();
         });
         
         // Close modal when clicking outside
@@ -675,5 +933,6 @@
             }
         });
     </script>
+    <script src="/js/change-password.js"></script><!-- 2026-10-09 12:20, #56 -->
 </body>
 </html>

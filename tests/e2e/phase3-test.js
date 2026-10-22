@@ -6,7 +6,7 @@ const sleep = ms => new Promise(r => setTimeout(r, ms));
 const kill = () => { try { execSync('lsof -ti tcp:' + H.PORT + ' -sTCP:LISTEN | xargs kill 2>/dev/null'); } catch {} };
 (async () => {
   const out = []; const check = (n, ok, x = '') => out.push(`${ok ? 'PASS' : 'FAIL'} ${n}${x ? ' — ' + x : ''}`);
-  spawn('npx', ['ts-node', 'src/index.ts'], { cwd: ROOT, env: { ...process.env, PORT: H.PORT, MOCK_DATABASE: 'true' }, stdio: 'ignore', detached: true });
+  spawn('npx', ['ts-node', 'src/index.ts'], { cwd: ROOT, env: { ...process.env, PORT: H.PORT, MOCK_DATABASE: process.env.TEST_MOCK_DATABASE || 'true' }, stdio: 'ignore', detached: true });
   for (let i = 0; i < 40; i++) { try { if ((await fetch(B + '/api/health')).ok) break; } catch {} await sleep(500); }
   const J = { 'content-type': 'application/json' };
   const login = await (await fetch(B + '/company/demo-rentals/login', { method: 'POST', headers: J, body: JSON.stringify({ email: 'admin@demorentals.com', password: 'demo123' }) })).json();
@@ -29,6 +29,12 @@ const kill = () => { try { execSync('lsof -ti tcp:' + H.PORT + ' -sTCP:LISTEN | 
   await page.click('#pairingForm button[type=submit]');
   await page.waitForSelector('#content', { state: 'visible', timeout: 10000 });
   await sleep(1000);
+
+  // 2026-10-08 08:30, #33: specific pairing errors (used / unknown / format)
+  const pairTry = async code => { const r = await fetch(B + '/device/pair', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ code }) }); return r.json(); };
+  check('pairing: reused code → PAIRING_USED', (await pairTry(pc.code)).code === 'PAIRING_USED');
+  check('pairing: unknown code → PAIRING_INVALID', (await pairTry(pc.code === '000000' ? '111111' : '000000')).code === 'PAIRING_INVALID');
+  check('pairing: too short → PAIRING_FORMAT', (await pairTry('12')).code === 'PAIRING_FORMAT');
 
   check('XSS payloads did not execute', await page.evaluate(() => window.__xss === undefined));
   check('house rules shown as literal text', (await page.textContent('#property-info')).includes('<img src=x'));

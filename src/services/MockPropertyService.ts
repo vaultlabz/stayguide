@@ -9,7 +9,6 @@ export class MockPropertyService {
     const property = mockProperties.find(p => p.id === id);
     
     if (property) {
-      console.log(`[MOCK] Property found: ${property.name}`);
       return property as unknown as Property;
     }
     
@@ -39,7 +38,6 @@ export class MockPropertyService {
     );
     
     if (property) {
-      console.log(`[MOCK] Property found by slug: ${property.name}`);
       return property as unknown as Property;
     }
     
@@ -52,7 +50,6 @@ export class MockPropertyService {
     await mockDelay();
     const properties = mockProperties.filter(p => p.company_id === companyId);
     
-    console.log(`[MOCK] Retrieved ${properties.length} properties for company ${companyId}`);
     return properties as unknown as Property[];
   }
 
@@ -132,7 +129,6 @@ export class MockPropertyService {
       announcements
     };
     
-    console.log(`[MOCK] Property with content retrieved: ${property.name}`);
     return result;
   }
 
@@ -143,7 +139,6 @@ export class MockPropertyService {
     await mockDelay();
     const amenities = mockAmenities.filter(a => a.property_id === propertyId);
     
-    console.log(`[MOCK] Retrieved ${amenities.length} amenities for property ${propertyId}`);
     return amenities;
   }
 

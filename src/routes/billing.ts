@@ -16,6 +16,8 @@ router.get('/company/:companyId', billingController.getBillingRecords.bind(billi
 router.post('/company/:companyId', billingController.createBillingRecord.bind(billingController));
 
 // Billing record management
+// 2026-10-07 16:55, invoice PDF download
+router.get('/:billingId/pdf', billingController.downloadInvoicePdf.bind(billingController));
 router.get('/:billingId', billingController.getInvoiceDetails.bind(billingController));
 router.put('/:billingId/status', billingController.updateBillingStatus.bind(billingController));
 

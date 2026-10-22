@@ -1,0 +1,181 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Checklists - StayGuide</title>
+    <!-- 2026-10-08 03:30, G7 Ops stage 4: checklist templates (steps, photo-required steps, order, archive) -->
+    <link rel="stylesheet" href="/css/theme.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap">
+    <link rel="stylesheet" href="/css/helpdesk.css">
+    <link rel="stylesheet" href="/css/admin-kit.css">
+    <script src="/js/theme.js"></script>
+    <style>
+        .layout { display: grid; grid-template-columns: 300px minmax(0, 1fr); gap: 1.25rem; align-items: start; }
+        .tpl { display: grid; gap: 0.2rem; width: 100%; text-align: left; font: inherit; color: inherit; background: none; border: 0; border-bottom: 1px solid var(--border); padding: 0.75rem 0.25rem; cursor: pointer; }
+        .tpl:hover, .tpl[aria-current="true"] { background: var(--surface-2); }
+        .tpl:focus-visible { outline: 2px solid var(--text); outline-offset: 2px; }
+        .steps { list-style: none; display: grid; gap: 0.5rem; margin-bottom: 1rem; }
+        .step { display: grid; grid-template-columns: 28px minmax(0, 1fr) auto auto; gap: 0.5rem; align-items: center; }
+        .step .n { color: var(--text-muted); text-align: right; font-variant-numeric: tabular-nums; }
+        .step-tools { display: flex; gap: 0.25rem; }
+        .icon-btn { min-width: 34px; min-height: 34px; border: 1px solid var(--border-strong); border-radius: var(--radius-sm); background: transparent; color: var(--text); cursor: pointer; font: inherit; }
+        .icon-btn:disabled { opacity: 0.35; cursor: default; }
+        .grid-2 { display: grid; grid-template-columns: minmax(0, 1fr) 200px; gap: 1rem; }
+        @media (max-width: 860px) { .layout, .grid-2 { grid-template-columns: 1fr; } .step { grid-template-columns: 22px minmax(0, 1fr); } .step .check, .step-tools { grid-column: 2; } }
+    </style>
+</head>
+<body class="sg-app snow">
+    <div class="header">
+        <div class="logo">StayGuide</div>
+        <nav class="nav-links" aria-label="Main">
+            <a href="#" data-path="dashboard">Dashboard</a>
+            <a href="#" data-path="ops" class="active">Work orders</a>
+            <a href="#" data-path="team">Team</a>
+            <a href="#" data-path="billing">Billing</a>
+            <a href="#" data-path="helpdesk">Support</a>
+            <a href="#" data-path="help">Help</a>
+        </nav>
+        <div class="user-info">
+            <div data-theme-toggle></div>
+            <button class="btn btn-secondary" onclick="logout()">Logout</button>
+        </div>
+    </div>
+
+    <main class="container">
+        <div class="page-head">
+            <div>
+                <a href="#" data-path="ops" class="muted">← Work orders</a>
+                <h1>Checklists</h1>
+                <p class="lead">Reusable steps for cleanings and inspections. Steps marked "photo" can only be ticked with a photo. Changes apply to jobs that get the checklist from now on.</p>
+            </div>
+            <button class="btn btn-primary" type="button" onclick="newTemplate()">New checklist</button>
+        </div>
+        <div id="notices"></div>
+
+        <section id="upgrade" class="card" hidden><p class="muted">Checklists are part of the Ops add-on. <a href="#" data-path="helpdesk?new=1">Contact StayGuide support</a> to switch it on.</p></section>
+
+        <div class="layout" id="layout" hidden>
+            <section class="card" aria-label="Checklists">
+                <div id="list"></div>
+                <label class="check" style="margin-top: 0.75rem;"><input type="checkbox" id="show-archived"> Show archived</label>
+            </section>
+            <section class="card" id="editor-card" hidden>
+                <form id="editor">
+                    <div class="grid-2">
+                        <div class="form-group"><label for="t-name">Name</label><input id="t-name" maxlength="120" required></div>
+                        <div class="form-group"><label for="t-type">Used for</label>
+                            <select id="t-type"><option value="cleaning">Cleaning</option><option value="inspection">Inspection</option><option value="maintenance">Maintenance</option><option value="ad_hoc">Other</option></select></div>
+                    </div>
+                    <h2>Steps</h2>
+                    <ol class="steps" id="steps"></ol>
+                    <button class="btn btn-secondary" type="button" onclick="addStep()">Add step</button>
+                    <div class="actions" style="margin-top: 1.25rem;">
+                        <button class="btn btn-primary" type="submit">Save checklist</button>
+                        <button class="btn btn-secondary" type="button" id="archive-btn" hidden onclick="toggleArchive()"></button>
+                    </div>
+                </form>
+            </section>
+        </div>
+    </main>
+
+    <script>
+        const pathParts = window.location.pathname.split('/');
+        const base = `/company/${pathParts[2]}`;
+        let authToken = null;
+        try { authToken = localStorage.getItem('stayguide_token'); } catch {}
+        if (!authToken) window.location.href = `${base}/login`;
+        document.querySelectorAll('[data-path]').forEach(a => { a.href = `${base}/${a.dataset.path}`; });
+        const TYPE = { cleaning: 'Cleaning', inspection: 'Inspection', maintenance: 'Maintenance', ad_hoc: 'Other' };
+        let templates = [], current = null, steps = [];
+
+        const esc = v => String(v ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+        async function apiCall(endpoint, options = {}) {
+            const response = await fetch(base + endpoint, { ...options, headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${authToken}` } });
+            if (response.status === 401) { logout(); return null; }
+            const data = await response.json();
+            if (!response.ok) { const err = new Error(data.error || 'Request failed'); err.status = response.status; throw err; }
+            return data;
+        }
+        function notice(message, kind = '') {
+            const el = document.createElement('div');
+            el.className = `notice ${kind}`;
+            el.setAttribute('role', kind === 'error' ? 'alert' : 'status');
+            el.textContent = message;
+            document.getElementById('notices').replaceChildren(el);
+        }
+        function logout() { try { localStorage.removeItem('stayguide_token'); } catch {} window.location.href = `${base}/login`; }
+
+        async function load(selectId) {
+            try {
+                const data = await apiCall('/ops/checklists' + (document.getElementById('show-archived').checked ? '?archived=1' : ''));
+                if (!data) return;
+                templates = data.templates;
+                document.getElementById('layout').hidden = false;
+                document.getElementById('list').innerHTML = templates.map(t => `<button class="tpl" type="button" onclick="edit(${t.id})" aria-current="${current?.id === t.id}">
+                    <strong>${esc(t.name)}${t.active ? '' : ' <span class="badge">archived</span>'}</strong>
+                    <span class="muted">${TYPE[t.type]} · ${t.items.length} step${t.items.length === 1 ? '' : 's'} · ${t.items.filter(i => i.requires_photo).length} with photo</span></button>`).join('')
+                    || '<p class="muted">No checklists yet.</p>';
+                if (selectId) edit(selectId);
+            } catch (error) {
+                if (error.status === 402) document.getElementById('upgrade').hidden = false;
+                else notice(error.message, 'error');
+            }
+        }
+
+        function renderSteps() {
+            document.getElementById('steps').innerHTML = steps.map((s, i) => `<li class="step">
+                <span class="n">${i + 1}.</span>
+                <input aria-label="Step ${i + 1}" value="${esc(s.label)}" maxlength="255" required oninput="steps[${i}].label = this.value">
+                <label class="check"><input type="checkbox" ${s.requires_photo ? 'checked' : ''} onchange="steps[${i}].requires_photo = this.checked"> photo</label>
+                <span class="step-tools">
+                    <button class="icon-btn" type="button" aria-label="Move step ${i + 1} up" ${i === 0 ? 'disabled' : ''} onclick="move(${i}, -1)">↑</button>
+                    <button class="icon-btn" type="button" aria-label="Move step ${i + 1} down" ${i === steps.length - 1 ? 'disabled' : ''} onclick="move(${i}, 1)">↓</button>
+                    <button class="icon-btn" type="button" aria-label="Remove step ${i + 1}" onclick="removeStep(${i})">×</button>
+                </span></li>`).join('');
+        }
+        function addStep() { steps.push({ label: '', requires_photo: false }); renderSteps(); document.querySelector(`#steps li:last-child input`).focus(); }
+        function removeStep(i) { steps.splice(i, 1); renderSteps(); }
+        function move(i, d) { const [s] = steps.splice(i, 1); steps.splice(i + d, 0, s); renderSteps(); }
+
+        function show(t) {
+            current = t;
+            steps = t ? t.items.map(i => ({ label: i.label, requires_photo: i.requires_photo })) : [{ label: '', requires_photo: false }];
+            document.getElementById('t-name').value = t?.name || '';
+            document.getElementById('t-type').value = t?.type || 'cleaning';
+            const archive = document.getElementById('archive-btn');
+            archive.hidden = !t;
+            archive.textContent = t?.active === false ? 'Restore' : 'Archive';
+            document.getElementById('editor-card').hidden = false;
+            renderSteps();
+            document.querySelectorAll('.tpl').forEach(b => b.setAttribute('aria-current', String(!!t && b.getAttribute('onclick') === `edit(${t.id})`)));
+        }
+        function edit(id) { show(templates.find(t => t.id === id)); }
+        function newTemplate() { show(null); document.getElementById('t-name').focus(); }
+
+        document.getElementById('editor').addEventListener('submit', async e => {
+            e.preventDefault();
+            const body = { name: document.getElementById('t-name').value, type: document.getElementById('t-type').value, items: steps };
+            try {
+                const data = current
+                    ? await apiCall(`/ops/checklists/${current.id}`, { method: 'PUT', body: JSON.stringify(body) })
+                    : await apiCall('/ops/checklists', { method: 'POST', body: JSON.stringify(body) });
+                await load(data.template.id);
+                notice('Checklist saved.', 'success');
+            } catch (error) { notice(error.message, 'error'); }
+        });
+
+        async function toggleArchive() {
+            try {
+                const data = await apiCall(`/ops/checklists/${current.id}`, { method: 'PUT', body: JSON.stringify({ active: !current.active }) });
+                if (!data.template.active) document.getElementById('show-archived').checked = true;
+                await load(data.template.id);
+                notice(data.template.active ? 'Checklist restored.' : 'Checklist archived. It no longer appears when creating jobs.', 'success');
+            } catch (error) { notice(error.message, 'error'); }
+        }
+        document.getElementById('show-archived').addEventListener('change', () => load(current?.id));
+        load();
+    </script>
+</body>
+</html>

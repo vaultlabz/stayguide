@@ -7,7 +7,7 @@ const kill = () => { try { execSync('lsof -ti tcp:' + H.PORT + ' -sTCP:LISTEN | 
 
 (async () => {
   const out = []; const check = (n, ok, x = '') => out.push(`${ok ? 'PASS' : 'FAIL'} ${n}${x ? ' — ' + x : ''}`);
-  spawn('npx', ['ts-node', 'src/index.ts'], { cwd: H.ROOT, env: { ...process.env, PORT: H.PORT, MOCK_DATABASE: 'true', APP_BASE_URL: '' }, stdio: 'ignore', detached: true });
+  spawn('npx', ['ts-node', 'src/index.ts'], { cwd: H.ROOT, env: { ...process.env, PORT: H.PORT, MOCK_DATABASE: process.env.TEST_MOCK_DATABASE || 'true', APP_BASE_URL: '' }, stdio: 'ignore', detached: true });
   for (let i = 0; i < 60; i++) { try { if ((await fetch(B + '/api/health')).ok) break; } catch {} await sleep(500); }
   const J = { 'content-type': 'application/json' };
   const login = await (await fetch(B + '/company/demo-rentals/login', { method: 'POST', headers: J, body: JSON.stringify({ email: 'admin@demorentals.com', password: 'demo123' }) })).json();
@@ -40,7 +40,7 @@ const kill = () => { try { execSync('lsof -ti tcp:' + H.PORT + ' -sTCP:LISTEN | 
   check('company summary for stat card', cs.available === true && cs.visits.total === 2);
 
   // Free account: events dropped, summary 402, card shows "Pro"
-  const su = await (await fetch(B + '/api/signup', { method: 'POST', headers: J, body: JSON.stringify({ company_name: 'Free Host', first_name: 'F', last_name: 'H', email: 'free@host.test', password: 'free-host-1' }) })).json();
+  const su = await (await fetch(B + '/api/signup', { method: 'POST', headers: J, body: JSON.stringify({ accept_terms: true, company_name: 'Free Host', first_name: 'F', last_name: 'H', email: 'free@host.test', password: 'free-host-1' }) })).json();
   const FA = { ...J, Authorization: 'Bearer ' + su.token };
   await fetch(B + `/company/${su.company.slug}/properties`, { method: 'POST', headers: FA, body: JSON.stringify({ name: 'Cabin', slug: 'cabin' }) });
   const fl = await (await fetch(B + `/company/${su.company.slug}/properties/cabin/guest-link`, { headers: FA })).json();

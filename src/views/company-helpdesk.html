@@ -1,0 +1,271 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Support - StayGuide</title>
+    <!-- 2026-10-07 16:10, company helpdesk: open tickets, follow replies from StayGuide support -->
+    <link rel="stylesheet" href="/css/theme.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap">
+    <link rel="stylesheet" href="/css/helpdesk.css">
+    <link rel="stylesheet" href="/css/admin-kit.css">
+    <script src="/js/theme.js"></script>
+</head>
+<body class="sg-app snow">
+    <div class="header">
+        <div class="logo">StayGuide</div>
+        <nav class="nav-links" aria-label="Main">
+            <a href="#" id="dashboard-link">Dashboard</a>
+            <a href="#" id="ops-link">Work orders</a><!-- 2026-10-07 23:00, G7 S2 -->
+            <a href="#" id="team-link">Team</a><!-- 2026-10-07 19:40, G7 Ops -->
+            <a href="#" id="billing-link">Billing</a>
+            <a href="#" id="support-link" class="active" aria-current="page">Support</a>
+            <a href="#" id="help-link">Help</a>
+        </nav>
+        <div class="user-info">
+            <div data-theme-toggle></div>
+            <span id="user-name">Company Admin</span>
+            <button class="btn btn-secondary" onclick="logout()">Logout</button>
+        </div>
+    </div>
+
+    <main class="container">
+        <div id="notices"></div>
+
+        <!-- list view -->
+        <section id="list-view">
+            <div class="page-head">
+                <div>
+                    <h1>Support</h1>
+                    <p class="lead">Ask StayGuide a question or report a problem. We reply here and by email.</p>
+                </div>
+                <button class="btn btn-primary" type="button" onclick="showNew()">New ticket</button>
+            </div>
+            <div class="card">
+                <h2>Your tickets</h2>
+                <ul class="ticket-list" id="tickets"><li class="empty">Loading…</li></ul>
+            </div>
+        </section>
+
+        <!-- new ticket -->
+        <section id="new-view" hidden>
+            <button class="back" type="button" onclick="showList()">← All tickets</button>
+            <div class="card">
+                <h1>New ticket</h1>
+                <p class="lead" style="margin-bottom: 1.25rem;">Before opening one, the <a href="#" id="help-inline">help guide</a> may already answer it.</p>
+                <form id="new-form">
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="new-subject">Subject</label>
+                            <input id="new-subject" maxlength="255" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="new-priority">Priority</label>
+                            <select id="new-priority">
+                                <option value="low">Low</option>
+                                <option value="medium" selected>Medium</option>
+                                <option value="high">High</option>
+                                <option value="urgent">Urgent (guests affected now)</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label for="new-message">Message</label>
+                        <textarea id="new-message" maxlength="10000" required placeholder="What happened, which property, and what you expected."></textarea>
+                    </div>
+                    <div class="actions">
+                        <button class="btn btn-primary" type="submit">Send ticket</button>
+                        <button class="btn btn-secondary" type="button" onclick="showList()">Cancel</button>
+                    </div>
+                </form>
+            </div>
+        </section>
+
+        <!-- ticket detail -->
+        <section id="detail-view" hidden>
+            <button class="back" type="button" onclick="showList()">← All tickets</button>
+            <div class="card">
+                <div class="page-head" style="margin-bottom: 0;">
+                    <div>
+                        <h1 id="t-subject"></h1>
+                        <p class="muted" id="t-meta"></p>
+                    </div>
+                    <button class="btn btn-secondary" type="button" id="close-btn" onclick="closeTicket()">Close ticket</button>
+                </div>
+                <div class="thread" id="thread"></div>
+                <form id="reply-form">
+                    <div class="form-group">
+                        <label for="reply-message">Reply</label>
+                        <textarea id="reply-message" maxlength="10000" required></textarea>
+                    </div>
+                    <button class="btn btn-primary" type="submit">Send reply</button>
+                </form>
+            </div>
+        </section>
+    </main>
+
+    <script>
+        const pathParts = window.location.pathname.split('/');
+        const companySlug = pathParts[1] === 'company' ? pathParts[2] : '';
+        let authToken = null;
+        try { authToken = localStorage.getItem('stayguide_token'); } catch {}
+        if (!authToken) window.location.href = `/company/${companySlug}/login`;
+        document.getElementById('dashboard-link').href = `/company/${companySlug}/dashboard`;
+        document.getElementById('billing-link').href = `/company/${companySlug}/billing`;
+        document.getElementById('ops-link').href = `/company/${companySlug}/ops`;
+        document.getElementById('team-link').href = `/company/${companySlug}/team`;
+        document.getElementById('support-link').href = `/company/${companySlug}/helpdesk`;
+        document.getElementById('help-link').href = `/company/${companySlug}/help`;
+        document.getElementById('help-inline').href = `/company/${companySlug}/help`;
+
+        const API = `/company/${companySlug}/helpdesk/tickets`;
+        const LABELS = { open: 'Open', in_progress: 'In progress', resolved: 'Resolved', closed: 'Closed' };
+        let currentTicket = null;
+
+        const esc = v => String(v ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+        const when = d => new Date(d).toLocaleString(undefined, { dateStyle: 'medium', timeStyle: 'short' });
+
+        async function apiCall(endpoint, options = {}) {
+            const response = await fetch(endpoint, { ...options, headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${authToken}` } });
+            if (response.status === 401) {
+                try { localStorage.removeItem('stayguide_token'); } catch {}
+                window.location.href = `/company/${companySlug}/login`;
+                return null;
+            }
+            const data = await response.json();
+            if (!response.ok) throw new Error(data.error || 'Request failed');
+            return data;
+        }
+
+        function notice(message, kind = '') {
+            const el = document.createElement('div');
+            el.className = `notice ${kind}`;
+            el.setAttribute('role', kind === 'error' ? 'alert' : 'status');
+            el.textContent = message;
+            document.getElementById('notices').replaceChildren(el);
+        }
+        const clearNotice = () => document.getElementById('notices').replaceChildren();
+
+        function logout() {
+            try { localStorage.removeItem('stayguide_token'); } catch {}
+            window.location.href = `/company/${companySlug}/login`;
+        }
+
+        function showView(name, query) {
+            for (const v of ['list', 'new', 'detail']) document.getElementById(`${v}-view`).hidden = v !== name;
+            history.replaceState(null, '', window.location.pathname + (query || ''));
+            window.scrollTo(0, 0);
+        }
+
+        async function showList() {
+            showView('list');
+            const el = document.getElementById('tickets');
+            try {
+                const data = await apiCall(API);
+                if (!data) return;
+                el.innerHTML = data.tickets.length ? data.tickets.map(t => `
+                    <li><button class="ticket-row" type="button" onclick="openTicket(${t.id})">
+                        <span class="ticket-subject">#${t.id} · ${esc(t.subject)}</span>
+                        <span><span class="badge ${t.status}">${LABELS[t.status]}</span></span>
+                        <span class="ticket-meta">${esc(t.priority)} priority · ${t.response_count} ${t.response_count === 1 ? 'reply' : 'replies'} · updated ${when(t.updated_at)}</span>
+                    </button></li>`).join('')
+                    : '<li class="empty">No tickets yet.</li>';
+            } catch (error) {
+                el.innerHTML = '';
+                notice(`Could not load tickets: ${error.message}`, 'error');
+            }
+        }
+
+        function showNew() {
+            clearNotice();
+            document.getElementById('new-form').reset();
+            showView('new', '?new=1');
+            document.getElementById('new-subject').focus();
+        }
+
+        async function openTicket(id) {
+            clearNotice();
+            try {
+                const data = await apiCall(`${API}/${id}`);
+                if (!data) return;
+                currentTicket = data.ticket;
+                const t = data.ticket;
+                document.getElementById('t-subject').textContent = `#${t.id} · ${t.subject}`;
+                document.getElementById('t-meta').innerHTML = `<span class="badge ${t.status}">${LABELS[t.status]}</span> &nbsp;${esc(t.priority)} priority · opened ${when(t.created_at)}`;
+                document.getElementById('close-btn').hidden = t.status === 'closed';
+                const first = { author_name: t.author_name, author_role: 'company_admin', message: t.message, created_at: t.created_at };
+                document.getElementById('thread').innerHTML = [first, ...data.responses].map(r => {
+                    const staff = r.author_role === 'super_admin';
+                    return `<article class="msg ${staff ? 'staff' : ''}">
+                        <div class="msg-head"><strong>${staff ? 'StayGuide support' : esc(r.author_name)}</strong><span>${when(r.created_at)}</span></div>
+                        <div class="msg-body">${esc(r.message)}</div>
+                    </article>`;
+                }).join('');
+                document.getElementById('reply-form').reset();
+                showView('detail', `?ticket=${t.id}`);
+            } catch (error) {
+                notice(error.message, 'error');
+                showList();
+            }
+        }
+
+        async function closeTicket() {
+            if (!currentTicket || !confirm('Close this ticket? You can still reply later to reopen the conversation.')) return;
+            try {
+                await apiCall(`${API}/${currentTicket.id}/close`, { method: 'POST' });
+                await openTicket(currentTicket.id);
+                notice('Ticket closed.', 'success');
+            } catch (error) {
+                notice(error.message, 'error');
+            }
+        }
+
+        document.getElementById('new-form').addEventListener('submit', async e => {
+            e.preventDefault();
+            const button = e.submitter;
+            button.disabled = true;
+            try {
+                const data = await apiCall(API, { method: 'POST', body: JSON.stringify({
+                    subject: document.getElementById('new-subject').value,
+                    priority: document.getElementById('new-priority').value,
+                    message: document.getElementById('new-message').value
+                }) });
+                if (!data) return;
+                await openTicket(data.ticket.id);
+                notice('Ticket sent. StayGuide support has been notified.', 'success');
+            } catch (error) {
+                notice(error.message, 'error');
+            } finally {
+                button.disabled = false;
+            }
+        });
+
+        document.getElementById('reply-form').addEventListener('submit', async e => {
+            e.preventDefault();
+            const button = e.submitter;
+            button.disabled = true;
+            try {
+                await apiCall(`${API}/${currentTicket.id}/replies`, { method: 'POST', body: JSON.stringify({ message: document.getElementById('reply-message').value }) });
+                await openTicket(currentTicket.id);
+                notice('Reply sent.', 'success');
+            } catch (error) {
+                notice(error.message, 'error');
+            } finally {
+                button.disabled = false;
+            }
+        });
+
+        (async () => {
+            try {
+                const profile = await apiCall('/api/auth/profile');
+                if (profile) document.getElementById('user-name').textContent = `${profile.user.first_name} ${profile.user.last_name}`;
+            } catch {}
+            const params = new URLSearchParams(window.location.search);
+            if (params.get('ticket')) openTicket(parseInt(params.get('ticket')));
+            else if (params.get('new')) showNew();
+            else showList();
+        })();
+    </script>
+</body>
+</html>

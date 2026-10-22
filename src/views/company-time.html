@@ -1,0 +1,286 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Time &amp; pay - StayGuide</title>
+    <!-- 2026-10-08 09:40, G7 Ops stage 7: on-site time review, corrections with a reason, pay export -->
+    <link rel="stylesheet" href="/css/theme.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap">
+    <link rel="stylesheet" href="/css/helpdesk.css">
+    <link rel="stylesheet" href="/css/admin-kit.css">
+    <script src="/js/theme.js"></script>
+    <style>
+        .toolbar { display: flex; flex-wrap: wrap; gap: 0.75rem; align-items: end; }
+        .toolbar .form-group { margin: 0; min-width: 150px; }
+        table { width: 100%; border-collapse: collapse; font-size: 0.93rem; }
+        th, td { text-align: left; padding: 0.55rem 0.5rem; border-bottom: 1px solid var(--border); vertical-align: middle; }
+        th { color: var(--text-muted); font-weight: 600; font-size: 0.82rem; }
+        td.num, th.num { text-align: right; font-variant-numeric: tabular-nums; }
+        tr.voided td { color: var(--text-muted); text-decoration: line-through; }
+        tr.voided td:last-child { text-decoration: none; }
+        .table-wrap { overflow-x: auto; }
+        .row-actions { display: flex; gap: 0.6rem; flex-wrap: wrap; }
+        .grid-2 { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 0 1rem; }
+        .badge.awaiting { background: var(--warning-bg, var(--accent-soft)); color: var(--warning-text, var(--text)); }
+        dialog { margin: auto; border: 1px solid var(--border); border-radius: var(--radius-lg); background: var(--surface); color: var(--text); padding: 1.5rem; width: min(560px, calc(100vw - 32px)); }
+        dialog::backdrop { background: rgb(0 0 0 / 0.4); }
+        @media (max-width: 700px) { .grid-2 { grid-template-columns: 1fr; } }
+    </style>
+</head>
+<body class="sg-app snow">
+    <div class="header">
+        <div class="logo">StayGuide</div>
+        <nav class="nav-links" aria-label="Main">
+            <a href="#" data-path="dashboard">Dashboard</a>
+            <a href="#" data-path="ops" class="active">Work orders</a>
+            <a href="#" data-path="team">Team</a>
+            <a href="#" data-path="billing">Billing</a>
+            <a href="#" data-path="helpdesk">Support</a>
+            <a href="#" data-path="help">Help</a>
+        </nav>
+        <div class="user-info"><div data-theme-toggle></div><button class="btn btn-secondary" onclick="logout()">Logout</button></div>
+    </div>
+
+    <main class="container" style="max-width: 1300px;">
+        <div class="page-head">
+            <div>
+                <a href="#" data-path="ops" class="muted">← Work orders</a>
+                <h1>Time &amp; pay</h1>
+                <p class="lead">Time on site from check-ins. Corrections need a reason and are kept with the entry. Amounts use each person's hourly rate from the Team page.</p>
+            </div>
+            <button class="btn btn-primary" type="button" onclick="openAdd()" id="add-btn" hidden>Add time</button>
+        </div>
+        <div id="notices"></div>
+        <section id="upgrade" class="card" hidden><p class="muted">Time &amp; pay is part of the Ops add-on. <a href="#" data-path="helpdesk?new=1">Contact StayGuide support</a> to switch it on.</p></section>
+
+        <div id="page" hidden>
+            <form class="card toolbar" id="filters">
+                <div class="form-group"><label for="f-from">From</label><input id="f-from" type="date" required></div>
+                <div class="form-group"><label for="f-to">To</label><input id="f-to" type="date" required></div>
+                <div class="form-group"><label for="f-user">Person</label><select id="f-user"><option value="">Everyone</option></select></div>
+                <div class="form-group"><label for="f-prop">Property</label><select id="f-prop"><option value="">All properties</option></select></div>
+                <button class="btn btn-secondary" type="submit">Show</button>
+                <span style="flex:1"></span>
+                <button class="btn btn-secondary" type="button" onclick="exportCsv('entries')">Export time (CSV)</button>
+                <button class="btn btn-secondary" type="button" onclick="exportCsv('summary')">Export pay summary (CSV)</button>
+            </form>
+
+            <section class="card">
+                <h2>Totals <span class="muted" id="range-label"></span></h2>
+                <div class="table-wrap"><table><thead><tr><th>Person</th><th>Type</th><th class="num">Hours</th><th class="num">Rate</th><th class="num">Amount</th><th class="num">Entries</th><th></th></tr></thead><tbody id="totals"></tbody></table></div>
+            </section>
+
+            <section class="card">
+                <h2>Entries</h2>
+                <div class="table-wrap"><table><thead><tr><th>Date</th><th>Person</th><th>Job</th><th>In</th><th>Out</th><th class="num">Hours</th><th>How</th><th>Where</th><th></th></tr></thead><tbody id="entries"></tbody></table></div>
+            </section>
+        </div>
+    </main>
+
+    <dialog id="edit-dialog">
+        <form id="edit-form">
+            <h2 id="edit-title">Correct time</h2>
+            <p class="muted" id="edit-sub" style="margin-bottom:1rem"></p>
+            <div class="grid-2">
+                <div class="form-group"><label for="e-in">Check in</label><input id="e-in" type="datetime-local" required></div>
+                <div class="form-group"><label for="e-out">Check out</label><input id="e-out" type="datetime-local"></div>
+            </div>
+            <div class="form-group"><label for="e-reason">Reason (kept with the entry)</label><input id="e-reason" maxlength="500" required placeholder="Forgot to check out; left at 4 pm per text message"></div>
+            <div class="actions"><button class="btn btn-primary" type="submit">Save</button><button class="btn btn-secondary" type="button" onclick="this.closest('dialog').close()">Cancel</button></div>
+        </form>
+    </dialog>
+
+    <dialog id="void-dialog">
+        <form id="void-form">
+            <h2>Void this entry?</h2>
+            <p class="muted" id="void-sub" style="margin-bottom:1rem"></p>
+            <div class="form-group"><label for="v-reason">Reason (kept with the entry)</label><input id="v-reason" maxlength="500" required placeholder="Checked in at the wrong job"></div>
+            <div class="actions"><button class="btn btn-primary" type="submit">Void entry</button><button class="btn btn-secondary" type="button" onclick="this.closest('dialog').close()">Cancel</button></div>
+        </form>
+    </dialog>
+
+    <dialog id="add-dialog">
+        <form id="add-form">
+            <h2>Add time</h2>
+            <p class="muted" style="margin-bottom:1rem">For time someone worked but didn't record.</p>
+            <div class="grid-2">
+                <div class="form-group"><label for="a-user">Person</label><select id="a-user" required></select></div>
+                <div class="form-group"><label for="a-job">Job</label><select id="a-job" required></select></div>
+                <div class="form-group"><label for="a-in">Check in</label><input id="a-in" type="datetime-local" required></div>
+                <div class="form-group"><label for="a-out">Check out</label><input id="a-out" type="datetime-local" required></div>
+            </div>
+            <div class="form-group"><label for="a-reason">Reason (kept with the entry)</label><input id="a-reason" maxlength="500" required placeholder="Phone was dead; confirmed with the owner"></div>
+            <div class="actions"><button class="btn btn-primary" type="submit">Add</button><button class="btn btn-secondary" type="button" onclick="this.closest('dialog').close()">Cancel</button></div>
+        </form>
+    </dialog>
+
+    <dialog id="hist-dialog"><div id="hist-body"></div><button class="btn btn-secondary" type="button" onclick="this.closest('dialog').close()" style="margin-top:1rem">Close</button></dialog>
+
+    <script>
+        const base = `/company/${location.pathname.split('/')[2]}`;
+        let authToken = null;
+        try { authToken = localStorage.getItem('stayguide_token'); } catch {}
+        if (!authToken) location.href = `${base}/login`;
+        document.querySelectorAll('[data-path]').forEach(a => { a.href = `${base}/${a.dataset.path}`; });
+        const TZ = Intl.DateTimeFormat().resolvedOptions().timeZone || 'UTC';
+        const HOW = { qr: 'QR sticker', button: 'App', manual: 'Added by manager' };
+        let entries = [], current = null;
+
+        const esc = v => String(v ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+        // 2026-10-10 10:29, #62 where the phone was at check-in / check-out
+        const where = (p, label) => !p ? '' : `<span class="badge ${p.state === 'at' ? 'resolved' : p.state === 'away' ? 'urgent' : ''}" title="${esc(p.label)}">${label}: ${esc(p.state === 'at' ? 'at property' : p.state === 'away' ? p.label.replace(' from the property', ' away') : p.state === 'unset' ? 'property spot not set' : 'no location')}</span>`;
+        const ymd = d => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+        const day = d => new Date(d).toLocaleDateString(undefined, { weekday: 'short', month: 'short', day: 'numeric' });
+        const hm = d => new Date(d).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' });
+        const hours = m => (m / 60).toFixed(2);
+        const money = n => (n === null || n === undefined ? '—' : '$' + Number(n).toFixed(2));
+        const toLocalInput = d => { if (!d) return ''; const x = new Date(d); return new Date(+x - x.getTimezoneOffset() * 60000).toISOString().slice(0, 16); };
+        const fromLocalInput = v => (v ? new Date(v).toISOString() : null);
+
+        async function apiCall(endpoint, options = {}) {
+            const response = await fetch(base + endpoint, { ...options, headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${authToken}` } });
+            if (response.status === 401) { logout(); return null; }
+            const data = await response.json();
+            if (!response.ok) { const err = new Error(data.error || 'Request failed'); err.status = response.status; throw err; }
+            return data;
+        }
+        function notice(message, kind = '') {
+            const el = document.createElement('div');
+            el.className = `notice ${kind}`;
+            el.setAttribute('role', kind === 'error' ? 'alert' : 'status');
+            el.textContent = message;
+            document.getElementById('notices').replaceChildren(el);
+        }
+        function logout() { try { localStorage.removeItem('stayguide_token'); } catch {} location.href = `${base}/login`; }
+        const query = () => new URLSearchParams({ from: document.getElementById('f-from').value, to: document.getElementById('f-to').value, tz: TZ,
+            ...(document.getElementById('f-user').value ? { user_id: document.getElementById('f-user').value } : {}),
+            ...(document.getElementById('f-prop').value ? { property_id: document.getElementById('f-prop').value } : {}) });
+
+        async function load() {
+            try {
+                const data = await apiCall(`/ops/time?${query()}`);
+                if (!data) return;
+                entries = data.entries;
+                document.getElementById('page').hidden = false;
+                document.getElementById('add-btn').hidden = false;
+                document.getElementById('range-label').textContent = `${day(data.from + 'T12:00')} – ${day(data.to + 'T12:00')}`;
+                document.getElementById('totals').innerHTML = data.totals.length ? data.totals.map(t => `<tr>
+                    <td><strong>${esc(t.worker_name)}</strong></td><td>${esc(t.worker_type || '')}</td>
+                    <td class="num">${hours(t.minutes)}</td><td class="num">${t.hourly_rate === null ? '<a href="' + base + '/team">set rate</a>' : money(t.hourly_rate)}</td>
+                    <td class="num"><strong>${money(t.amount)}</strong></td><td class="num">${t.entries}</td>
+                    <td>${t.open ? `<span class="badge awaiting">${t.open} still checked in</span>` : ''}</td></tr>`).join('')
+                    : '<tr><td colspan="7" class="empty">No time in this period.</td></tr>';
+                document.getElementById('entries').innerHTML = entries.length ? entries.map(e => `<tr class="${e.voided_at ? 'voided' : ''}">
+                    <td>${day(e.clock_in)}</td><td>${esc(e.worker_name)}</td>
+                    <td>#${e.work_order_id} ${esc(e.job_title)}<div class="muted" style="font-size:0.82rem">${esc(e.property_name)}</div></td>
+                    <td>${hm(e.clock_in)}</td><td>${e.clock_out ? hm(e.clock_out) + (ymd(new Date(e.clock_out)) !== ymd(new Date(e.clock_in)) ? ' <span class="muted">(+1)</span>' : '') : '<span class="badge awaiting">on site</span>'}</td>
+                    <td class="num">${e.clock_out ? hours(e.minutes) : '—'}</td>
+                    <td>${HOW[e.method_in] || esc(e.method_in)}${e.edited ? ' <span class="badge">corrected</span>' : ''}${e.voided_at ? ' <span class="badge urgent">voided</span>' : ''}</td>
+                    <td>${where(e.place_in, 'In')}${e.place_out ? '<br>' + where(e.place_out, 'Out') : ''}</td>
+                    <td><div class="row-actions">${e.voided_at ? '' : `<button class="btn-link" type="button" onclick="openEdit(${e.id})">${e.clock_out ? 'Correct' : 'Check out'}</button><button class="btn-link" type="button" onclick="openVoid(${e.id})">Void</button>`}
+                        ${e.edited || e.method_in === 'manual' || e.voided_at ? `<button class="btn-link" type="button" onclick="openHistory(${e.id})">History</button>` : ''}</div></td></tr>`).join('')
+                    : '<tr><td colspan="9" class="empty">No entries.</td></tr>';
+            } catch (error) {
+                if (error.status === 402) document.getElementById('upgrade').hidden = false;
+                else notice(error.message, 'error');
+            }
+        }
+
+        async function loadRefs() {
+            try {
+                const [team, props, orders] = await Promise.all([apiCall('/ops/team'), apiCall('/properties'), apiCall('/ops/work-orders')]);
+                const people = team?.members || [];
+                const opt = (v, l) => `<option value="${v}">${esc(l)}</option>`;
+                document.getElementById('f-user').insertAdjacentHTML('beforeend', people.map(m => opt(m.user_id, `${m.first_name} ${m.last_name}`)).join(''));
+                document.getElementById('a-user').innerHTML = people.map(m => opt(m.user_id, `${m.first_name} ${m.last_name}`)).join('');
+                document.getElementById('f-prop').insertAdjacentHTML('beforeend', (props?.properties || []).map(p => opt(p.id, p.name)).join(''));
+                document.getElementById('a-job').innerHTML = (orders?.work_orders || []).filter(o => o.status !== 'canceled').map(o => opt(o.id, `#${o.id} ${o.title} (${o.property_name})`)).join('');
+            } catch {}
+        }
+
+        function openEdit(id) {
+            current = entries.find(e => e.id === id);
+            document.getElementById('edit-title').textContent = current.clock_out ? 'Correct time' : 'Check out';
+            document.getElementById('edit-sub').textContent = `${current.worker_name} · #${current.work_order_id} ${current.job_title}`;
+            document.getElementById('e-in').value = toLocalInput(current.clock_in);
+            document.getElementById('e-out').value = toLocalInput(current.clock_out || (current.clock_out === null ? new Date() : null));
+            document.getElementById('e-reason').value = '';
+            document.getElementById('edit-dialog').showModal();
+        }
+        document.getElementById('edit-form').addEventListener('submit', async e => {
+            e.preventDefault();
+            try {
+                await apiCall(`/ops/time/${current.id}`, { method: 'PUT', body: JSON.stringify({
+                    clock_in: fromLocalInput(document.getElementById('e-in').value), clock_out: fromLocalInput(document.getElementById('e-out').value), reason: document.getElementById('e-reason').value }) });
+                document.getElementById('edit-dialog').close();
+                await load();
+                notice('Time saved.', 'success');
+            } catch (error) { alert(error.message); }
+        });
+
+        function openVoid(id) {
+            current = entries.find(e => e.id === id);
+            document.getElementById('void-sub').textContent = `${current.worker_name} · ${day(current.clock_in)} ${hm(current.clock_in)} · #${current.work_order_id} ${current.job_title}`;
+            document.getElementById('v-reason').value = '';
+            document.getElementById('void-dialog').showModal();
+        }
+        document.getElementById('void-form').addEventListener('submit', async e => {
+            e.preventDefault();
+            try {
+                await apiCall(`/ops/time/${current.id}/void`, { method: 'POST', body: JSON.stringify({ reason: document.getElementById('v-reason').value }) });
+                document.getElementById('void-dialog').close();
+                await load();
+                notice('Entry voided. It stays listed but counts for nothing.', 'success');
+            } catch (error) { alert(error.message); }
+        });
+
+        function openAdd() { document.getElementById('add-form').reset(); document.getElementById('add-dialog').showModal(); }
+        document.getElementById('add-form').addEventListener('submit', async e => {
+            e.preventDefault();
+            const v = id => document.getElementById(id).value;
+            try {
+                await apiCall('/ops/time', { method: 'POST', body: JSON.stringify({ user_id: Number(v('a-user')), work_order_id: Number(v('a-job')),
+                    clock_in: fromLocalInput(v('a-in')), clock_out: fromLocalInput(v('a-out')), reason: v('a-reason') }) });
+                document.getElementById('add-dialog').close();
+                await load();
+                notice('Time added.', 'success');
+            } catch (error) { alert(error.message); }
+        });
+
+        async function openHistory(id) {
+            try {
+                const data = await apiCall(`/ops/time/${id}/history`);
+                const A = { added: 'Added', edited: 'Corrected', closed: 'Checked out by manager', voided: 'Voided' };
+                const span = x => (x ? `${day(x.clock_in)} ${hm(x.clock_in)} – ${x.clock_out ? hm(x.clock_out) : 'open'}` : '');
+                document.getElementById('hist-body').innerHTML = `<h2>History</h2><ol style="margin:0.75rem 0 0 1.2rem;display:grid;gap:0.6rem">${data.history.map(h => `<li>
+                    <strong>${A[h.action]}</strong> by ${esc(h.editor_name)} · ${new Date(h.created_at).toLocaleString()}
+                    <div>${h.before_json ? esc(span(h.before_json)) + ' → ' : ''}${esc(span(h.after_json))}</div>
+                    <div class="muted">Reason: ${esc(h.reason)}</div></li>`).join('')}</ol>`;
+                document.getElementById('hist-dialog').showModal();
+            } catch (error) { notice(error.message, 'error'); }
+        }
+
+        async function exportCsv(kind) {
+            try {
+                const res = await fetch(`${base}/ops/time/export?${query()}&kind=${kind}`, { headers: { Authorization: `Bearer ${authToken}` } });
+                if (!res.ok) throw new Error((await res.json().catch(() => ({}))).error || 'Export failed');
+                const url = URL.createObjectURL(await res.blob());
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = (res.headers.get('Content-Disposition') || '').match(/filename="([^"]+)"/)?.[1] || `time-${kind}.csv`;
+                document.body.appendChild(a); a.click(); a.remove();
+                setTimeout(() => URL.revokeObjectURL(url), 1000);
+            } catch (error) { notice(error.message, 'error'); }
+        }
+
+        document.getElementById('filters').addEventListener('submit', e => { e.preventDefault(); load(); });
+        const now = new Date();
+        document.getElementById('f-to').value = ymd(now);
+        document.getElementById('f-from').value = ymd(new Date(+now - 13 * 86400000));
+        loadRefs();
+        load();
+    </script>
+</body>
+</html>

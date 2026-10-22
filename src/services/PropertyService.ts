@@ -1,8 +1,8 @@
-import { RowDataPacket } from 'mysql2';
+import { ResultSetHeader, RowDataPacket } from 'mysql2';
 import { db } from '../utils/database';
 import { Property } from '../types';
 import { MockPropertyService } from './MockPropertyService';
-import { MOCK_MODE } from '../utils/mock-database';
+import { MOCK_MODE, mockProperties } from '../utils/mock-database';
 import {
   pickAllowedFields, buildSetClause,
   PROPERTY_UPDATE_FIELDS, AMENITY_UPDATE_FIELDS, AMENITY_ADMIN_FIELDS
@@ -27,7 +27,6 @@ export class PropertyService {
       }
 
       const property = rows[0] as Property;
-      console.log(`Property found: ${property.name}`);
       return property;
     } catch (error) {
       console.error('Error finding property by ID:', error);
@@ -51,6 +50,23 @@ export class PropertyService {
     await db.execute('UPDATE properties SET guest_link_token = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?', [token, id]);
   }
 
+  /**
+   * 2026-10-10 10:28, #62 the precise property spot for crew check-in distance. A manager's pin always wins;
+   * a QR check-in only fills an empty spot (onlyIfEmpty). Returns whether it was saved. null clears it.
+   */
+  async setSite(id: number, point: { lat: number; lng: number } | null, source: 'pin' | 'qr', onlyIfEmpty = false): Promise<boolean> {
+    const lat = point?.lat ?? null, lng = point?.lng ?? null, src = point ? source : null;
+    if (MOCK_MODE) {
+      const p: any = mockProperties.find(x => x.id === id);
+      if (!p || (onlyIfEmpty && p.site_lat !== null && p.site_lat !== undefined)) return false;
+      Object.assign(p, { site_lat: lat, site_lng: lng, site_source: src });
+      return true;
+    }
+    const [r] = await db.execute<ResultSetHeader>(
+      `UPDATE properties SET site_lat = ?, site_lng = ?, site_source = ? WHERE id = ?${onlyIfEmpty ? ' AND site_lat IS NULL' : ''}`, [lat, lng, src, id]);
+    return onlyIfEmpty ? r.affectedRows === 1 : true;
+  }
+
   async findBySlug(companyId: number, slug: string): Promise<Property | null> {
     if (MOCK_MODE) {
       return this.mockService.findBySlug(companyId, slug);
@@ -67,7 +83,6 @@ export class PropertyService {
       }
 
       const property = rows[0] as Property;
-      console.log(`Property found by slug: ${property.name}`);
       return property;
     } catch (error) {
       console.error('Error finding property by slug:', error);
@@ -87,7 +102,6 @@ export class PropertyService {
       );
 
       const properties = rows as Property[];
-      console.log(`Retrieved ${properties.length} properties for company ${companyId}`);
       return properties;
     } catch (error) {
       console.error('Error getting properties by company:', error);
@@ -253,7 +267,6 @@ export class PropertyService {
         amenities
       };
 
-      console.log(`Property with content retrieved: ${property.name}`);
       return result;
     } catch (error) {
       console.error('Error getting property with content:', error);

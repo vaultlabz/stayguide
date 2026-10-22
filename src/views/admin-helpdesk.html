@@ -1,0 +1,221 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Helpdesk - StayGuide Admin</title>
+    <!-- 2026-10-07 16:15, super-admin helpdesk inbox: every company's tickets, replies, internal notes, status -->
+    <link rel="stylesheet" href="/css/theme.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap">
+    <link rel="stylesheet" href="/css/helpdesk.css">
+    <link rel="stylesheet" href="/css/admin-kit.css">
+    <script src="/js/theme.js"></script>
+</head>
+<body class="sg-app snow">
+    <div class="header">
+        <div class="logo">StayGuide Admin</div>
+        <nav class="nav-links" aria-label="Main">
+            <a href="/admin/dashboard">Dashboard</a>
+            <a href="/admin/billing">Billing</a>
+            <a href="/admin/helpdesk" class="active" aria-current="page">Helpdesk</a>
+        </nav>
+        <div class="user-info">
+            <div data-theme-toggle></div>
+            <span id="user-name">Admin User</span>
+            <button class="btn btn-secondary" onclick="logout()">Logout</button>
+        </div>
+    </div>
+
+    <main class="container">
+        <div id="notices"></div>
+
+        <section id="list-view">
+            <div class="page-head">
+                <div>
+                    <h1>Helpdesk</h1>
+                    <p class="lead">Support tickets from every company. Company admins get an email when you reply.</p>
+                </div>
+            </div>
+            <div class="card">
+                <div class="filters" role="group" aria-label="Filter by status">
+                    <button type="button" data-status="" aria-pressed="false">All</button>
+                    <button type="button" data-status="open" aria-pressed="true">Open</button>
+                    <button type="button" data-status="in_progress" aria-pressed="false">In progress</button>
+                    <button type="button" data-status="resolved" aria-pressed="false">Resolved</button>
+                    <button type="button" data-status="closed" aria-pressed="false">Closed</button>
+                </div>
+                <ul class="ticket-list" id="tickets"><li class="empty">Loading…</li></ul>
+            </div>
+        </section>
+
+        <section id="detail-view" hidden>
+            <button class="back" type="button" onclick="showList()">← All tickets</button>
+            <div class="card">
+                <div class="page-head" style="margin-bottom: 0;">
+                    <div>
+                        <h1 id="t-subject"></h1>
+                        <p class="muted" id="t-meta"></p>
+                    </div>
+                    <div class="form-group" style="margin: 0; min-width: 180px;">
+                        <label for="t-status">Status</label>
+                        <select id="t-status">
+                            <option value="open">Open</option>
+                            <option value="in_progress">In progress</option>
+                            <option value="resolved">Resolved</option>
+                            <option value="closed">Closed</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="thread" id="thread"></div>
+                <form id="reply-form">
+                    <div class="form-group">
+                        <label for="reply-message">Reply</label>
+                        <textarea id="reply-message" maxlength="10000" required></textarea>
+                    </div>
+                    <div class="actions">
+                        <button class="btn btn-primary" type="submit">Send</button>
+                        <label class="check"><input type="checkbox" id="reply-internal"> Internal note (not shown to the company, no email)</label>
+                    </div>
+                </form>
+            </div>
+        </section>
+    </main>
+
+    <script>
+        let authToken = null;
+        try { authToken = localStorage.getItem('stayguide_admin_token'); } catch {}
+        if (!authToken) window.location.href = '/admin/login';
+
+        const API = '/admin/helpdesk/tickets';
+        const LABELS = { open: 'Open', in_progress: 'In progress', resolved: 'Resolved', closed: 'Closed' };
+        let currentTicket = null;
+        let statusFilter = 'open';
+
+        const esc = v => String(v ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+        const when = d => new Date(d).toLocaleString(undefined, { dateStyle: 'medium', timeStyle: 'short' });
+
+        async function apiCall(endpoint, options = {}) {
+            const response = await fetch(endpoint, { ...options, headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${authToken}` } });
+            if (response.status === 401 || response.status === 403) {
+                try { localStorage.removeItem('stayguide_admin_token'); } catch {}
+                window.location.href = '/admin/login';
+                return null;
+            }
+            const data = await response.json();
+            if (!response.ok) throw new Error(data.error || 'Request failed');
+            return data;
+        }
+
+        function notice(message, kind = '') {
+            const el = document.createElement('div');
+            el.className = `notice ${kind}`;
+            el.setAttribute('role', kind === 'error' ? 'alert' : 'status');
+            el.textContent = message;
+            document.getElementById('notices').replaceChildren(el);
+        }
+        const clearNotice = () => document.getElementById('notices').replaceChildren();
+
+        function logout() {
+            try { localStorage.removeItem('stayguide_admin_token'); } catch {}
+            window.location.href = '/admin/login';
+        }
+
+        function showView(name, query) {
+            document.getElementById('list-view').hidden = name !== 'list';
+            document.getElementById('detail-view').hidden = name !== 'detail';
+            history.replaceState(null, '', window.location.pathname + (query || ''));
+            window.scrollTo(0, 0);
+        }
+
+        async function showList() {
+            showView('list');
+            const el = document.getElementById('tickets');
+            try {
+                const data = await apiCall(API + (statusFilter ? `?status=${statusFilter}` : ''));
+                if (!data) return;
+                el.innerHTML = data.tickets.length ? data.tickets.map(t => `
+                    <li><button class="ticket-row" type="button" onclick="openTicket(${t.id})">
+                        <span class="ticket-subject">#${t.id} · ${esc(t.subject)}</span>
+                        <span><span class="badge ${t.priority}">${esc(t.priority)}</span> <span class="badge ${t.status}">${LABELS[t.status]}</span></span>
+                        <span class="ticket-meta">${esc(t.company_name)} · ${esc(t.author_name)} · ${t.response_count} ${t.response_count === 1 ? 'reply' : 'replies'} · updated ${when(t.updated_at)}</span>
+                    </button></li>`).join('')
+                    : '<li class="empty">No tickets here.</li>';
+            } catch (error) {
+                el.innerHTML = '';
+                notice(`Could not load tickets: ${error.message}`, 'error');
+            }
+        }
+
+        async function openTicket(id) {
+            clearNotice();
+            try {
+                const data = await apiCall(`${API}/${id}`);
+                if (!data) return;
+                currentTicket = data.ticket;
+                const t = data.ticket;
+                document.getElementById('t-subject').textContent = `#${t.id} · ${t.subject}`;
+                document.getElementById('t-meta').innerHTML = `<span class="badge ${t.priority}">${esc(t.priority)}</span> &nbsp;${esc(t.company_name)} · ${esc(t.author_name)} · opened ${when(t.created_at)}`;
+                document.getElementById('t-status').value = t.status;
+                const first = { author_name: t.author_name, author_role: 'company_admin', message: t.message, created_at: t.created_at };
+                document.getElementById('thread').innerHTML = [first, ...data.responses].map(r => {
+                    const staff = r.author_role === 'super_admin';
+                    return `<article class="msg ${staff ? 'staff' : ''} ${r.is_internal ? 'internal' : ''}">
+                        <div class="msg-head"><strong>${esc(r.author_name)}${staff ? ' (StayGuide)' : ''}${r.is_internal ? ' · internal note' : ''}</strong><span>${when(r.created_at)}</span></div>
+                        <div class="msg-body">${esc(r.message)}</div>
+                    </article>`;
+                }).join('');
+                document.getElementById('reply-form').reset();
+                showView('detail', `?ticket=${t.id}`);
+            } catch (error) {
+                notice(error.message, 'error');
+                showList();
+            }
+        }
+
+        document.querySelectorAll('.filters button').forEach(b => b.addEventListener('click', () => {
+            statusFilter = b.dataset.status;
+            document.querySelectorAll('.filters button').forEach(x => x.setAttribute('aria-pressed', String(x === b)));
+            showList();
+        }));
+
+        document.getElementById('t-status').addEventListener('change', async e => {
+            try {
+                await apiCall(`${API}/${currentTicket.id}/status`, { method: 'PUT', body: JSON.stringify({ status: e.target.value }) });
+                currentTicket.status = e.target.value;
+                notice(`Status set to ${LABELS[e.target.value]}.`, 'success');
+            } catch (error) {
+                e.target.value = currentTicket.status;
+                notice(error.message, 'error');
+            }
+        });
+
+        document.getElementById('reply-form').addEventListener('submit', async e => {
+            e.preventDefault();
+            const button = e.submitter;
+            const internal = document.getElementById('reply-internal').checked;
+            button.disabled = true;
+            try {
+                await apiCall(`${API}/${currentTicket.id}/replies`, { method: 'POST', body: JSON.stringify({
+                    message: document.getElementById('reply-message').value, is_internal: internal
+                }) });
+                await openTicket(currentTicket.id);
+                notice(internal ? 'Internal note added.' : 'Reply sent and the company was emailed.', 'success');
+            } catch (error) {
+                notice(error.message, 'error');
+            } finally {
+                button.disabled = false;
+            }
+        });
+
+        (async () => {
+            try {
+                const profile = await apiCall('/api/auth/profile');
+                if (profile) document.getElementById('user-name').textContent = `${profile.user.first_name} ${profile.user.last_name}`;
+            } catch {}
+            const ticket = new URLSearchParams(window.location.search).get('ticket');
+            if (ticket) openTicket(parseInt(ticket)); else showList();
+        })();
+    </script>
+</body>
+</html>

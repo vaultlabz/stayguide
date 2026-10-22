@@ -39,6 +39,16 @@ const upload = multer({
 export const uploadPropertyImage = upload.single('property_image');
 export const uploadAmenityImage = upload.single('amenity_image');
 
+// 2026-10-08 00:40, G7 Ops job photos: phone camera files can be large; re-encoded to WebP by OnSiteService
+// Some phones send camera files (e.g. HEIC) as application/octet-stream; sharp then decides whether it is really an image.
+const jobPhotoFilter = (req: any, file: any, cb: any) =>
+  file.mimetype.startsWith('image/') || file.mimetype === 'application/octet-stream' ? cb(null, true) : cb(new Error('Only image files are allowed!'), false);
+// 2026-10-08 07:30, G7 Ops vendor insurance certificate: PDF or photo
+const coiFilter = (req: any, file: any, cb: any) =>
+  file.mimetype === 'application/pdf' || file.mimetype.startsWith('image/') || file.mimetype === 'application/octet-stream' ? cb(null, true) : cb(new Error('Upload a PDF or a photo of the certificate'), false);
+export const uploadCertificate = multer({ storage, fileFilter: coiFilter, limits: { fileSize: 10 * 1024 * 1024, files: 1 } }).single('file');
+export const uploadJobPhoto = multer({ storage, fileFilter: jobPhotoFilter, limits: { fileSize: 15 * 1024 * 1024, files: 1 } }).single('photo');
+
 // Middleware for multiple images
 export const uploadImages = upload.fields([
   { name: 'property_image', maxCount: 1 },

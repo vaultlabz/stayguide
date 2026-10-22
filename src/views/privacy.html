@@ -1,0 +1,104 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Privacy Policy - StayGuide</title>
+    <!-- 2026-10-22 10:59, #63 Privacy Policy. double-brace values are filled by src/utils/legal.ts from .env -->
+    <link rel="stylesheet" href="/css/theme.css">
+    <link rel="stylesheet" href="/css/legal.css">
+    <script src="/js/theme.js"></script>
+</head>
+<body>
+    <main class="legal">
+        <p class="legal-nav"><a href="/">StayGuide</a> · <a href="/terms">Terms of Service</a></p>
+        <h1>Privacy Policy</h1>
+        <p class="legal-meta">Effective {{effective_date}}</p>
+
+        <p>StayGuide is run by {{legal_name}} ("we", "us"). This policy explains what information the StayGuide service collects, why, and what you can do about it. Questions: <a href="mailto:{{contact_email}}">{{contact_email}}</a>.</p>
+
+        <h2>Who this covers</h2>
+        <ul>
+            <li><strong>Customers</strong>: hosts and property management companies with a StayGuide account, and the admins they invite.</li>
+            <li><strong>Crew</strong>: cleaners, maintenance staff and vendors a customer invites to the Ops app.</li>
+            <li><strong>Guests</strong>: people staying at a customer's property who use the in-home tablet or the phone guide link.</li>
+        </ul>
+        <p>For crew and guest information, the customer (the host or company) decides what is collected and why; we process it on their behalf. Ask them first about information they hold about you. We still answer requests sent to us.</p>
+
+        <h2>What we collect</h2>
+        <h3>Customers and admins</h3>
+        <ul>
+            <li>Name, email, company name and a password (stored only as a one-way hash).</li>
+            <li>Property content you enter: addresses, Wi-Fi details, house rules, door and access codes (access codes are stored encrypted), photos and videos, local recommendations, booking and review links.</li>
+            <li>Billing: plan, invoices and payment status. Card and bank details are entered on Stripe's pages and stay with Stripe; we never see or store full card numbers.</li>
+            <li>The date you accepted these terms and which version.</li>
+        </ul>
+        <h3>Crew (Ops app)</h3>
+        <ul>
+            <li>Name, email, optional phone and business details (for vendors, insurance certificates you upload).</li>
+            <li>Jobs, checklist results, notes, photos and time entries.</li>
+            <li><strong>Location</strong>: when you check in or out of a job, your phone's location at that moment and its distance from the property are saved with the time entry. We do not track location in the background or between check-ins.</li>
+            <li>A push notification subscription if you turn notifications on.</li>
+        </ul>
+        <h3>Guests</h3>
+        <ul>
+            <li>No account and no sign-in. Using the tablet or phone guide does not require any personal details.</li>
+            <li>Anonymous usage counts: which guide sections were opened and booking or review codes scanned. These are not linked to a name, email or device identifier of yours.</li>
+            <li>If the host turned it on, an "Are you at the property?" question; we store only the yes/no answer, not your location.</li>
+            <li>If you report an issue: the description and any name, room or phone number you choose to add, shared with the host so they can respond.</li>
+        </ul>
+        <h3>Everyone</h3>
+        <ul>
+            <li>Server logs: IP address, browser type, the page requested and the time. Login links and guide link codes are masked in logs. Logs are used for security and troubleshooting.</li>
+            <li>Your browser stores your sign-in token and display preferences (such as light or dark mode). We use no advertising or cross-site tracking cookies.</li>
+        </ul>
+
+        <h2>How we use it</h2>
+        <ul>
+            <li>To run the service: show guides, route guest reports and jobs, send the emails and notifications you asked for, and bill subscriptions.</li>
+            <li>To show customers how their guides are used and how many guests scanned their direct booking links.</li>
+            <li>To keep the service secure, prevent abuse, and fix problems.</li>
+            <li>To tell customers about changes to the service or their account.</li>
+        </ul>
+        <p>We do not sell personal information and do not use it for advertising.</p>
+
+        <h2>Who we share it with</h2>
+        <ul>
+            <li><strong>The customer</strong> whose property, team or guide the information relates to.</li>
+            <li><strong>Service providers</strong> that run parts of the service for us: our hosting provider; Stripe (payments); our email provider (account and alert emails); browser push services (Ops notifications); Open-Meteo (weather and place search; receives the property's address or coordinates, not personal details).</li>
+            <li><strong>Content a host adds</strong>: videos from YouTube (privacy-enhanced mode) or Vimeo, images and map links load from those services when a guest opens them, and those services apply their own policies.</li>
+            <li><strong>Direct booking and review links</strong> take you to the host's own website or a review site. Their privacy policies apply there. The link carries a random click code and campaign tags so the host can count bookings from StayGuide; it carries no personal information.</li>
+            <li><strong>Legal reasons</strong>: when required by law, or to protect people's safety or our rights.</li>
+            <li><strong>A business transfer</strong>, such as a merger or sale, under this policy.</li>
+        </ul>
+
+        <h2>How long we keep it</h2>
+        <ul>
+            <li>Account and property information: while the account is open, and deleted or anonymized within 90 days after it is closed, except what we must keep for tax and accounting (invoices).</li>
+            <li>Crew time entries and job history: as long as the customer keeps the account, because they may need them for payroll and records.</li>
+            <li>Server logs: up to 90 days.</li>
+            <li>Backups roll over within 30 days.</li>
+        </ul>
+
+        <h2>Your choices and rights</h2>
+        <ul>
+            <li>Customers can edit or delete their property content at any time in the dashboard, and can ask us to close the account and delete its data.</li>
+            <li>Anyone can ask to see, correct or delete personal information we hold about them, or ask how it is used, by writing to <a href="mailto:{{contact_email}}">{{contact_email}}</a>. We may need to confirm who you are and, for crew or guest information, involve the customer.</li>
+            <li>Crew can turn off location permission in the phone's settings; check-in still works without it, but the host sees that no location was recorded.</li>
+            <li>Depending on where you live (for example California or the EU/UK), you may have further rights under local law; we honor them.</li>
+        </ul>
+
+        <h2>Security</h2>
+        <p>Connections are encrypted (HTTPS), passwords are hashed, property access codes are encrypted, and staff access to data is limited. No system is perfectly secure; if a breach affects your information we will tell you as the law requires.</p>
+
+        <h2>Children</h2>
+        <p>StayGuide accounts are for adults running a business. Guests of any age may view a guide, but we do not knowingly collect personal information from children.</p>
+
+        <h2>Changes</h2>
+        <p>If we change this policy we update the date above, and for significant changes we email customers before the change takes effect.</p>
+
+        <h2>Contact</h2>
+        <p>{{legal_name}} · <a href="mailto:{{contact_email}}">{{contact_email}}</a></p>
+    </main>
+</body>
+</html>

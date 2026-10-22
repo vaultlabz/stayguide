@@ -6,6 +6,10 @@
     <title>Company Login - StayGuide</title>
     <!-- 2026-10-03 15:31, shared design tokens + light/dark theme (set before paint to avoid a flash) -->
     <link rel="stylesheet" href="/css/theme.css">
+    <!-- 2026-10-06 15:50, Snow-kit admin skin (Inter via Google Fonts, allowed by CSP) -->
+    <link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap">
+    <link rel="stylesheet" href="/css/admin-kit.css">
     <script src="/js/theme.js"></script>
     <style>
         * {
@@ -173,7 +177,7 @@
         }
     </style>
 </head>
-<body class="sg-auth">
+<body class="sg-auth snow">
     <div class="login-container">
         <div class="logo">
             <h1>StayGuide</h1>
@@ -210,7 +214,7 @@
         </form>
         
         <div class="back-link">
-            <a href="/">&larr; Back to Home</a>
+            <!-- 2026-10-09 12:19, #56 --><a href="/forgot-password">Forgot password?</a> &nbsp;·&nbsp; <a href="/">&larr; Back to Home</a>
         </div>
     </div>
 

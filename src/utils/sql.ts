@@ -13,7 +13,8 @@ export const PROPERTY_UPDATE_FIELDS = [
   // 2026-10-03 17:00, weather location + home-screen clock/temperature preferences
   'latitude', 'longitude', 'temperature_unit', 'clock_format',
   // 2026-10-03 22:42, G2 (guest_link_token is never client-writable; see PropertyService.setGuestLinkToken)
-  'guest_link_show_wifi'
+  'guest_link_show_wifi',
+  'guide_location_check' // 2026-10-10 10:28, #62 (site_lat/site_lng only via PropertyService.setSite)
 ] as const;
 
 export const AMENITY_UPDATE_FIELDS = [
@@ -25,12 +26,13 @@ export const AMENITY_ADMIN_FIELDS = ['approved_by_admin', 'is_admin_managed'] as
 
 export const COMPANY_UPDATE_FIELDS = [
   'name', 'slug', 'email', 'phone', 'address', 'logo_url', 'status',
-  'connection_fee', 'monthly_fee_per_property'
+  'connection_fee', 'monthly_fee_per_property',
+  'ops_addon' // 2026-10-07 18:30, G7: super admin only (PUT /admin/companies/:id); Stripe takes over in S9
 ] as const;
 
 export const USER_UPDATE_FIELDS = [
   'email', 'password_hash', 'first_name', 'last_name', 'role',
-  'company_id', 'status', 'last_login'
+  'company_id', 'status', 'last_login', 'password_changed_at' // 2026-10-09 12:13, #56
 ] as const;
 
 /**

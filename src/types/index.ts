@@ -19,6 +19,13 @@ export interface Company {
   stripe_subscription_id?: string | null;
   current_period_end?: Date | string | null;
   cancel_at_period_end?: boolean | number;
+  // 2026-10-07 18:30, G7 S1 Ops add-on flag (set by the super admin until Stripe billing for Ops lands in S9)
+  ops_addon?: boolean | number;
+  ops_approval_threshold?: number | string | null;
+  timezone?: string; // 2026-10-08 10:40, G7 S8 (IANA; schedules use it for local times) // 2026-10-07 22:10, G7 S2: estimates above this wait for approval (null = never)
+  closed_at?: Date | string | null; // 2026-10-22 15:52, #66 closed account (purge pending) / purged
+  purged_at?: Date | string | null;
+  presence_emails?: boolean | number; // 2026-10-10 10:28, #62 arrived/left emails (default on)
   created_at: Date;
   updated_at: Date;
 }
@@ -29,10 +36,13 @@ export interface User {
   password_hash: string;
   first_name: string;
   last_name: string;
-  role: 'super_admin' | 'company_admin';
+  role: 'super_admin' | 'company_admin' | 'field_worker'; // 2026-10-07 18:30, G7 S1: field_worker (company links live in company_workers)
   company_id?: number;
   status: 'active' | 'inactive';
   last_login?: Date;
+  password_changed_at?: Date | null; // 2026-10-09 12:13, #56 tokens issued before this are rejected
+  terms_accepted_at?: Date | null; // 2026-10-22 11:01, #63 when the Terms/Privacy were accepted (signup)
+  terms_version?: string | null;
   created_at: Date;
   updated_at: Date;
 }
@@ -69,6 +79,11 @@ export interface Property {
   // 2026-10-03 22:42, G2 public guide link
   guest_link_token?: string | null;
   guest_link_show_wifi?: boolean | number;
+  // 2026-10-10 10:28, #62 precise spot for crew check-in distance; phone guide on-site question
+  site_lat?: number | string | null;
+  site_lng?: number | string | null;
+  site_source?: 'pin' | 'qr' | null;
+  guide_location_check?: boolean | number;
   status: 'active' | 'inactive';
   created_at: Date;
   updated_at: Date;
@@ -98,6 +113,7 @@ export interface JWTPayload {
   email: string;
   role: string;
   companyId?: number;
+  iat?: number; // 2026-10-09 12:13, #56 set by jsonwebtoken (seconds)
 }
 
 export * from './billing';

@@ -1,0 +1,70 @@
+/* 2026-10-07 16:10, helpdesk pages (company + admin): page shell, ticket list, thread, forms. Uses theme.css tokens; admin-kit.css skins it. */
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body { font-family: var(--font-sans); background-color: var(--bg); color: var(--text); }
+.header { background: var(--accent); color: var(--on-accent); padding: 1rem 2rem; display: flex; justify-content: space-between; align-items: center; gap: 1rem; flex-wrap: wrap; }
+.logo { font-size: 1.5rem; font-weight: bold; }
+.nav-links { display: flex; gap: 0.5rem; }
+.nav-links a { color: var(--on-accent); text-decoration: none; padding: 0.5rem 1rem; border-radius: var(--radius-sm); }
+.nav-links a:hover, .nav-links a.active { background: color-mix(in srgb, var(--on-accent) 20%, transparent); }
+.user-info { display: flex; align-items: center; gap: 1rem; }
+.btn { display: inline-flex; align-items: center; justify-content: center; min-height: 40px; padding: 0.5rem 1rem; border: none; border-radius: var(--radius-sm); cursor: pointer; text-decoration: none; font: inherit; font-weight: 600; }
+.btn:focus-visible, .ticket-row:focus-visible { outline: 2px solid var(--text); outline-offset: 2px; }
+.btn-primary { background: var(--accent); color: var(--on-accent); }
+.btn-primary:hover { background: var(--accent-hover); }
+.btn-secondary, .btn-outline { background: transparent; color: var(--text); border: 1px solid var(--border-strong); }
+.btn-secondary:hover, .btn-outline:hover { background: var(--surface-2); }
+.btn:disabled { opacity: 0.55; cursor: not-allowed; }
+.container { max-width: 1120px; margin: 0 auto; padding: 2rem; }
+.page-head { display: flex; justify-content: space-between; align-items: flex-start; gap: 1rem; flex-wrap: wrap; margin-bottom: 1.5rem; }
+h1 { font-size: 2rem; font-weight: 500; margin-bottom: 0.4rem; }
+h2 { font-size: 1.15rem; margin-bottom: 1rem; }
+.lead, .muted { color: var(--text-muted); }
+.card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-lg); padding: 1.5rem; margin-bottom: 1.5rem; }
+.notice { padding: 0.9rem 1.1rem; border-radius: var(--radius-sm); margin-bottom: 1.25rem; background: var(--surface-2); color: var(--text-2); }
+.notice.success { background: var(--success-bg); color: var(--success-text); }
+.notice.error { background: var(--danger-bg); color: var(--danger-text); }
+
+.filters { display: flex; gap: 0.4rem; flex-wrap: wrap; margin-bottom: 1rem; }
+.filters button { border: 1px solid var(--border-strong); background: none; color: var(--text-muted); padding: 0.35rem 0.9rem; border-radius: 999px; font: inherit; cursor: pointer; }
+.filters button[aria-pressed="true"] { background: var(--accent); color: var(--on-accent); border-color: var(--accent); }
+
+.ticket-list { list-style: none; display: grid; }
+.ticket-row { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 0.25rem 1rem; padding: 0.9rem 0.25rem; border-bottom: 1px solid var(--border); text-decoration: none; color: inherit; cursor: pointer; background: none; border-left: 0; border-right: 0; border-top: 0; text-align: left; font: inherit; width: 100%; }
+.ticket-row:hover { background: var(--surface-2); }
+.ticket-subject { font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.ticket-meta { color: var(--text-muted); font-size: 0.85rem; grid-column: 1 / -1; }
+.empty { padding: 2rem 0; text-align: center; color: var(--text-muted); }
+
+.badge { display: inline-block; padding: 0.15rem 0.6rem; border-radius: 999px; font-size: 0.78rem; font-weight: 600; background: var(--surface-2); color: var(--text-2); white-space: nowrap; }
+.badge.open { background: var(--accent-soft); color: var(--text); }
+.badge.in_progress { background: var(--warning-bg, var(--accent-soft)); color: var(--warning-text, var(--text)); }
+.badge.resolved, .badge.closed { background: var(--success-bg); color: var(--success-text); }
+.badge.urgent, .badge.high { background: var(--danger-bg); color: var(--danger-text); }
+
+.thread { display: grid; gap: 0.9rem; margin: 1.25rem 0; }
+.msg { border: 1px solid var(--border); border-radius: var(--radius-sm); padding: 0.9rem 1rem; background: var(--bg); }
+.msg.staff { border-color: var(--accent); }
+.msg.internal { border-style: dashed; background: var(--surface-2); }
+.msg-head { display: flex; justify-content: space-between; gap: 1rem; flex-wrap: wrap; font-size: 0.85rem; color: var(--text-muted); margin-bottom: 0.4rem; }
+.msg-head strong { color: var(--text); }
+.msg-body { white-space: pre-wrap; overflow-wrap: anywhere; line-height: 1.55; }
+
+.form-group { display: grid; gap: 0.35rem; margin-bottom: 1rem; }
+.form-row { display: grid; grid-template-columns: minmax(0, 1fr) 200px; gap: 1rem; }
+label { font-weight: 600; font-size: 0.9rem; }
+input, select, textarea { font: inherit; color: var(--text); background: var(--bg); border: 1px solid var(--border-strong); border-radius: var(--radius-sm); padding: 0.6rem 0.75rem; width: 100%; }
+textarea { min-height: 130px; resize: vertical; }
+input:focus-visible, select:focus-visible, textarea:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
+.actions { display: flex; gap: 0.6rem; flex-wrap: wrap; align-items: center; }
+.check { display: inline-flex; gap: 0.4rem; align-items: center; font-weight: 500; }
+.check input { width: auto; }
+.back { background: none; border: 0; color: var(--accent-text); font: inherit; cursor: pointer; padding: 0; margin-bottom: 1rem; text-decoration: underline; }
+[hidden] { display: none !important; }
+
+@media (max-width: 700px) {
+    .container { padding: 1.25rem 16px; }
+    .form-row { grid-template-columns: 1fr; }
+}
+/* 2026-10-08 04:20, text-style button (e.g. "Cancel work order" on the Ops board) */
+.btn-link { background: none; border: 0; padding: 0.4rem 0; min-height: 0; color: var(--accent-text); font: inherit; text-decoration: underline; cursor: pointer; }
+.btn-link:focus-visible { outline: 2px solid var(--text); outline-offset: 2px; }

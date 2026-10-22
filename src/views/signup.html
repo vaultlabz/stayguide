@@ -30,6 +30,10 @@
         .links { text-align: center; margin-top: 1.5rem; color: var(--text-muted); font-size: 0.9rem; }
         .links a { color: var(--accent-text); text-decoration: none; }
         .links a:hover { text-decoration: underline; }
+        /* 2026-10-22 11:01, #63 Terms + Privacy acceptance */
+        .consent { display: flex; gap: 0.6rem; align-items: flex-start; margin: 0.25rem 0 1.1rem; color: var(--text-2); font-size: 0.9rem; line-height: 1.45; }
+        .consent input { width: 18px; height: 18px; margin-top: 2px; flex: none; accent-color: var(--accent); }
+        .consent a { color: var(--accent-text); }
         @media (max-width: 480px) { .signup-container { padding: 1.75rem 1.25rem; } .form-row { flex-direction: column; gap: 0; } }
     </style>
 </head>
@@ -67,6 +71,11 @@
                 <input type="password" id="password" class="form-input" minlength="8" maxlength="128" autocomplete="new-password" required>
                 <div class="hint">At least 8 characters.</div>
             </div>
+            <!-- 2026-10-22 11:01, #63 required: accept the Terms of Service and Privacy Policy -->
+            <label class="consent" for="accept_terms">
+                <input type="checkbox" id="accept_terms" required>
+                <span>I agree to the <a href="/terms" target="_blank" rel="noopener">Terms of Service</a> and <a href="/privacy" target="_blank" rel="noopener">Privacy Policy</a>.</span>
+            </label>
             <button type="submit" class="btn" id="signupBtn">Create free account</button>
         </form>
 
@@ -95,7 +104,10 @@
             const form = e.target;
             if (!form.checkValidity()) {
                 const bad = form.querySelector(':invalid');
-                showError(bad.id === 'password' ? 'Password must be at least 8 characters.' : `Please fill in ${form.querySelector(`label[for="${bad.id}"]`).textContent.toLowerCase()}.`);
+                // 2026-10-22 11:01, #63 checkbox gets its own message
+                showError(bad.id === 'password' ? 'Password must be at least 8 characters.'
+                    : bad.id === 'accept_terms' ? 'Please accept the Terms of Service and Privacy Policy.'
+                    : `Please fill in ${form.querySelector(`label[for="${bad.id}"]`).textContent.toLowerCase()}.`);
                 bad.focus();
                 return;
             }
@@ -104,6 +116,7 @@
             btn.textContent = 'Creating your account…';
             try {
                 const body = Object.fromEntries(['company_name', 'first_name', 'last_name', 'email', 'password'].map(k => [k, document.getElementById(k).value]));
+                body.accept_terms = document.getElementById('accept_terms').checked; // 2026-10-22 11:01, #63
                 const response = await fetch('/api/signup', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
                 const data = await response.json();
                 if (!response.ok) throw new Error(data.error || 'Signup failed');

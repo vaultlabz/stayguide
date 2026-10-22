@@ -1,6 +1,7 @@
 import { Request, Response } from 'express';
 import { BillingService } from '../services/BillingService';
 import { AuthRequest } from '../types';
+import { renderInvoicePdf } from '../utils/invoice-pdf'; // 2026-10-07 16:55
 
 export class BillingController {
   private billingService: BillingService;
@@ -63,7 +64,6 @@ export class BillingController {
       const billings = await this.billingService.getBillingRecordsByCompany(companyId);
       const stats = await this.billingService.getBillingStats(companyId);
       
-      console.log(`Retrieved ${billings.length} billing records for company ${companyId}`);
       res.json({ 
         success: true, 
         billings,
@@ -89,7 +89,6 @@ export class BillingController {
 
       const stats = await this.billingService.getBillingStats();
       
-      console.log('Retrieved global billing stats');
       res.json({ 
         success: true, 
         stats,
@@ -223,6 +222,30 @@ export class BillingController {
         error: 'Failed to fetch invoice details',
         details: error instanceof Error ? error.message : 'Unknown error'
       });
+    }
+  }
+
+  // 2026-10-07 16:55, GET /billing/:billingId/pdf (super admin, same rule as getInvoiceDetails)
+  async downloadInvoicePdf(req: AuthRequest, res: Response): Promise<void> {
+    try {
+      if (req.user?.role !== 'super_admin') {
+        res.status(403).json({ error: 'Super admin access required' });
+        return;
+      }
+      const billing = await this.billingService.getBillingRecordById(parseInt(req.params.billingId));
+      if (!billing) {
+        res.status(404).json({ error: 'Billing record not found' });
+        return;
+      }
+      const { company } = await this.billingService.getInvoiceWithCompanyDetails(billing.id);
+      const pdf = await renderInvoicePdf(billing, company);
+      const filename = `invoice-${String(billing.invoice_number || billing.id).replace(/[^A-Za-z0-9_-]/g, '')}.pdf`;
+      res.setHeader('Content-Type', 'application/pdf');
+      res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
+      res.send(pdf);
+    } catch (error) {
+      console.error('Error generating invoice PDF:', error);
+      res.status(500).json({ error: 'Failed to generate invoice PDF' });
     }
   }
 

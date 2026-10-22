@@ -1,7 +1,8 @@
 import { GuestReport, GuestReportWithAmenity, IntegratedReportService } from './IntegratedReportService';
 
 // Mock data for guest reports
-let mockGuestReports: GuestReportWithAmenity[] = [
+// 2026-10-08 12:30, #45: exported so scripts/seed-mysql-from-mock.js can copy the demo reports into MySQL
+export let mockGuestReports: GuestReportWithAmenity[] = [
   {
     id: 1,
     property_id: 1,

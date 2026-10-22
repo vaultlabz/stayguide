@@ -2,7 +2,8 @@ import { BillingRecord, CreateBillingRequest, BillingStats } from '../types/bill
 import { mockDelay, MOCK_MODE } from '../utils/mock-database';
 
 // Mock billing data
-const mockBillingRecords: BillingRecord[] = [
+// 2026-10-08 12:30, #45: exported so scripts/seed-mysql-from-mock.js can copy the demo invoices into MySQL
+export const mockBillingRecords: BillingRecord[] = [
   {
     id: 1,
     company_id: 1,
@@ -87,7 +88,6 @@ export class MockBillingService {
     const billing = mockBillingRecords.find(b => b.id === id);
     
     if (billing) {
-      console.log(`[MOCK] Billing record found: ${billing.invoice_number}`);
       return billing;
     }
     
@@ -100,7 +100,6 @@ export class MockBillingService {
     await mockDelay();
     const billings = mockBillingRecords.filter(b => b.company_id === companyId);
     
-    console.log(`[MOCK] Retrieved ${billings.length} billing records for company ${companyId}`);
     return billings.sort((a, b) => b.billing_period_start.getTime() - a.billing_period_start.getTime());
   }
 
@@ -142,7 +141,6 @@ export class MockBillingService {
       paid_invoices: billings.filter(b => b.status === 'paid').length
     };
     
-    console.log(`[MOCK] Billing stats calculated for ${companyId ? 'company ' + companyId : 'all companies'}`);
     return stats;
   }
 

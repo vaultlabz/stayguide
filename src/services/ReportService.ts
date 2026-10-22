@@ -76,14 +76,12 @@ class MockReportService {
 
   async getReportsByProperty(propertyId: number): Promise<GuestReport[]> {
     const propertyReports = this.reports.filter(report => report.property_id === propertyId);
-    console.log(`[MOCK] Retrieved ${propertyReports.length} reports for property ${propertyId}`);
     return propertyReports;
   }
 
   async getReportById(id: number): Promise<GuestReport | null> {
     const report = this.reports.find(r => r.id === id);
     if (report) {
-      console.log(`[MOCK] Report found: ${report.title}`);
     }
     return report || null;
   }
@@ -163,7 +161,6 @@ export class ReportService {
         [propertyId]
       );
 
-      console.log(`Retrieved ${rows.length} reports for property ${propertyId}`);
       return rows as GuestReport[];
     } catch (error) {
       console.error('Error getting reports by property:', error);
@@ -187,7 +184,6 @@ export class ReportService {
       }
 
       const report = rows[0] as GuestReport;
-      console.log(`Report found: ${report.title}`);
       return report;
     } catch (error) {
       console.error('Error getting report by id:', error);

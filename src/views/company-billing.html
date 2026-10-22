@@ -6,6 +6,10 @@
     <title>Plan &amp; Billing - StayGuide</title>
     <!-- 2026-10-03 23:06, G3: self-serve plan & billing page (Stripe Checkout / Portal). Replaces the manual-invoice view. -->
     <link rel="stylesheet" href="/css/theme.css">
+    <!-- 2026-10-06 15:50, Snow-kit admin skin (Inter via Google Fonts, allowed by CSP) -->
+    <link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap">
+    <link rel="stylesheet" href="/css/admin-kit.css">
     <script src="/js/theme.js"></script>
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
@@ -61,12 +65,17 @@
         @media (max-width: 900px) { .plans, .kits { grid-template-columns: 1fr; } .container { padding: 1.25rem; } }
     </style>
 </head>
-<body class="sg-app">
+<body class="sg-app snow">
     <div class="header">
         <div class="logo">StayGuide</div>
         <nav class="nav-links" aria-label="Main">
             <a href="#" id="dashboard-link">Dashboard</a>
+            <a href="#" id="ops-link">Work orders</a><!-- 2026-10-07 23:00, G7 S2 -->
+            <a href="#" id="team-link">Team</a><!-- 2026-10-07 19:40, G7 Ops -->
             <a href="#" id="billing-link" class="active" aria-current="page">Billing</a>
+            <!-- 2026-10-07 16:20, support tickets + help guide -->
+            <a href="#" id="support-link">Support</a>
+            <a href="#" id="help-link">Help</a>
         </nav>
         <div class="user-info">
             <div data-theme-toggle></div>
@@ -97,6 +106,10 @@
         </div>
         <div class="plans" id="plans"></div>
 
+        <!-- 2026-10-08 13:00, G7 S9: Ops add-on -->
+        <h2>Ops add-on</h2>
+        <section class="card" id="ops-card" aria-live="polite"></section>
+
         <h2>Tablet hardware</h2>
         <div class="kits" id="kits"></div>
 
@@ -114,6 +127,10 @@
         if (!authToken) window.location.href = `/company/${companySlug}/login`;
         document.getElementById('dashboard-link').href = `/company/${companySlug}/dashboard`;
         document.getElementById('billing-link').href = `/company/${companySlug}/billing`;
+        document.getElementById('support-link').href = `/company/${companySlug}/helpdesk`;
+        document.getElementById('ops-link').href = `/company/${companySlug}/ops`;
+        document.getElementById('team-link').href = `/company/${companySlug}/team`;
+        document.getElementById('help-link').href = `/company/${companySlug}/help`;
 
         let billing = null;
         let interval = 'month';
@@ -273,10 +290,51 @@
                 </tr>`).join('');
         }
 
+        // 2026-10-08 13:00, G7 S9: field team, work orders, checklists, schedules, time & pay
+        function renderOps() {
+            const o = billing.ops;
+            const price = o.price_per_property !== null ? `${money(o.price_per_property)} per property / month` : null;
+            const what = '<p class="muted" style="margin:0.35rem 0 1rem">Invite your techs, cleaners and vendors; dispatch work orders with checklists, photos and cost approval; schedule preventive maintenance; export time for payroll.</p>';
+            let body;
+            if (o.enabled) {
+                body = `<div class="current-plan">On</div>${what}${o.invoiced ? '<p class="muted">Included in your invoiced account. Contact support to change it.</p>'
+                    : `<p class="meta">${price ? price + (o.monthly_cost !== null ? ` · ${money(o.monthly_cost)} / month for ${billing.properties} propert${billing.properties === 1 ? 'y' : 'ies'}` : '') : ''}</p>
+                       <div class="plan-actions" style="margin-top:0.75rem"><a class="btn btn-primary" href="/company/${companySlug}/ops">Open work orders</a>
+                       <button class="btn btn-outline" type="button" id="ops-remove">Remove Ops</button></div>`}`;
+            } else if (o.can_add) {
+                body = `<div class="current-plan">${esc(price)}</div>${what}<p class="meta">${o.monthly_cost !== null ? `${money(o.monthly_cost)} / month for your ${billing.properties} propert${billing.properties === 1 ? 'y' : 'ies'}, added to your current subscription (prorated today).` : ''}</p>
+                       <button class="btn btn-primary" type="button" id="ops-add" style="margin-top:0.75rem">Add Ops</button>`;
+            } else {
+                const why = o.on_record && !o.enabled ? 'Ops is on your account but needs an active Pro or Portfolio plan.'
+                    : !o.for_sale ? 'Coming soon. Contact StayGuide support to try it early.'
+                    : o.needs_monthly ? 'Ops is billed monthly. Switch Pro to monthly billing (Manage billing) to add it.'
+                    : o.invoiced ? 'Your account is invoiced by StayGuide. Contact support to add Ops.'
+                    : 'Ops needs an active Pro or Portfolio plan.';
+                body = `<div class="current-plan">${price ? esc(price) : 'Ops'}</div>${what}<p class="meta">${why}</p>
+                    <a class="btn btn-outline" href="/company/${companySlug}/helpdesk?new=1" style="margin-top:0.75rem">Contact support</a>`;
+            }
+            document.getElementById('ops-card').innerHTML = body;
+            document.getElementById('ops-add')?.addEventListener('click', e => setOps(true, e.target));
+            document.getElementById('ops-remove')?.addEventListener('click', e => {
+                if (confirm('Remove Ops? Your team loses access to jobs right away; unused time is credited on your next invoice.')) setOps(false, e.target);
+            });
+        }
+        async function setOps(enable, button) {
+            button.disabled = true;
+            try {
+                await apiCall(`/company/${companySlug}/billing/ops`, { method: 'POST', body: JSON.stringify({ enable }) });
+                await load();
+                notice(enable ? 'Ops added. Invite your team from the Team page.' : 'Ops removed.', 'success');
+            } catch (error) {
+                notice(error.message, 'error');
+                button.disabled = false;
+            }
+        }
+
         async function load() {
             billing = await apiCall(`/company/${companySlug}/billing/status`);
             if (!billing) return;
-            renderCurrent(); renderPlans(); renderKits(); renderOrders();
+            renderCurrent(); renderPlans(); renderOps(); renderKits(); renderOrders();
         }
 
         document.querySelectorAll('.interval button').forEach(b => b.addEventListener('click', () => {

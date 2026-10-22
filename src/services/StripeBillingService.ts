@@ -6,8 +6,9 @@ import { db } from '../utils/database';
 import { Company } from '../types';
 import { CompanyService } from './CompanyService';
 import { countActiveProperties } from './EntitlementService';
-import { PlanId, BillingInterval, HardwareKit, PriceKey, priceId, billedQuantity } from '../config/plans';
+import { PlanId, BillingInterval, HardwareKit, PriceKey, priceId, billedQuantity, OPS_ADDON } from '../config/plans';
 import { MOCK_MODE, mockStripeEvents, mockHardwareOrders } from '../utils/mock-database';
+import { notifyOperator, formatAddress, appBase } from '../utils/operator-notify'; // 2026-10-22 16:39, #67
 
 export class BillingError extends Error {
   constructor(message: string, public status = 400) { super(message); }
@@ -50,6 +51,14 @@ const periodEnd = (sub: any): Date | null => {
   const ts = sub?.current_period_end ?? sub?.items?.data?.[0]?.current_period_end;
   return ts ? new Date(ts * 1000) : null;
 };
+
+// 2026-10-08 12:40, G7 S9: a subscription can carry the plan item and an Ops add-on item; tell them apart by price
+const opsPriceId = () => priceId('ops_month');
+const isOpsItem = (it: any) => !!opsPriceId() && it?.price?.id === opsPriceId();
+const planItem = (sub: any) => (sub?.items?.data || []).find((it: any) => !isOpsItem(it));
+const opsItem = (sub: any) => (sub?.items?.data || []).find((it: any) => isOpsItem(it));
+/** Ops can be sold when it has a price and a Stripe price id. */
+export const opsForSale = () => OPS_ADDON.price.month !== null && !!opsPriceId();
 
 export class StripeBillingService {
   private companyService = new CompanyService();
@@ -186,14 +195,51 @@ export class StripeBillingService {
     if (company.subscription_status === 'legacy' || company.subscription_status === 'canceled') return;
 
     const sub = await stripe.subscriptions.retrieve(company.stripe_subscription_id);
-    const item = sub.items.data[0];
-    if (!item) return;
-    const target = billedQuantity(company.plan as PlanId, await countActiveProperties(companyId));
-    if (item.quantity === target) return;
-    await stripe.subscriptionItems.update(item.id, {
-      quantity: target,
-      proration_behavior: target > (item.quantity || 0) ? 'create_prorations' : 'none'
+    const properties = await countActiveProperties(companyId);
+    // 2026-10-08 12:40, G7 S9: plan item and Ops item are synced separately (Ops is one unit per active property)
+    const targets: [any, number][] = [[planItem(sub), billedQuantity(company.plan as PlanId, properties)], [opsItem(sub), Math.max(1, properties)]];
+    for (const [item, target] of targets) {
+      if (!item || item.quantity === target) continue;
+      await stripe.subscriptionItems.update(item.id, {
+        quantity: target,
+        proration_behavior: target > (item.quantity || 0) ? 'create_prorations' : 'none'
+      });
+    }
+  }
+
+  // ---- 2026-10-08 12:40, G7 S9: Ops add-on on the existing subscription ----
+
+  /** Adds the Ops item (prorated now). Needs a monthly Pro/Portfolio Stripe subscription; invoiced legacy accounts are switched on by StayGuide. */
+  async enableOps(companyId: number): Promise<void> {
+    const stripe = requireStripe();
+    if (!opsForSale()) throw new BillingError('The Ops add-on is not on sale yet. Contact StayGuide support to switch it on.', 409);
+    const company = await this.companyService.findById(companyId);
+    if (!company) throw new BillingError('Company not found', 404);
+    if (company.subscription_status === 'legacy') throw new BillingError('Your account is invoiced by StayGuide. Contact support to add Ops.', 409);
+    if (!company.stripe_subscription_id || !['pro', 'portfolio'].includes(String(company.plan)) || !['active', 'trialing'].includes(String(company.subscription_status))) {
+      throw new BillingError('Ops needs an active Pro or Portfolio plan.', 409);
+    }
+    if (company.billing_interval === 'year') throw new BillingError('Ops is billed monthly. Switch Pro to monthly billing (Manage billing) to add it, or contact support.', 409);
+    const sub = await stripe.subscriptions.retrieve(company.stripe_subscription_id);
+    if (opsItem(sub)) { await this.companyService.setBillingState(companyId, { ops_addon: true }); return; }
+    await stripe.subscriptionItems.create({
+      subscription: sub.id, price: opsPriceId()!, quantity: Math.max(1, await countActiveProperties(companyId)),
+      proration_behavior: 'create_prorations', metadata: { kind: 'ops', company_id: String(companyId) }
     });
+    await this.companyService.setBillingState(companyId, { ops_addon: true });
+  }
+
+  /** Removes the Ops item; unused time is credited on the next invoice. */
+  async disableOps(companyId: number): Promise<void> {
+    const stripe = requireStripe();
+    const company = await this.companyService.findById(companyId);
+    if (!company) throw new BillingError('Company not found', 404);
+    if (company.subscription_status === 'legacy') throw new BillingError('Your account is invoiced by StayGuide. Contact support to remove Ops.', 409);
+    if (company.stripe_subscription_id) {
+      const item = opsItem(await stripe.subscriptions.retrieve(company.stripe_subscription_id));
+      if (item) await stripe.subscriptionItems.del(item.id, { proration_behavior: 'create_prorations' });
+    }
+    await this.companyService.setBillingState(companyId, { ops_addon: false });
   }
 
   // ---- Webhooks ----
@@ -226,7 +272,11 @@ export class StripeBillingService {
         break;
       case 'invoice.payment_failed': {
         const company = obj.customer ? await this.companyService.findByStripeCustomerId(obj.customer) : null;
-        if (company && company.subscription_status !== 'canceled') await this.companyService.setBillingState(company.id, { subscription_status: 'past_due' });
+        if (company && company.subscription_status !== 'canceled') {
+          const before = { ...company }; // mock mode hands out the live row
+          await this.companyService.setBillingState(company.id, { subscription_status: 'past_due' });
+          this.announce(before, { subscription_status: 'past_due' }, typeof obj.amount_due === 'number' ? obj.amount_due / 100 : null);
+        }
         break;
       }
       default:
@@ -252,7 +302,18 @@ export class StripeBillingService {
     if (meta.kind === 'hardware') {
       const paid = type === 'checkout.session.async_payment_succeeded' || session.payment_status === 'paid' || session.payment_status === 'no_payment_required';
       const failed = type === 'checkout.session.async_payment_failed';
+      const prior = await this.findHardwareOrder(session.id);
+      const wasStatus = prior?.status; // 2026-10-22 16:39, #67 announce a paid kit once
       await this.updateHardwareOrder(session.id, failed ? 'cancelled' : paid ? 'paid' : 'pending', session.amount_total, session.shipping_details || session.collected_information?.shipping_details);
+      if (paid && !failed && wasStatus !== 'paid') {
+        const shipping = session.shipping_details || session.collected_information?.shipping_details;
+        notifyOperator(`Ship a ${meta.kit || ''} kit: ${company.name}`, [
+          `${company.name} paid for a ${meta.kit} kit (${meta.mode === 'bundle' ? 'bundle with Pro' : 'one-time purchase'})${typeof session.amount_total === 'number' ? `: $${(session.amount_total / 100).toFixed(2)}` : ''}.`,
+          '', 'Ship to:', ...(shipping ? formatAddress(shipping) : ['(no shipping address on the payment: check it in Stripe)']),
+          '', `Company: ${company.name} (${company.slug}), ${company.email}`, `Order #${prior?.id ?? '?'} · Stripe checkout ${session.id}`,
+          `After shipping, mark it shipped: PUT /admin/hardware-orders/${prior?.id ?? '<id>'} {"status":"shipped"}`
+        ]);
+      }
     }
 
     // Plan subscriptions (and hardware bundles, which include Pro): link the subscription
@@ -269,23 +330,48 @@ export class StripeBillingService {
     // Only the company's current subscription drives entitlements (ignore stale/other subscriptions)
     if (company.stripe_subscription_id && company.stripe_subscription_id !== sub.id) return;
     if (deleted) {
-      await this.companyService.setBillingState(company.id, { subscription_status: 'canceled', cancel_at_period_end: false });
+      const before = { ...company }; // mock mode hands out the live row
+      await this.companyService.setBillingState(company.id, { subscription_status: 'canceled', cancel_at_period_end: false, ...(opsPriceId() ? { ops_addon: false } : {}) });
+      this.announce(before, { subscription_status: 'canceled' });
       return;
     }
     const plan = (sub.metadata?.plan || company.plan || 'pro') as PlanId;
-    const interval = (sub.metadata?.interval || sub.items?.data?.[0]?.price?.recurring?.interval || 'month') as BillingInterval;
+    const interval = (sub.metadata?.interval || planItem(sub)?.price?.recurring?.interval || 'month') as BillingInterval;
     await this.applySubscription(company.id, sub, plan, interval);
   }
 
   private async applySubscription(companyId: number, sub: any, plan: PlanId, interval: BillingInterval) {
+    const found = await this.companyService.findById(companyId); // 2026-10-22 16:39, #67 (a copy: mock mode hands out the live row)
+    const before = found ? { ...found } : null;
     await this.companyService.setBillingState(companyId, {
       plan,
       billing_interval: interval,
       subscription_status: sub.status,
       stripe_subscription_id: sub.id,
       current_period_end: periodEnd(sub),
-      cancel_at_period_end: !!sub.cancel_at_period_end
+      cancel_at_period_end: !!sub.cancel_at_period_end,
+      // 2026-10-08 12:40, G7 S9: Stripe is the source of truth for Ops once it is sold (an item removed in the Portal turns it off)
+      ...(opsPriceId() ? { ops_addon: !!opsItem(sub) } : {})
     });
+    if (before) this.announce(before, { subscription_status: sub.status, cancel_at_period_end: !!sub.cancel_at_period_end, plan, billing_interval: interval, current_period_end: periodEnd(sub) });
+  }
+
+  // ---- 2026-10-22 16:39, #67 subscription changes worth an email to the operator (each change once: compared with the state before) ----
+  private announce(before: Company, after: Partial<Company>, amount: number | null = null) {
+    const was = String(before.subscription_status || ''), now = String(after.subscription_status ?? was);
+    const paying = (st: string) => ['active', 'trialing'].includes(st);
+    const name = String(after.plan || before.plan || 'pro');
+    const plan = `${name[0].toUpperCase()}${name.slice(1)} ${(after.billing_interval || before.billing_interval) === 'year' ? 'annual' : 'monthly'}`;
+    const who = `${before.name} (${before.slug}, ${before.email})`;
+    const until = after.current_period_end || before.current_period_end;
+    const day = until ? new Date(until as any).toLocaleDateString('en-US', { dateStyle: 'medium', timeZone: 'UTC' }) : null;
+    const link = `Stripe customer: ${before.stripe_customer_id || 'n/a'} · ${appBase()}/admin/dashboard`;
+    if (paying(now) && !paying(was) && was !== 'past_due') notifyOperator(`New subscription: ${before.name}, ${plan}`, [`${who} subscribed to ${plan}.`, link]);
+    else if (paying(now) && was === 'past_due') notifyOperator(`Payment recovered: ${before.name}`, [`${who} paid; the subscription is active again (${plan}).`, link]);
+    if (now === 'past_due' && was !== 'past_due') notifyOperator(`Payment failed: ${before.name}`, [`A payment by ${who} failed${amount !== null ? ` ($${amount.toFixed(2)})` : ''}.`,
+      'Stripe retries and emails the customer; the plan keeps working while it is past due.', link]);
+    if (now === 'canceled' && was !== 'canceled') notifyOperator(`Subscription ended: ${before.name}`, [`The ${plan} subscription of ${who} ended. The account is on Free now (data kept).`, link]);
+    if (after.cancel_at_period_end && !before.cancel_at_period_end && now !== 'canceled') notifyOperator(`Cancellation scheduled: ${before.name}`, [`${who} canceled ${plan}${day ? `; it ends on ${day}` : ''}.`, link]);
   }
 
   // ---- persistence (MySQL + mock) ----
@@ -306,6 +392,12 @@ export class StripeBillingService {
       return;
     }
     await db.execute('INSERT INTO hardware_orders (company_id, kit, mode, stripe_checkout_session_id) VALUES (?, ?, ?, ?)', [companyId, kit, mode, sessionId]);
+  }
+
+  private async findHardwareOrder(sessionId: string): Promise<any | null> {
+    if (MOCK_MODE) return mockHardwareOrders.find(o => o.stripe_checkout_session_id === sessionId) || null;
+    const [rows] = await db.execute<RowDataPacket[]>('SELECT * FROM hardware_orders WHERE stripe_checkout_session_id = ?', [sessionId]);
+    return rows[0] || null;
   }
 
   private async updateHardwareOrder(sessionId: string, status: string, amountTotal: number | null, shipping: any) {
