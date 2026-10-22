@@ -164,3 +164,8 @@
 - #63 code done: /privacy + /terms (values from .env LEGAL_NAME, LEGAL_JURISDICTION, SUPPORT_EMAIL), required signup checkbox, users.terms_accepted_at/terms_version (migration 21), links on landing, phone guide, crew invite
 - Tests: unit 48/48; billing 65/65 mock + MySQL; analytics, guest-link, pricing, ops-s1, ops-s9, design, offline green; migration 21 verified
 - #63 stays pending: user sets legal name/state and reviews wording
+
+2026-10-22 11:33
+## Checkpoint (claude-code)
+- #63: operator Wingu Digital, New Mexico (.env.production.example LEGAL_NAME / LEGAL_JURISDICTION, project memory)
+- #65: DEPLOYMENT_GUIDE.md §8 server steps (Plesk offsite nightly backups 30 days, password-protected; scripts/backup-mysql.sh second copy; 90-day log rotation; restore test); script + restore rehearsed on local MySQL. Server work left for the user

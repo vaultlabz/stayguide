@@ -896,7 +896,7 @@
       "id": 63,
       "creationDate": "2026-10-22 10:49",
       "title": "Privacy Policy + Terms of Service pages, linked from signup (checkbox), footer and guest guide",
-      "description": "Launch audit 2026-10-22: no legal pages exist. App takes payments (Stripe), stores crew GPS check-ins and anonymous guest activity. Wording needs the user/legal review. 2026-10-22 11:18: code done (pages, signup checkbox, acceptance stored, migration 21). Stays pending until LEGAL_NAME / LEGAL_JURISDICTION are set and the wording is reviewed.",
+      "description": "Launch audit 2026-10-22: no legal pages exist. App takes payments (Stripe), stores crew GPS check-ins and anonymous guest activity. Wording needs the user/legal review. 2026-10-22 11:18: code done (pages, signup checkbox, acceptance stored, migration 21). Stays pending until LEGAL_NAME / LEGAL_JURISDICTION are set and the wording is reviewed. 2026-10-22 11:33: operator Wingu Digital, New Mexico (in .env.production.example). Left: confirm the exact registered name and a legal review of the wording.",
       "complexity": 4,
       "completionDate": null,
       "status": "pending",
@@ -928,7 +928,7 @@
       "id": 65,
       "creationDate": "2026-10-22 10:49",
       "title": "Production backups: nightly MySQL + public/uploads + storage/ops, one test restore",
-      "description": "Launch audit 2026-10-22: backups are a manual line in DEPLOYMENT_GUIDE.md §8; never set up or restore-tested.",
+      "description": "Launch audit 2026-10-22: backups are a manual line in DEPLOYMENT_GUIDE.md §8; never set up or restore-tested. 2026-10-22 11:33: server steps written in DEPLOYMENT_GUIDE.md §8 (Plesk Backup Manager offsite nightly, 30-day retention, password-protected; scripts/backup-mysql.sh second copy via Scheduled Tasks; 90-day log rotation; restore test). Script + restore tested on local MySQL. Left: do it on the server and record the first restore test.",
       "complexity": 2,
       "completionDate": null,
       "status": "pending",
@@ -937,7 +937,7 @@
       "context": {
         "doing": "Enabling Plesk Backup Manager and testing a restore",
         "achieve": "customer data can be recovered after a failure",
-        "according": "DEPLOYMENT_GUIDE.md §8, launch audit 2026-10-22"
+        "according": "DEPLOYMENT_GUIDE.md §8 (rewritten 2026-10-22), launch audit 2026-10-22"
       }
     }
   ]

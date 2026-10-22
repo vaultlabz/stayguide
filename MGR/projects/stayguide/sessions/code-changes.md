@@ -27,3 +27,4 @@
 2026-10-10 20:06 | claude-code | #59 production hygiene: logs without emails/tokens, CSP no unsafe-eval, CORS allowlist, generic 5xx; dashboard token swap fix after password change
 2026-10-12 02:33 | claude-code | Dashboard token swap after password change (apiCall reads saved token, retries once); src/views/company-dashboard.html, src/views/admin-dashboard.html
 2026-10-22 11:18 | claude-code | #63 Privacy + Terms pages, signup acceptance (migration 21); src/views/privacy.html, terms.html, src/utils/legal.ts, SignupController, UserService
+2026-10-22 11:33 | claude-code | #65 backup script + DEPLOYMENT_GUIDE §8 backups/log retention/restore test; LEGAL_NAME Wingu Digital (NM)

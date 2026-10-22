@@ -23,6 +23,7 @@ Short-lived facts agents should remember for this repo. Update as the project ev
 - 2026-10-05 08:20 — PRD v1.0 (Agent 44) adopted with guest product first: Free $0 (1 property, phone guide) / Pro $9.99 per property per month or $89/yr / Portfolio $32 per 5-property block; hardware Desk/Wall kits $399/$699 or $39/$49 per month bundles; Ops tier (field/maintenance app, G7) priced separately later
 - 2026-10-05 08:20 — Hardware: generic RK3568-class Android AIO kits allowed, gated by /tablet/diagnostics + the vetting checklist in docs/KIOSK_SETUP.md
 - 2026-10-05 08:20 — Stripe: the sandbox is the Wingu Digital test account (key from ~/Desktop/ctrl/master.txt "stripe (test)", never the live key there); prices via `npm run stripe:setup`; payments = cards + ACH + bank transfer; webhooks idempotent
+- 2026-10-22 11:33 — StayGuide is run by Wingu Digital, New Mexico: LEGAL_NAME / LEGAL_JURISDICTION on /terms and /privacy (#63)
 - 2026-10-05 08:20 — Design partner "Trinity" (Vault Labs) gets updates via docs/TRINITY_DESIGN_UPDATE.md + docs/screenshots/
 
 ## Conventions (mgr protocol)
