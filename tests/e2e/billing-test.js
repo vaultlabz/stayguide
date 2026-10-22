@@ -82,7 +82,13 @@ async function webhook(type, object, opts = {}) {
   killPort(FAKE_PORT);
   await new Promise(r => fake.listen(FAKE_PORT, r));
   const env = { ...process.env, PORT: H.PORT, MOCK_DATABASE: process.env.TEST_MOCK_DATABASE || 'true', APP_BASE_URL: '', STRIPE_SECRET_KEY: 'sk_test_fake', STRIPE_WEBHOOK_SECRET: WEBHOOK_SECRET, STRIPE_API_HOST: 'localhost', STRIPE_API_PORT: String(FAKE_PORT), STRIPE_API_PROTOCOL: 'http', ...PRICES };
-  spawn('npx', ['ts-node', 'src/index.ts'], { cwd: H.ROOT, env, stdio: 'ignore', detached: true });
+  // 2026-10-22 16:40, #67 server output kept: operator notices (to SUPPORT_EMAIL) are read from the mock email log
+  env.SUPPORT_EMAIL = 'ops@stayguide.test';
+  let log = '';
+  const srv = spawn('npx', ['ts-node', 'src/index.ts'], { cwd: H.ROOT, env, stdio: ['ignore', 'pipe', 'pipe'], detached: true });
+  srv.stdout.on('data', d => { log += d; }); srv.stderr.on('data', d => { log += d; });
+  const notices = async () => { await sleep(400); return [...log.matchAll(/To: ops@stayguide\.test\nSubject: \[StayGuide\] (.+)/g)].map(m => m[1]); };
+  const count = (list, start) => list.filter(x => x.startsWith(start)).length;
   for (let i = 0; i < 60; i++) { try { if ((await fetch(B + '/api/health')).ok) break; } catch {} await sleep(500); }
   const J = { 'content-type': 'application/json' };
 
@@ -106,6 +112,8 @@ async function webhook(type, object, opts = {}) {
   const C = B + `/company/${su.company.slug}`;
   const su2 = await (await fetch(B + '/api/signup', { method: 'POST', headers: J, body: JSON.stringify({ accept_terms: true, company_name: 'Sunset Stays', first_name: 'Ana', last_name: 'Diaz', email: 'ana@sunset2.test', password: 'sunset-pass-2' }) })).json();
   check('slug collision gets a unique suffix', /^sunset-stays-[0-9a-f]{6}$/.test(su2.company.slug), su2.company.slug);
+  let nl = await notices();
+  check('#67 operator notice per signup', count(nl, 'New signup: Sunset Stays!') === 1 && count(nl, 'New signup: Sunset Stays') === 2, JSON.stringify(nl));
 
   // ---- Free plan gating
   let r = await fetch(C + '/properties', { method: 'POST', headers: A, body: JSON.stringify({ name: 'Beach Hut', slug: 'beach-hut', wifi_name: 'Hut', wifi_password: 'hutpass1' }) });
@@ -152,6 +160,8 @@ async function webhook(type, object, opts = {}) {
   check('checkout.session.completed accepted', wh.status === 200 && wh.body.duplicate === false);
   wh = await webhook('checkout.session.completed', sessionObj, { id: 'evt_checkout_1' });
   check('same event again → duplicate, ignored', wh.status === 200 && wh.body.duplicate === true);
+  nl = await notices();
+  check('#67 operator notice: new subscription, once', count(nl, 'New subscription: Sunset Stays!, Pro monthly') === 1, JSON.stringify(nl));
   st = await (await fetch(C + '/billing/status', { headers: A })).json();
   check('company now Pro, active, renews', st.plan === 'pro' && st.status === 'active' && st.interval === 'month' && !!st.current_period_end && st.has_billing_account);
   check('second checkout blocked while subscribed → 409', (await fetch(C + '/billing/checkout', { method: 'POST', headers: A, body: JSON.stringify({ plan: 'pro' }) })).status === 409);
@@ -175,7 +185,12 @@ async function webhook(type, object, opts = {}) {
   const dev = await (await fetch(B + '/device/pair', { method: 'POST', headers: J, body: JSON.stringify({ code: pc.code }) })).json();
   const devContent = () => fetch(B + '/device/content', { headers: { Authorization: 'Device ' + dev.token } });
   check('Pro tablet gets content', (await devContent()).status === 200);
+  await webhook('customer.subscription.updated', { ...sub, cancel_at_period_end: true });
+  await webhook('customer.subscription.updated', { ...sub, cancel_at_period_end: false });
+  nl = await notices();
+  check('#67 operator notice: cancellation scheduled', count(nl, 'Cancellation scheduled: Sunset Stays!') === 1 && count(nl, 'New subscription') === 1, JSON.stringify(nl));
   await webhook('customer.subscription.updated', { ...sub, status: 'past_due' });
+  await webhook('invoice.payment_failed', { id: 'in_1', object: 'invoice', customer, amount_due: 999 });
   st = await (await fetch(C + '/billing/status', { headers: A })).json();
   check('past_due keeps Pro (grace)', st.plan === 'pro' && st.status === 'past_due' && (await devContent()).status === 200);
   await webhook('customer.subscription.updated', { ...sub, id: 'sub_someone_else', status: 'canceled' });
@@ -183,6 +198,8 @@ async function webhook(type, object, opts = {}) {
   check('events for another subscription are ignored', st.status === 'past_due');
   await webhook('customer.subscription.deleted', { ...sub, status: 'canceled' });
   st = await (await fetch(C + '/billing/status', { headers: A })).json();
+  nl = await notices();
+  check('#67 operator notices: payment failed once, subscription ended', count(nl, 'Payment failed: Sunset Stays!') === 1 && count(nl, 'Subscription ended: Sunset Stays!') === 1, JSON.stringify(nl));
   check('cancelled → effective plan Free', st.plan === 'free' && st.subscribed_plan === 'pro' && st.status === 'canceled');
   r = await devContent();
   check('cancelled: tablet gets 402 subscription_required', r.status === 402 && (await r.json()).code === 'subscription_required');
@@ -213,6 +230,10 @@ async function webhook(type, object, opts = {}) {
   await webhook('checkout.session.completed', { id: order.stripe_checkout_session_id, object: 'checkout.session', mode: 'payment', customer, payment_status: 'paid', amount_total: 39900, metadata: { company_id: String(su.company.id), kind: 'hardware', kit: 'desk', mode: 'purchase' }, shipping_details: { name: 'Maya Lopez', address: { city: 'Santa Monica' } } });
   st = await (await fetch(C + '/billing/status', { headers: A })).json();
   check('paid webhook → order paid with amount', st.hardware_orders[0].status === 'paid' && Number(st.hardware_orders[0].amount_total) === 399);
+  await webhook('checkout.session.async_payment_succeeded', { id: order.stripe_checkout_session_id, object: 'checkout.session', mode: 'payment', customer, payment_status: 'paid', amount_total: 39900, metadata: { company_id: String(su.company.id), kind: 'hardware', kit: 'desk', mode: 'purchase' } });
+  nl = await notices();
+  const ship = log.slice(log.lastIndexOf('Subject: [StayGuide] Ship a desk kit'));
+  check('#67 operator notice: kit to ship, once, with address and amount', count(nl, 'Ship a desk kit: Sunset Stays!') === 1 && ship.includes('Santa Monica') && ship.includes('Maya Lopez') && ship.includes('$399.00'), JSON.stringify(nl));
   const sa = await (await fetch(B + '/admin/login', { method: 'POST', headers: J, body: JSON.stringify({ email: 'admin@stayguide.com', password: 'admin123' }) })).json();
   const SA = { ...J, Authorization: 'Bearer ' + sa.token };
   const orders = await (await fetch(B + '/admin/hardware-orders', { headers: SA })).json();
@@ -271,6 +292,7 @@ async function webhook(type, object, opts = {}) {
   check('status reports billing_configured=false', s2.billing_configured === false);
 
   killPort(H.PORT); fake.close();
+  if (process.env.DUMP_LOG) require("fs").writeFileSync(H.OUT + "/billing-server.log", log);
   console.log(out.join('\n'));
   const failed = out.filter(l => l.startsWith('FAIL')).length;
   console.log(`\n${out.length - failed}/${out.length} billing checks passed`);

@@ -5,6 +5,7 @@ import { CompanyService } from '../services/CompanyService';
 import { UserService } from '../services/UserService';
 import { generateToken } from '../utils/auth';
 import { TERMS_VERSION } from '../utils/legal'; // 2026-10-22 11:01, #63
+import { notifyOperator, appBase } from '../utils/operator-notify'; // 2026-10-22 16:39, #67
 
 const EMAIL = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/;
 
@@ -59,6 +60,7 @@ export class SignupController {
 
       const token = generateToken({ userId: user.id, email: user.email, role: user.role, companyId: company.id });
       console.log(`Self-serve signup: ${company.name} (${company.slug})`);
+      notifyOperator(`New signup: ${company.name}`, [`${user.first_name} ${user.last_name} <${user.email}> created ${company.name} (${company.slug}) on the Free plan.`, `${appBase()}/admin/dashboard`]); // 2026-10-22 16:39, #67
       res.status(201).json({
         message: 'Account created',
         token,
