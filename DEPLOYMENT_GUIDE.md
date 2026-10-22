@@ -11,7 +11,7 @@ value is missing or a placeholder, and lists what to fix in the Node.js log. Opt
 - [ ] Domain points at the Plesk server, **Let's Encrypt (or other) SSL on**, "Permanent 301 redirect from HTTP to HTTPS" ticked
 - [ ] Plesk Node.js extension with **Node 20.9 or newer** (`package.json` `engines`; the startup check enforces it)
 - [ ] A MySQL 8+ database and a dedicated user with full rights on that database only
-- [ ] A mailbox for sending (e.g. `billing@yourdomain.com`) and its SMTP details
+- [ ] A mailbox for sending (e.g. `billing@stayguide.pro`) and its SMTP details
 
 ## 2. Get the code on the server
 
@@ -33,7 +33,7 @@ everything in. Required at startup:
 | Setting | Value |
 |---|---|
 | `NODE_ENV` | `production` |
-| `APP_BASE_URL` | `https://yourdomain.com` (emails, guest links, QR codes, Stripe redirects) |
+| `APP_BASE_URL` | `https://stayguide.pro` (emails, guest links, QR codes, Stripe redirects) |
 | `TRUST_PROXY` | `1` (warning only, but needed behind Plesk nginx for correct rate limits) |
 | `MOCK_DATABASE` | `false` |
 | `DB_HOST` `DB_PORT` `DB_USER` `DB_PASSWORD` `DB_NAME` | from Plesk → Databases |
@@ -55,7 +55,7 @@ node -e "require('bcryptjs').hash(process.argv[1], 12).then(console.log)" 'YOUR-
 ```
 
 ```sql
-UPDATE users SET email = 'you@yourdomain.com', password_hash = '<hash from above>' WHERE role = 'super_admin';
+UPDATE users SET email = 'you@stayguide.pro', password_hash = '<hash from above>' WHERE role = 'super_admin';
 ```
 
 **Existing database:** back it up, then apply the migrations in `database/migrations/` **in the order listed in its README**
@@ -73,15 +73,16 @@ UPDATE users SET email = 'you@yourdomain.com', password_hash = '<hash from above
 1. Switch the dashboard to live mode and create the same products/prices as in test mode (BILLING_SETUP §1; `npm run stripe:setup`
    only accepts test keys, so copy the products to live mode in the dashboard)
 2. Paste `sk_live_...` into `STRIPE_SECRET_KEY` and every `STRIPE_PRICE_*`
-3. Developers → Webhooks → add `https://yourdomain.com/billing/webhook` with the events in BILLING_SETUP §4; paste its signing secret
+3. Developers → Webhooks → add `https://stayguide.pro/billing/webhook` with the events in BILLING_SETUP §4; paste its signing secret
    into `STRIPE_WEBHOOK_SECRET`
 4. Payment methods, Customer Portal and branding as in BILLING_SETUP §2–3 (task #42)
 
 ## 7. Smoke test
 
 ```bash
-curl -s https://yourdomain.com/api/health        # {"status":"healthy",...,"database":"connected"}
-curl -sI http://yourdomain.com | head -1          # 301 to https
+curl -s https://stayguide.pro/api/health        # {"status":"healthy",...,"database":"connected"}
+curl -sI http://stayguide.pro | head -1          # 301 to https
+curl -sI https://stayguidepro.app | head -1      # 301 to https://stayguide.pro (second domain)
 ```
 
 - [ ] Log in at `/admin/login` as the super admin
@@ -175,7 +176,7 @@ backup password. Write the date and the counts into task #65 / the session log.
   On by default in production (`ALERTS=off` turns it off). They go out through the normal SMTP settings, so if email
   is broken, alerts are too. That is why an outside monitor is needed as well
 - **Outside uptime monitor** (a crashed server or dead host can't email anyone): a free UptimeRobot or Better Stack
-  account → new **HTTP(s)** monitor → `https://yourdomain.com/api/health`, every **5 minutes**, alert by email + phone app.
+  account → new **HTTP(s)** monitor → `https://stayguide.pro/api/health`, every **5 minutes**, alert by email + phone app.
   The endpoint runs a real database query: it answers **200** `"database":"connected"`, or **503** `"database":"unreachable"`
   when MySQL is down, so the monitor catches database outages too. Optional: keyword monitor for `"healthy"`
 - Test once: pause the Node.js app in Plesk for ~6 minutes → the monitor alerts; start it again → recovery alert

@@ -1949,3 +1949,24 @@
 - `ops-s9-test.js`: closing a company with a live subscription sends `DELETE /v1/subscriptions/:id` with `prorate=false`, status becomes canceled and Ops turns off (26/26)
 - Not covered: the Terms still say "cancel any subscription first"; closing cancels it anyway, without a refund for the paid period
 - Regression: tsc clean; unit 54/54; mock admin-functions 24/24, design 326/326, tenancy 34/34, ops-s6 38/38, ops-s8 31/31, presence 65/65, billing 65/65; MySQL closure, ops-s9 26/26, ops-s8 31/31
+
+## 2026-10-22 16:22 - DOCS: Production domain stayguide.pro (stayguidepro.app redirects)
+
+**What Changed:**
+- ✅ `yourdomain.com` replaced with `stayguide.pro` in `docs/LAUNCH_TODO.md`, `DEPLOYMENT_GUIDE.md`, `.env.production.example`
+- ✅ LAUNCH_TODO: domain decision ticked; new steps for the stayguidepro.app 301 forward, www redirect, email DNS (SPF, DKIM, DMARC), support address
+- ✅ DEPLOYMENT_GUIDE smoke test: curl check that stayguidepro.app answers 301 to stayguide.pro
+
+**Why:**
+- The owner has both domains; stayguide.pro matches the product name and is shorter for QR stickers and guest links
+- "stayguidepro" would read as the Pro plan on every customer's links
+
+**How:**
+- One canonical `APP_BASE_URL`; the second domain is a Plesk forwarding domain, not a second app binding
+
+**Impact:**
+- **One set of links**: guest links, QR codes, emails and Stripe redirects all use stayguide.pro
+- **Deliverable email**: DNS steps listed before the first real customer email
+
+**Technical Details:**
+- No code change; APP_BASE_URL drives every absolute URL

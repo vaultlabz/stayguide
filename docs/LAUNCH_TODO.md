@@ -3,7 +3,7 @@
 <!-- 2026-10-22 11:43, launch audit follow-up: the steps only the owner can do (accounts, server, legal). Code-side work is done
      unless a step says otherwise. Details live in DEPLOYMENT_GUIDE.md and docs/BILLING_SETUP.md; this is the order to do them in. -->
 
-Operator: **Wingu Digital**, New Mexico. Replace `yourdomain.com` with the real domain throughout.
+Operator: **Wingu Digital**, New Mexico. Main domain: **stayguide.pro**; **stayguidepro.app** redirects to it (2026-10-22 16:22).
 Tick boxes as you go. Tasks in `MGR/projects/stayguide/tasks.json` are in brackets.
 
 ---
@@ -11,7 +11,8 @@ Tick boxes as you go. Tasks in `MGR/projects/stayguide/tasks.json` are in bracke
 ## 1. Decisions (5 minutes)
 
 - [ ] **Exact legal name** for the Terms/Privacy pages: "Wingu Digital" or "Wingu Digital LLC" (as registered with the NM Secretary of State). Goes in `LEGAL_NAME` [#63]
-- [ ] **Production domain** (e.g. `stayguide.app`): used for `APP_BASE_URL`, the Stripe webhook and the uptime monitor
+- [x] **Production domain**: `stayguide.pro` (main, `APP_BASE_URL`, Stripe webhook, uptime monitor); `stayguidepro.app` 301-redirects to it
+- [ ] **Support address** (e.g. `support@stayguide.pro`) for `SUPPORT_EMAIL`, shown on /terms and /privacy
 - [ ] **Stripe account**: keep using the Wingu Digital account with StayGuide branding, **or** add a separate "StayGuide" account under the same login (Stripe → account menu → *New account*). Separate is cleaner if Wingu Digital bills other products on Stripe [#42]
 - [ ] **Alert inbox**: which email gets error alerts (`ALERT_EMAIL`), and who receives uptime alerts on their phone [#64]
 
@@ -40,9 +41,9 @@ Do this in the dashboard with **Test mode OFF**.
   - update payment methods, view invoices: on
   - cancel subscriptions: on, **at end of billing period**
   - switch plans: on, with Pro monthly, Pro annual and Portfolio as the allowed products/prices
-  - links to your Terms (`https://yourdomain.com/terms`) and Privacy (`/privacy`)
+  - links to your Terms (`https://stayguide.pro/terms`) and Privacy (`/privacy`)
 - [ ] **Branding** (Settings → Branding, and Settings → Business → Public details): public business name **StayGuide**, icon/logo, brand color (teal `#1d6b60`), support email, statement descriptor e.g. `STAYGUIDE`. This replaces the "Wingu Digital" you see in the sandbox
-- [ ] **Webhook** (Developers → Webhooks → Add endpoint): `https://yourdomain.com/billing/webhook` with events
+- [ ] **Webhook** (Developers → Webhooks → Add endpoint): `https://stayguide.pro/billing/webhook` with events
   `checkout.session.completed`, `checkout.session.async_payment_succeeded`, `checkout.session.async_payment_failed`,
   `customer.subscription.created`, `customer.subscription.updated`, `customer.subscription.deleted`, `invoice.payment_failed`.
   Copy the **signing secret** (`whsec_...`)
@@ -50,12 +51,14 @@ Do this in the dashboard with **Test mode OFF**.
 
 ## 5. Server setup [#46] (DEPLOYMENT_GUIDE.md §1–7)
 
-- [ ] Domain points at the Plesk server; SSL on (Let's Encrypt) with HTTP → HTTPS redirect
+- [ ] `stayguide.pro` points at the Plesk server; SSL on (Let's Encrypt) with HTTP → HTTPS redirect; `www.stayguide.pro` redirects to the bare domain
+- [ ] `stayguidepro.app`: add in Plesk as a forwarding domain, **301** to `https://stayguide.pro`, with its own Let's Encrypt certificate (.app only works over HTTPS). Do not run the Node app on it too (links and sessions would split)
+- [ ] Email DNS on `stayguide.pro`: SPF, DKIM (Plesk → Mail → turn on DKIM) and a DMARC record (start with `v=DMARC1; p=none; rua=mailto:<your inbox>`), so guest-report and invite emails don't land in spam
 - [ ] Plesk Node.js with **Node 20.9+**; a MySQL 8+ database + its own user
-- [ ] Sending mailbox + SMTP details (e.g. `noreply@yourdomain.com`)
+- [ ] Sending mailbox + SMTP details (e.g. `noreply@stayguide.pro`)
 - [ ] Code via Plesk Git from `main`, then `npm ci && npm run build:clean`
 - [ ] `.env` from `.env.production.example`, filled in. Generate secrets with `openssl rand -hex 32`:
-  - `NODE_ENV=production`, `APP_BASE_URL=https://yourdomain.com`, `TRUST_PROXY=1`, `MOCK_DATABASE=false`, `DB_*`
+  - `NODE_ENV=production`, `APP_BASE_URL=https://stayguide.pro`, `TRUST_PROXY=1`, `MOCK_DATABASE=false`, `DB_*`
   - `JWT_SECRET`, `OPS_SECRET_KEY` (**save `OPS_SECRET_KEY` in the password manager**: door codes can't be read without it)
   - `EMAIL_PROVIDER=smtp`, `SMTP_*`, `FROM_EMAIL`, `SUPPORT_EMAIL`
   - `STRIPE_SECRET_KEY`, `STRIPE_WEBHOOK_SECRET`, the 7 `STRIPE_PRICE_*` from step 4
@@ -74,13 +77,13 @@ Do this in the dashboard with **Test mode OFF**.
 
 ## 7. Monitoring [#64] (DEPLOYMENT_GUIDE.md §8e)
 
-- [ ] UptimeRobot or Better Stack (free): HTTP(s) monitor on `https://yourdomain.com/api/health`, every 5 minutes, alerts by email + phone app
+- [ ] UptimeRobot or Better Stack (free): HTTP(s) monitor on `https://stayguide.pro/api/health`, every 5 minutes, alerts by email + phone app
 - [ ] Test it: stop the Node.js app in Plesk ~6 minutes → alert arrives → start it → recovery alert
 - [ ] `ALERT_EMAIL` set (step 5). Error emails start automatically in production
 
 ## 8. Smoke test (DEPLOYMENT_GUIDE.md §7)
 
-- [ ] `https://yourdomain.com/api/health` → `"database":"connected"`; `http://` redirects to `https://`
+- [ ] `https://stayguide.pro/api/health` → `"database":"connected"`; `http://` redirects to `https://`
 - [ ] `/privacy` and `/terms` show Wingu Digital and New Mexico
 - [ ] Sign up on `/signup` (the Terms checkbox is required) → Billing → Pro → pay with a **real card** → plan shows **Active** → refund it in Stripe
 - [ ] Pair a tablet, open the phone guide link, file a guest report → the urgent report email arrives
