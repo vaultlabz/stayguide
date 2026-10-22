@@ -1970,3 +1970,22 @@
 
 **Technical Details:**
 - No code change; APP_BASE_URL drives every absolute URL
+
+## 2026-10-22 16:30 - DOCS: stayguidepro.app reserved for the maintenance app
+
+**What Changed:**
+- ✅ LAUNCH_TODO, DEPLOYMENT_GUIDE: stayguidepro.app forwards with a **302** (temporary) instead of 301; noted as reserved for a separate maintenance app later
+- ✅ Project memory: what moving `/maint` to its own domain would involve
+
+**Why:**
+- Owner: stayguide.pro for now, the .app domain perhaps for the maintenance part later
+- A 301 is cached by browsers, which would keep sending crew phones to stayguide.pro after a switch
+
+**How:**
+- Docs only; the crew app keeps running at `stayguide.pro/maint`
+
+**Impact:**
+- **Option kept open**: the .app domain can become the crew app without fighting cached redirects
+
+**Technical Details:**
+- A later move is a new browser origin: workers sign in again and re-enable push (service worker + subscriptions are per origin); CORS allowlist and the /maint links in emails would need a second base URL

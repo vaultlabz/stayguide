@@ -82,7 +82,7 @@ UPDATE users SET email = 'you@stayguide.pro', password_hash = '<hash from above>
 ```bash
 curl -s https://stayguide.pro/api/health        # {"status":"healthy",...,"database":"connected"}
 curl -sI http://stayguide.pro | head -1          # 301 to https
-curl -sI https://stayguidepro.app | head -1      # 301 to https://stayguide.pro (second domain)
+curl -sI https://stayguidepro.app | head -1      # 302 to https://stayguide.pro (reserved for the maintenance app later)
 ```
 
 - [ ] Log in at `/admin/login` as the super admin

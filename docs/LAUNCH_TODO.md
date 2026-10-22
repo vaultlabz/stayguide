@@ -3,7 +3,7 @@
 <!-- 2026-10-22 11:43, launch audit follow-up: the steps only the owner can do (accounts, server, legal). Code-side work is done
      unless a step says otherwise. Details live in DEPLOYMENT_GUIDE.md and docs/BILLING_SETUP.md; this is the order to do them in. -->
 
-Operator: **Wingu Digital**, New Mexico. Main domain: **stayguide.pro**; **stayguidepro.app** redirects to it (2026-10-22 16:22).
+Operator: **Wingu Digital**, New Mexico. Main domain: **stayguide.pro** (everything, including the crew app at `/maint`). **stayguidepro.app** is kept for a possible separate maintenance app later; until then it redirects to stayguide.pro (2026-10-22 16:30).
 Tick boxes as you go. Tasks in `MGR/projects/stayguide/tasks.json` are in brackets.
 
 ---
@@ -11,7 +11,7 @@ Tick boxes as you go. Tasks in `MGR/projects/stayguide/tasks.json` are in bracke
 ## 1. Decisions (5 minutes)
 
 - [ ] **Exact legal name** for the Terms/Privacy pages: "Wingu Digital" or "Wingu Digital LLC" (as registered with the NM Secretary of State). Goes in `LEGAL_NAME` [#63]
-- [x] **Production domain**: `stayguide.pro` (main, `APP_BASE_URL`, Stripe webhook, uptime monitor); `stayguidepro.app` 301-redirects to it
+- [x] **Production domain**: `stayguide.pro` (main, `APP_BASE_URL`, Stripe webhook, uptime monitor); `stayguidepro.app` reserved for the maintenance app later, redirects for now
 - [ ] **Support address** (e.g. `support@stayguide.pro`) for `SUPPORT_EMAIL`, shown on /terms and /privacy
 - [ ] **Stripe account**: keep using the Wingu Digital account with StayGuide branding, **or** add a separate "StayGuide" account under the same login (Stripe → account menu → *New account*). Separate is cleaner if Wingu Digital bills other products on Stripe [#42]
 - [ ] **Alert inbox**: which email gets error alerts (`ALERT_EMAIL`), and who receives uptime alerts on their phone [#64]
@@ -52,7 +52,7 @@ Do this in the dashboard with **Test mode OFF**.
 ## 5. Server setup [#46] (DEPLOYMENT_GUIDE.md §1–7)
 
 - [ ] `stayguide.pro` points at the Plesk server; SSL on (Let's Encrypt) with HTTP → HTTPS redirect; `www.stayguide.pro` redirects to the bare domain
-- [ ] `stayguidepro.app`: add in Plesk as a forwarding domain, **301** to `https://stayguide.pro`, with its own Let's Encrypt certificate (.app only works over HTTPS). Do not run the Node app on it too (links and sessions would split)
+- [ ] `stayguidepro.app` (for now): add in Plesk as a forwarding domain, **302** (temporary, so browsers don't cache it if it becomes the maintenance app) to `https://stayguide.pro`, with its own Let's Encrypt certificate (.app only works over HTTPS). Do not run the Node app on it too (links and sessions would split)
 - [ ] Email DNS on `stayguide.pro`: SPF, DKIM (Plesk → Mail → turn on DKIM) and a DMARC record (start with `v=DMARC1; p=none; rua=mailto:<your inbox>`), so guest-report and invite emails don't land in spam
 - [ ] Plesk Node.js with **Node 20.9+**; a MySQL 8+ database + its own user
 - [ ] Sending mailbox + SMTP details (e.g. `noreply@stayguide.pro`)
