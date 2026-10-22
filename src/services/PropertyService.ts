@@ -27,7 +27,6 @@ export class PropertyService {
       }
 
       const property = rows[0] as Property;
-      console.log(`Property found: ${property.name}`);
       return property;
     } catch (error) {
       console.error('Error finding property by ID:', error);
@@ -84,7 +83,6 @@ export class PropertyService {
       }
 
       const property = rows[0] as Property;
-      console.log(`Property found by slug: ${property.name}`);
       return property;
     } catch (error) {
       console.error('Error finding property by slug:', error);
@@ -104,7 +102,6 @@ export class PropertyService {
       );
 
       const properties = rows as Property[];
-      console.log(`Retrieved ${properties.length} properties for company ${companyId}`);
       return properties;
     } catch (error) {
       console.error('Error getting properties by company:', error);
@@ -270,7 +267,6 @@ export class PropertyService {
         amenities
       };
 
-      console.log(`Property with content retrieved: ${property.name}`);
       return result;
     } catch (error) {
       console.error('Error getting property with content:', error);

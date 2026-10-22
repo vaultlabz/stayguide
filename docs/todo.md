@@ -1806,3 +1806,34 @@
 - Tests: `tests/e2e/presence-test.js` 65/65 on mock and on MySQL (2×); unit 45/45 (geo parsing/distances). Migration 20 applied to `stayguide_migtest` gives the same column definitions as a fresh `schema.sql`
 - Not in scope: background detection with the app closed (native app), smart lock / Airbnb stay dates, forgot-to-check-out and off-site alert emails
 - 2026-10-10 11:23: the dashboard's presence load made design-test's "Find from address" miss its fixed 800 ms wait in mock mode (every mock request takes ~1 s; opening the editor already fires ~6 at once). The editor now reuses the cards' presence data, only one presence request runs at a time, and the test waits for the lookup answer instead of sleeping
+
+## 2026-10-10 19:40 - SECURITY: #59 Production hygiene (logs, CSP, CORS, error messages)
+
+**What Changed:**
+- ✅ Removed 47 per-request / read-only console.log lines: "Authenticated user: <email>" on every API call, role/access-granted lines, password-hash/JWT success lines, "User/Company/Property/Report found", "Retrieved N …", "Password validated for <email>", duplicate [EMAIL] send lines
+- ✅ CSP: script-src drops 'unsafe-eval' (no view or /js file uses eval/new Function)
+- ✅ CORS: off by default; only origins in the new CORS_ORIGINS env var (comma-separated) get CORS headers
+- ✅ Access log (morgan): query strings and link tokens (/g/, invite, QR scan) are masked as ***, referrer dropped
+- ✅ Error handler: 5xx responses say "Internal server error" in production instead of the internal message
+- ✅ Startup prints port + environment only (route list removed)
+
+**Why:**
+- User emails were written to the server log on every request (PII, noise)
+- Password-reset links (?token=) and guest-link / invite / QR tokens ended up in the access log
+- 'unsafe-eval' and open CORS widened the attack surface for no use
+
+**How:**
+- Line-based removal script (only whole-line console.log statements, never after a brace-less if/else)
+- morgan custom token 'safe-url' and a combined-like format without :referrer
+- CORS middleware only mounted when CORS_ORIGINS is set; documented in .env examples and DEPLOYMENT_GUIDE.md
+
+**Impact:**
+- **Privacy**: no emails or secrets in routine logs
+- **Security**: stricter CSP, no cross-site API access, no internal error text leaked
+- **Ops**: logs keep change events (created/updated/deleted, logins, emails sent) and errors
+
+**Technical Details:**
+- Kept: mock email printout (tests read invite/reset links from it; only when SMTP is not configured), mutation audit lines, console.error
+- 'unsafe-inline' stays for scripts: every view uses inline scripts and onclick handlers; moving them out is a larger change
+- Verified on a test server: no Access-Control headers for a foreign Origin, script-src 'self' 'unsafe-inline', log shows /reset-password, /g/***/content, /maint/scan/*** with no tokens
+- 2026-10-10 20:06: found while testing #59: after a password change the dashboards (company + super admin) kept the old token in memory; any request still using it got 401 (old sessions are signed out by #56), which deleted the new token and sent the user to the login page. Hidden before because the test logged in and changed the password within the same second. Fix: apiCall reads the saved token on every call and, on a 401 for a token that has since been replaced, retries with the new one. password-test 33/33 (4 runs; failed 2 of 3 before)

@@ -9,7 +9,6 @@ export class MockCompanyService {
     const company = mockCompanies.find(c => c.id === id);
     
     if (company) {
-      console.log(`[MOCK] Company found: ${company.name}`);
       return company as unknown as Company;
     }
     
@@ -23,7 +22,6 @@ export class MockCompanyService {
     const company = mockCompanies.find(c => c.slug === slug && c.status === 'active');
     
     if (company) {
-      console.log(`[MOCK] Company found by slug: ${company.name}`);
       return company as unknown as Company;
     }
     
@@ -34,7 +32,6 @@ export class MockCompanyService {
     if (!MOCK_MODE) return [];
     
     await mockDelay();
-    console.log(`[MOCK] Retrieved ${mockCompanies.length} companies`);
     return mockCompanies as unknown as Company[];
   }
 

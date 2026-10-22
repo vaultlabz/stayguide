@@ -88,7 +88,6 @@ export class MockBillingService {
     const billing = mockBillingRecords.find(b => b.id === id);
     
     if (billing) {
-      console.log(`[MOCK] Billing record found: ${billing.invoice_number}`);
       return billing;
     }
     
@@ -101,7 +100,6 @@ export class MockBillingService {
     await mockDelay();
     const billings = mockBillingRecords.filter(b => b.company_id === companyId);
     
-    console.log(`[MOCK] Retrieved ${billings.length} billing records for company ${companyId}`);
     return billings.sort((a, b) => b.billing_period_start.getTime() - a.billing_period_start.getTime());
   }
 
@@ -143,7 +141,6 @@ export class MockBillingService {
       paid_invoices: billings.filter(b => b.status === 'paid').length
     };
     
-    console.log(`[MOCK] Billing stats calculated for ${companyId ? 'company ' + companyId : 'all companies'}`);
     return stats;
   }
 

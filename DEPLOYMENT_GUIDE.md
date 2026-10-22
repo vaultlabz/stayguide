@@ -43,6 +43,7 @@ everything in. Required at startup:
 
 Also set (warnings if missing): `EMAIL_PROVIDER=smtp` + `SMTP_*`, `SUPPORT_EMAIL`, VAPID keys
 (`npx web-push generate-vapid-keys`, generate once and never change them, or every worker must re-enable push).
+Leave `CORS_ORIGINS` empty unless another website must call the API from a browser.
 
 ## 4. Database
 

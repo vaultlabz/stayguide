@@ -52,8 +52,8 @@ export const authenticateToken = async (req: AuthRequest, res: Response, next: N
       return res.status(401).json({ error: 'Your password was changed. Please sign in again.', code: 'SESSION_ENDED' });
     }
 
+    // 2026-10-10 19:27, #59 no per-request log of who is signed in (noise, and it put user emails in the log)
     req.user = user;
-    console.log(`Authenticated user: ${user.email} (${user.role})`);
     next();
   } catch (error) {
     console.error('Authentication failed:', error);
@@ -75,7 +75,6 @@ export const requireRole = (allowedRoles: string[]) => {
       });
     }
 
-    console.log(`Role check passed: ${req.user.role} in ${allowedRoles}`);
     next();
   };
 };
@@ -89,7 +88,6 @@ export const requireCompanyAdmin = async (req: AuthRequest, res: Response, next:
   }
 
   if (req.user.role === 'super_admin') {
-    console.log('Super admin access granted');
     return next();
   }
 
@@ -99,7 +97,6 @@ export const requireCompanyAdmin = async (req: AuthRequest, res: Response, next:
       try {
         const company = await new CompanyService().findBySlug(companySlug);
         if (company && company.id === req.user.company_id) {
-          console.log(`Company admin access granted for ${companySlug}`);
           return next();
         }
       } catch (error) {

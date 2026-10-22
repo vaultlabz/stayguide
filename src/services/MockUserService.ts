@@ -10,7 +10,6 @@ export class MockUserService {
     const user = mockUsers.find(u => u.id === id);
     
     if (user) {
-      console.log(`[MOCK] User found: ${user.email}`);
       return user as unknown as User;
     }
     
@@ -24,7 +23,6 @@ export class MockUserService {
     const user = mockUsers.find(u => u.email.toLowerCase() === String(email).toLowerCase() && u.status !== 'inactive'); // case-insensitive like MySQL's collation // 2026-10-09 12:27, #61 like the SQL (status = "active"): deactivated users can't sign in
     
     if (user) {
-      console.log(`[MOCK] User found by email: ${user.email}`);
       return user as unknown as User;
     }
     
@@ -47,7 +45,6 @@ export class MockUserService {
       return null;
     }
 
-    console.log(`[MOCK] Password validated for user: ${email}`);
     return user;
   }
 

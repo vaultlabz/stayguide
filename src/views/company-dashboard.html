@@ -1017,6 +1017,10 @@
         
         // API helper function
         async function apiCall(endpoint, options = {}) {
+            // 2026-10-10 20:04, #59 use the saved token on every call: a password change (Password dialog) swaps it, and the
+            // old one is signed out, so a request still holding it would have logged the user out
+            try { authToken = localStorage.getItem('stayguide_token') || authToken; } catch {}
+            const sentToken = authToken;
             const config = {
                 headers: {
                     'Content-Type': 'application/json',
@@ -1029,6 +1033,9 @@
                 const response = await fetch(API_BASE + endpoint, config);
                 
                 if (response.status === 401) {
+                    // 2026-10-10 20:04, #59 the token was replaced while this request was in flight: retry with the new one
+                    let saved = null; try { saved = localStorage.getItem('stayguide_token'); } catch {}
+                    if (saved && saved !== sentToken) return apiCall(endpoint, options);
                     localStorage.removeItem('stayguide_token');
                     window.location.href = `/company/${companySlug}/login`;
                     return;

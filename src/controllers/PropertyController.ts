@@ -50,7 +50,6 @@ export class PropertyController {
 
       const properties = await this.propertyService.getPropertiesByCompany(company.id);
       
-      console.log(`Retrieved ${properties.length} properties for ${company.name} by ${req.user?.email}`);
       res.json({
         message: 'Properties retrieved successfully',
         company: {
@@ -87,7 +86,6 @@ export class PropertyController {
         return res.status(404).json({ error: 'Property not found' });
       }
 
-      console.log(`Property details retrieved: ${property.name} by ${req.user?.email}`);
       res.json({
         message: 'Property retrieved successfully',
         company: {

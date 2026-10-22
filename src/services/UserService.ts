@@ -25,7 +25,6 @@ export class UserService {
       }
 
       const user = rows[0] as User;
-      console.log(`User found: ${user.email}`);
       return user;
     } catch (error) {
       console.error('Error finding user by ID:', error);
@@ -49,7 +48,6 @@ export class UserService {
       }
 
       const user = rows[0] as User;
-      console.log(`User found by email: ${user.email}`);
       return user;
     } catch (error) {
       console.error('Error finding user by email:', error);
@@ -124,7 +122,6 @@ export class UserService {
         [user.id]
       );
 
-      console.log(`Password validated for user: ${email}`);
       return user;
     } catch (error) {
       console.error('Error validating password:', error);

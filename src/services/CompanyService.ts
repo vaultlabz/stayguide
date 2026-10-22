@@ -24,7 +24,6 @@ export class CompanyService {
       }
 
       const company = rows[0] as Company;
-      console.log(`Company found: ${company.name}`);
       return company;
     } catch (error) {
       console.error('Error finding company by ID:', error);
@@ -89,7 +88,6 @@ export class CompanyService {
       }
 
       const company = rows[0] as Company;
-      console.log(`Company found by slug: ${company.name}`);
       return company;
     } catch (error) {
       console.error('Error finding company by slug:', error);
@@ -108,7 +106,6 @@ export class CompanyService {
       );
 
       const companies = rows as Company[];
-      console.log(`Retrieved ${companies.length} companies`);
       return companies;
     } catch (error) {
       console.error('Error getting all companies:', error);

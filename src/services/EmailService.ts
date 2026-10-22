@@ -24,9 +24,7 @@ export class EmailService {
 
   async sendEmail(options: EmailOptions): Promise<boolean> {
     try {
-      console.log(`[EMAIL] Sending email to: ${options.to}`);
-      console.log(`[EMAIL] Subject: ${options.subject}`);
-
+      // 2026-10-10 19:27, #59 recipients/subjects are logged once per send by the mock or SMTP branch below
       if (this.config.provider === 'mock') {
         return this.sendMockEmail(options);
       }

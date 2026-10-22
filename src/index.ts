@@ -25,7 +25,8 @@ app.use(helmet({
   contentSecurityPolicy: {
     directives: {
       defaultSrc: ["'self'"],
-      scriptSrc: ["'self'", "'unsafe-inline'", "'unsafe-eval'"],
+      // 2026-10-10 19:27, #59 no 'unsafe-eval' (nothing uses eval/new Function). 'unsafe-inline' stays: every view has inline scripts.
+      scriptSrc: ["'self'", "'unsafe-inline'"],
       scriptSrcAttr: ["'unsafe-inline'"], // Allow inline event handlers
       // 2026-10-06 14:40, landing hero: Google Fonts (Playfair Display + Inter) stylesheet and font files
       styleSrc: ["'self'", "'unsafe-inline'", "https://fonts.googleapis.com"],
@@ -39,8 +40,14 @@ app.use(helmet({
     },
   },
 }));
-app.use(cors());
-app.use(morgan('combined'));
+// 2026-10-10 19:27, #59 CORS only for origins listed in CORS_ORIGINS (comma-separated). The app itself is same-origin and needs none.
+const corsOrigins = (process.env.CORS_ORIGINS || '').split(',').map(o => o.trim()).filter(Boolean);
+if (corsOrigins.length) app.use(cors({ origin: corsOrigins }));
+// 2026-10-10 19:27, #59 access log without secrets: query strings (reset tokens) and link tokens (/g/, invite, QR scan) are masked,
+// and the referrer is left out because it can carry the same tokens.
+morgan.token('safe-url', (req: express.Request) =>
+  (req.originalUrl || req.url).split('?')[0].replace(/\/(g|invite|scan)\/[^/]+/, '/$1/***'));
+app.use(morgan(':remote-addr - :remote-user [:date[clf]] ":method :safe-url HTTP/:http-version" :status :res[content-length] ":user-agent"'));
 // 2026-10-03 23:06, G3 Stripe webhook needs the raw body for signature verification, so it is mounted before express.json()
 const billingWebhook = new BillingPlanController();
 app.post('/billing/webhook', express.raw({ type: 'application/json', limit: '1mb' }), billingWebhook.webhook.bind(billingWebhook));
@@ -91,8 +98,10 @@ app.use('*', (req, res) => {
 // Error handler
 app.use((err: any, req: express.Request, res: express.Response, next: express.NextFunction) => {
   console.error('Error:', err);
-  res.status(err.status || 500).json({
-    error: err.message || 'Internal server error',
+  // 2026-10-10 19:27, #59 server errors (5xx) no longer send their internal message to the browser in production
+  const status = err.status || 500;
+  res.status(status).json({
+    error: status < 500 || process.env.NODE_ENV !== 'production' ? (err.message || 'Internal server error') : 'Internal server error',
     ...(process.env.NODE_ENV === 'development' && { stack: err.stack })
   });
 });
@@ -101,11 +110,5 @@ app.use((err: any, req: express.Request, res: express.Response, next: express.Ne
 app.listen(PORT, () => {
   startOpsScheduler(); // 2026-10-08 07:50, G7 Ops reminders (hourly)
   console.log(`StayGuide server running on port ${PORT}`);
-  console.log(`Environment: ${process.env.NODE_ENV || 'development'}`);
-  console.log('Available routes:');
-  console.log('  GET  / - Marketing landing page');
-  console.log('  GET  /admin/login - Main admin login');
-  console.log('  GET  /company/{slug}/login - Company admin login');
-  console.log('  GET  /company/{slug}/property/{property} - Tablet app');
-  console.log('  GET  /api/health - Health check');
+  console.log(`Environment: ${process.env.NODE_ENV || 'development'}`); // 2026-10-10 19:27, #59 route list removed
 });

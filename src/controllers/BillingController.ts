@@ -64,7 +64,6 @@ export class BillingController {
       const billings = await this.billingService.getBillingRecordsByCompany(companyId);
       const stats = await this.billingService.getBillingStats(companyId);
       
-      console.log(`Retrieved ${billings.length} billing records for company ${companyId}`);
       res.json({ 
         success: true, 
         billings,
@@ -90,7 +89,6 @@ export class BillingController {
 
       const stats = await this.billingService.getBillingStats();
       
-      console.log('Retrieved global billing stats');
       res.json({ 
         success: true, 
         stats,
