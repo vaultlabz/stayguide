@@ -4,17 +4,18 @@
      unless a step says otherwise. Details live in DEPLOYMENT_GUIDE.md and docs/BILLING_SETUP.md; this is the order to do them in. -->
 
 Operator: **Wingu Digital**, New Mexico. Main domain: **stayguide.pro** (everything, including the crew app at `/maint`). **stayguidepro.app** is kept for a possible separate maintenance app later; until then it redirects to stayguide.pro (2026-10-22 16:30).
-Tick boxes as you go. Tasks in `MGR/projects/stayguide/tasks.json` are in brackets.
+Tick boxes as you go. Task numbers are in brackets.
 
 ---
 
 ## 1. Decisions (5 minutes)
 
-- [ ] **Exact legal name** for the Terms/Privacy pages: "Wingu Digital" or "Wingu Digital LLC" (as registered with the NM Secretary of State). Goes in `LEGAL_NAME` [#63]
+- [x] **Exact legal name**: `LEGAL_NAME=Wingu Digital LLC` [#63]
 - [x] **Production domain**: `stayguide.pro` (main, `APP_BASE_URL`, Stripe webhook, uptime monitor); `stayguidepro.app` reserved for the maintenance app later, redirects for now
-- [ ] **Support address** (e.g. `support@stayguide.pro`) for `SUPPORT_EMAIL`, shown on /terms and /privacy
-- [ ] **Stripe account**: keep using the Wingu Digital account with StayGuide branding, **or** add a separate "StayGuide" account under the same login (Stripe → account menu → *New account*). Separate is cleaner if Wingu Digital bills other products on Stripe [#42]
-- [ ] **Alert inbox**: which email gets error alerts (`ALERT_EMAIL`), and who receives uptime alerts on their phone [#64]
+- [x] **Support address**: `SUPPORT_EMAIL=support@stayguide.pro` (shown on /terms and /privacy, receives helpdesk tickets). Create the mailbox in Plesk
+- [x] **Stripe account**: the Wingu Digital account [#42]. Its public name, logo, color and statement descriptor are **account-wide**: setting them to StayGuide (step 4) also changes what customers of any other Wingu product billed on this account see. If that happens later, move StayGuide to its own account under the same login (Stripe → account menu → *New account*)
+- [x] **Alert inbox**: everything (error alerts, kit-to-ship, signups, subscription and payment emails) goes to `support@stayguide.pro`. What each one is for: DEPLOYMENT_GUIDE §8f [#64, #67]
+- [x] Outside alerts (uptime monitor, Plesk backups, Stripe) go to **the owner's personal email** (not on the StayGuide server) and its phone app; the app's own emails go to support@stayguide.pro [#64]
 
 ## 2. Code: merge to main
 
@@ -70,14 +71,14 @@ Do this in the dashboard with **Test mode OFF**.
 
 ## 6. Backups and log retention [#65] (DEPLOYMENT_GUIDE.md §8a–8d)
 
-- [ ] Plesk Backup Manager: remote storage (S3 / Backblaze / SFTP) → daily 03:00, all content, keep **30 days**, **password-protected**, email on error. Run one backup by hand
+- [ ] Plesk Backup Manager: remote storage (S3 / Backblaze / SFTP) → daily 03:00, all content, keep **30 days**, **password-protected**, email on error to **owner's personal email**. Run one backup by hand
 - [ ] `~/.stayguide-backup.cnf` (chmod 600) + Scheduled Task `bash <app>/scripts/backup-mysql.sh` daily 02:30. Run it once by hand
 - [ ] Log rotation: daily, keep **90**, compress
 - [ ] **Restore test** (§8d) and note the date + row counts in task #65
 
 ## 7. Monitoring [#64] (DEPLOYMENT_GUIDE.md §8e)
 
-- [ ] UptimeRobot or Better Stack (free): HTTP(s) monitor on `https://stayguide.pro/api/health`, every 5 minutes, alerts by email + phone app
+- [ ] UptimeRobot or Better Stack (free): HTTP(s) monitor on `https://stayguide.pro/api/health`, every 5 minutes, SSL-expiry check on, alerts to **owner's personal email** + phone app
 - [ ] Test it: stop the Node.js app in Plesk ~6 minutes → alert arrives → start it → recovery alert
 - [ ] `ALERT_EMAIL` set (step 5). Error emails start automatically in production
 

@@ -1184,7 +1184,7 @@
 - ✅ Gold accent + Playfair headings carried through features, pricing, kits, FAQ and the closing CTA via scoped tokens
 - ✅ Tablet mock inside the old hero removed (replaced by the real-screen mockup)
 - ✅ `public/img/hero-pool-1620.{webp,jpg}`, `hero-pool-800.webp` (from the 1620x1080 Desktop photo; the untracked 1024px `hero-pool.jpg` is the same picture but too soft for full-bleed at 1440, left untouched and unused)
-- ⚠️ `public/img/hero-devices.{png,webp}` is a **PLACEHOLDER**: the reference image `/Users/nyse/Desktop/pos 1.png` (another brand's UI), trimmed and optimized with sharp (transparent, 1040x757). It MUST be replaced with StayGuide screens before launch (HTML comment next to the `<img>` says so)
+- ⚠️ `public/img/hero-devices.{png,webp}` is a **PLACEHOLDER**: the reference image (a local screenshot of another brand's UI), trimmed and optimized with sharp (transparent, 1040x757). It MUST be replaced with StayGuide screens before launch (HTML comment next to the `<img>` says so)
 - ✅ Ready replacement: `public/img/hero-devices-stayguide.{png,webp}` (transparent, 1040x860, real paired-tablet and phone guest-link screens in CSS-drawn frames) rendered by `scripts/render-hero-devices.js`; swap the two paths in landing.html and set height 860
 - ✅ `src/utils/pricing-html.ts`: `renderHeroStats()` (values from `plans.ts`), gold span in the pricing heading
 - ✅ `src/index.ts`: CSP allows fonts.googleapis.com (style) and fonts.gstatic.com (font)
@@ -1989,3 +1989,90 @@
 
 **Technical Details:**
 - A later move is a new browser origin: workers sign in again and re-enable push (service worker + subscriptions are per origin); CORS allowlist and the /maint links in emails would need a second base URL
+
+## 2026-10-22 16:36 - DOCS: Launch decisions filled in; alert definitions
+
+**What Changed:**
+- ✅ `LEGAL_NAME=Wingu Digital LLC`, `SUPPORT_EMAIL=support@stayguide.pro` in `.env.production.example`
+- ✅ LAUNCH_TODO decisions ticked: legal name, support address, Stripe = Wingu Digital account (with the account-wide branding caveat)
+- ✅ DEPLOYMENT_GUIDE §8f: table of every alert (site down, database down, SSL expiry, server error, crash, background job, backup, payments): source, trigger, recipient, what to do
+
+**Why:**
+- Owner decisions (legal name, domain, support email, Stripe account) and a request to define what the alerts are for
+
+**How:**
+- Docs only; alert behavior unchanged (ALERT_EMAIL falls back to SUPPORT_EMAIL)
+
+**Impact:**
+- **Clear on-call**: each alert has an owner action
+- **Gap visible**: operator emails for business events (kit paid, signup, cancel/past due) are listed as not built
+
+**Technical Details:**
+- Stripe public business name, branding and statement descriptor are per account, so StayGuide branding affects any other product billed on the Wingu Digital account
+
+## 2026-10-22 16:49 - FEATURE: #67 Business emails to support (kit to ship, signups, subscriptions, failed payments)
+
+**What Changed:**
+- ✅ `src/utils/operator-notify.ts`: `notifyOperator()` emails `SUPPORT_EMAIL` (→ `ADMIN_EMAIL`); `OPERATOR_EMAILS=off` disables; never throws
+- ✅ **Kit to ship**: when a hardware checkout is paid (card, or bank transfer when it clears), once per order, with ship-to address, amount, order # and the mark-shipped call
+- ✅ **New signup** (SignupController), **new subscription**, **payment recovered**, **payment failed**, **cancellation scheduled**, **subscription ended** (Stripe webhooks)
+- ✅ DEPLOYMENT_GUIDE §8f alert table extended; `OPERATOR_EMAILS` in both env examples; LAUNCH_TODO alert inbox decided (support@stayguide.pro)
+
+**Why:**
+- Owner: all alerts and notices go to support
+- A paid kit was only visible through the API (no order list screen): nothing told anyone to ship it
+
+**How:**
+- Each notice compares the company / order state before and after the webhook, so duplicate or follow-up events (e.g. `subscription.updated` + `invoice.payment_failed`) send one email
+- A copy of the state is taken first: mock mode returns the live row, which the update would otherwise change underneath
+
+**Impact:**
+- **Orders get shipped**: the operator learns about every paid kit with the address in hand
+- **Revenue visibility**: new, failing and ending subscriptions arrive in the support inbox
+
+**Technical Details:**
+- `billing-test.js` now keeps the server output and checks every notice and its count: 70/70 mock
+- Closing an account (#66) cancels Stripe and marks the company canceled first, so its `subscription.deleted` webhook sends no "ended" email
+- Not built: an order list screen for the super admin (orders are only in the API and these emails)
+- Regression: unit 54/54; mock pricing 16/16, ops-s9 26/26, analytics 19/19, closure 39/39, tenancy 34/34; MySQL billing 70/70, ops-s9 26/26, closure 39/39
+
+## 2026-10-22 16:56 - DOCS: Outside alerts go to the owner (owner's personal email)
+
+**What Changed:**
+- ✅ DEPLOYMENT_GUIDE §8f: uptime monitor, Plesk backup and Stripe alerts addressed to owner's personal email; app emails stay on support@stayguide.pro
+- ✅ LAUNCH_TODO: alert contact decided; backup and monitor steps name the address
+
+**Why:**
+- Owner decision: outside updates to their own inbox
+- An inbox off the StayGuide server still gets alerts when that server or its mail is down
+
+**How:**
+- Docs only: the address is set in each outside service, not in the app
+
+**Impact:**
+- **Alerts survive outages**: site-down and backup-failed notices don't depend on the server that failed
+
+**Technical Details:**
+- No env change; ALERT_EMAIL / SUPPORT_EMAIL unchanged
+
+## 2026-10-22 16:59 - CHORE: Repository sanitized for GitHub deploys
+
+**What Changed:**
+- ✅ Agent and project-manager files no longer tracked: `CLAUDE.md`, `.clauderules`, `.mgr/`, `MGR/` (kept on disk), and ignored with `.claude/`, `.cursor/`, `.cursorrules`, `*cursor*.md`, `AGENTS.md`
+- ✅ Personal data removed from docs: the owner's personal email (alert contact), a local file path
+- ✅ `.env.example`: unused `ADMIN_PASSWORD=admin123` line removed
+
+**Why:**
+- Production deploys from GitHub; the repository must hold code and docs only
+- The repository is public: agent notes, session logs and personal contacts don't belong there
+
+**How:**
+- `git rm --cached` + `.gitignore`; history scanned on every branch for API keys (Stripe, AWS, GitHub, Google, SendGrid), private keys and committed `.env` files: none found
+
+**Impact:**
+- **Clean deploy source**: Plesk pulls only what the app needs
+- **No secrets in git**: only the `.example` templates, with placeholder values
+
+**Technical Details:**
+- Older commits on every branch still contain the agent/mgr files and two personal emails (in old mgr memory notes); removing them needs a history rewrite + force-push (owner decision)
+- Demo passwords (admin123, demo123, tech1234) exist only for mock mode and tests; production uses `schema.sql` with a placeholder hash and DEPLOYMENT_GUIDE §4 sets the real super admin

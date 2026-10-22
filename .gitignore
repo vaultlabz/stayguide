@@ -23,3 +23,14 @@ tests/e2e/output/
 
 # 2026-10-08 00:10, G7 private job photos (never served statically)
 storage/
+
+# 2026-10-22 16:59, agent and project-manager files stay local (never on GitHub)
+CLAUDE.md
+.clauderules
+.claude/
+.cursor/
+.cursorrules
+*cursor*.md
+AGENTS.md
+.mgr/
+MGR/

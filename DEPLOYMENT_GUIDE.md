@@ -181,6 +181,30 @@ backup password. Write the date and the counts into task #65 / the session log.
   when MySQL is down, so the monitor catches database outages too. Optional: keyword monitor for `"healthy"`
 - Test once: pause the Node.js app in Plesk for ~6 minutes → the monitor alerts; start it again → recovery alert
 
+### 8f. What alerts there are, and what to do (task #64)
+
+<!-- 2026-10-22 16:36, #64 alert definitions -->
+| Alert | Comes from | Fires when | Goes to | What to do |
+|---|---|---|---|---|
+| **Site down** | Uptime monitor (§8e) | `/api/health` fails or times out twice in a row (5 min checks) | owner's personal email + phone app | Plesk → Node.js: is the app running? Read its log, restart |
+| **Database down** | Uptime monitor | `/api/health` answers 503 `unreachable` | owner's personal email + phone app | Plesk → Databases: is MySQL up, disk full? |
+| **SSL expiring** | Uptime monitor (turn on "SSL expiry" in the monitor) | Certificate expires in under 14 days | owner's personal email | Plesk → SSL/TLS: renew Let's Encrypt |
+| **Server error** | App (`ALERT_EMAIL`) | A request answered 5xx | Email: first one at once, then one summary per 15 min | Read the error text in the email; Plesk Node.js log for details. One-off: note it. Repeating: fix or ask Claude |
+| **App crashed** | App | Uncaught exception (the app exits, Plesk starts it again) | Email | Check the site is back; send the stack trace to a developer |
+| **Background job failed** | App | Ops scheduler, late-arrival check or the account purge (#66) threw | Email | Usually the database; rerun from the admin (`POST /admin/ops/run-checks`) after fixing |
+| **Backup failed** | Plesk Backup Manager (§8a) + Scheduled Task email (§8b) | Nightly backup or `backup-mysql.sh` exits with an error | owner's personal email (Plesk notification email) | Run it by hand, check disk space and the remote storage login |
+| **Kit to ship** | App → `SUPPORT_EMAIL` (#67) | A desk/wall kit payment cleared (card at once, bank transfer when it arrives) | Email with the ship-to address, amount, order # | Ship it, then mark it shipped (`PUT /admin/hardware-orders/<id>`) |
+| **New signup** | App → `SUPPORT_EMAIL` | Someone created an account (Free) | Email | Optional: welcome them, check it isn't spam |
+| **New subscription / payment recovered** | App → `SUPPORT_EMAIL` | A Stripe subscription became active (or a past-due one was paid) | Email | Nothing; good news |
+| **Payment failed** | App → `SUPPORT_EMAIL` | First failed payment of a subscription (it becomes past due) | Email | Stripe retries; reach out if it stays past due |
+| **Cancellation scheduled / subscription ended** | App → `SUPPORT_EMAIL` | The customer canceled in the Portal / the subscription ended (account drops to Free) | Email | Optional: ask why; close the account (§9) only if they asked |
+| **Payments** | Stripe (your user's email notification settings in the dashboard) | Successful payments, failed payments, disputes, payouts | owner's personal email (Stripe user email) | Disputes: answer in Stripe within the deadline. Failed payments: Stripe retries and emails the customer (turn on Billing → *Revenue recovery*: Smart Retries + customer emails) |
+
+<!-- 2026-10-22 16:56 -->Outside services (uptime monitor, Plesk, Stripe) alert the owner at **the owner's personal email** (not on the StayGuide server): set it as the contact in each service.
+They keep working when the StayGuide server or its mail is down. Error alerts and business emails from the app go to `support@stayguide.pro` (error alerts use `ALERT_EMAIL` if it is set; `OPERATOR_EMAILS=off`
+turns the business emails off). Each business email is sent once per change. There is no order list screen yet: the kit email is the
+signal to ship.
+
 **If production is lost:** new server per steps 1–5 → put `.env` back → import the newest dump (or restore the Plesk
 backup) → copy `public/uploads/` and `storage/ops/` back → start → smoke test (step 7).
 
