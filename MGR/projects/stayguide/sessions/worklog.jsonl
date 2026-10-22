@@ -71,3 +71,6 @@
 {"ts":"2026-10-09 12:28","tool":"claude-code","event":"task.completed","id":61,"title":"Multi-user / multi-property audit + several admins per company"}
 {"ts": "2026-10-10 10:40", "tool": "claude-code", "event": "task.completed", "id": 62, "title": "Presence at the property (GPS check-in, alerts, guest activity)"}
 {"ts": "2026-10-10 20:06", "tool": "claude-code", "event": "task.completed", "id": 59, "title": "Production hygiene: logs, CSP, CORS"}
+{"ts":"2026-10-22 10:49","tool":"claude-code","event":"task.created","id":63,"title":"Privacy Policy + Terms of Service pages, linked from signup (checkbox), footer and guest guide"}
+{"ts":"2026-10-22 10:49","tool":"claude-code","event":"task.created","id":64,"title":"Uptime + error alerting for production (/api/health check, 5xx/crash alert email)"}
+{"ts":"2026-10-22 10:49","tool":"claude-code","event":"task.created","id":65,"title":"Production backups: nightly MySQL + public/uploads + storage/ops, one test restore"}

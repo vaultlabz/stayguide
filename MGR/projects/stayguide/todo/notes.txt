@@ -73,3 +73,10 @@ x - Remove stale yarn.lock (#34)
 x - Verify on real MySQL: 18 migrations match schema.sql, 20/20 suites pass (#45, npm run test:mysql)
 x - Fixed MySQL-only bugs: session time zone UTC, DECIMAL as numbers, DATE as strings
 - Apply the 18 migrations on the production server (#46)
+
+2026-10-22 10:49
+// stayguide
+# release
+- Privacy Policy + Terms pages, signup checkbox (#63)
+- Uptime + error alerts (#64)
+- Nightly backups + test restore (#65)

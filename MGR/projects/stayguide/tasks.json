@@ -891,6 +891,54 @@
         "achieve": "managers see who is at each property, since when, and whether the check-in was really at the house",
         "according": "user request 2026-10-09, plan concurrent-finding-kahan.md"
       }
+    },
+    {
+      "id": 63,
+      "creationDate": "2026-10-22 10:49",
+      "title": "Privacy Policy + Terms of Service pages, linked from signup (checkbox), footer and guest guide",
+      "description": "Launch audit 2026-10-22: no legal pages exist. App takes payments (Stripe), stores crew GPS check-ins and anonymous guest activity. Wording needs the user/legal review.",
+      "complexity": 4,
+      "completionDate": null,
+      "status": "pending",
+      "priority": "high",
+      "trelloCardId": null,
+      "context": {
+        "doing": "Adding /privacy and /terms pages and a signup acceptance checkbox",
+        "achieve": "legally safe to charge customers and collect location data at launch",
+        "according": "launch audit 2026-10-22"
+      }
+    },
+    {
+      "id": 64,
+      "creationDate": "2026-10-22 10:49",
+      "title": "Uptime + error alerting for production (/api/health check, 5xx/crash alert email)",
+      "description": "Launch audit 2026-10-22: nothing notifies anyone if the site goes down or errors spike. /api/health exists.",
+      "complexity": 3,
+      "completionDate": null,
+      "status": "pending",
+      "priority": "high",
+      "trelloCardId": null,
+      "context": {
+        "doing": "Wiring an external uptime check and an error alert",
+        "achieve": "outages and failures are noticed within minutes",
+        "according": "launch audit 2026-10-22, DEPLOYMENT_GUIDE.md §7"
+      }
+    },
+    {
+      "id": 65,
+      "creationDate": "2026-10-22 10:49",
+      "title": "Production backups: nightly MySQL + public/uploads + storage/ops, one test restore",
+      "description": "Launch audit 2026-10-22: backups are a manual line in DEPLOYMENT_GUIDE.md §8; never set up or restore-tested.",
+      "complexity": 2,
+      "completionDate": null,
+      "status": "pending",
+      "priority": "high",
+      "trelloCardId": null,
+      "context": {
+        "doing": "Enabling Plesk Backup Manager and testing a restore",
+        "achieve": "customer data can be recovered after a failure",
+        "according": "DEPLOYMENT_GUIDE.md §8, launch audit 2026-10-22"
+      }
     }
   ]
 }

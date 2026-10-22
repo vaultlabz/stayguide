@@ -151,3 +151,10 @@
 ## Session end (claude-code)
 - Summary: #62 presence finished and committed with #46/#56/#61 (f401346, 04aacb5). #59 production hygiene done (logs, CSP, CORS, access-log masking, generic 5xx) + dashboard token-swap fix after password change; all 23 mock suites green; #59 not committed
 - Files (#59): src/index.ts, src/middleware/auth.ts, src/utils/auth.ts, src/services/{User,MockUser,Company,MockCompany,Property,MockProperty,Report,Billing,MockBilling,Email}Service.ts, src/controllers/{Billing,Property}Controller.ts, src/views/{company,admin}-dashboard.html, .env.example, .env.production.example, DEPLOYMENT_GUIDE.md, docs/todo.md
+
+2026-10-22 10:49
+## Checkpoint (claude-code)
+- Committed #59 (0a8369d) + mgr logs (6adb995)
+- Launch audit: direct booking via owner websites already built (direct_booking_url, /r/* QR redirects, UTM + sg_click); Conversions/Stays APIs planned (#25)
+- Launch blockers: #46 server steps, #42 Stripe live, push/merge to main; new tasks #63 legal pages, #64 uptime/error alerts, #65 backups
+- Pushed feature/g7-ops and opened PR to main

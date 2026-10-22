@@ -344,3 +344,15 @@
 ## 2026-10-08 12:15 | claude-code | task.completed
 - **id:** 45
 - **title:** Verify on real MySQL: apply the 18 migrations (order: database/migrations/README.md) to a staging DB and run the e2e suites against it
+
+## 2026-10-22 10:49 | claude-code | task.created
+- **id:** 63
+- **title:** Privacy Policy + Terms of Service pages, linked from signup (checkbox), footer and guest guide
+
+## 2026-10-22 10:49 | claude-code | task.created
+- **id:** 64
+- **title:** Uptime + error alerting for production (/api/health check, 5xx/crash alert email)
+
+## 2026-10-22 10:49 | claude-code | task.created
+- **id:** 65
+- **title:** Production backups: nightly MySQL + public/uploads + storage/ops, one test restore
