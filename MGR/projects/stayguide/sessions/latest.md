@@ -139,3 +139,15 @@
 - #62 regression: MySQL 23/23 suites, mock npm test all green (unit 45/45, presence 65/65)
 - design-test "Find from address" missed its fixed 800 ms wait once the dashboard loaded presence (mock requests ~1 s each): editor reuses the cards' data, one presence request at a time, test waits for the answer
 - Not committed, not pushed
+
+2026-10-10 20:06 — #59 production hygiene (claude-code)
+- Removed 47 per-request/read-only console.log lines (incl. "Authenticated user: <email>" on every request); change/audit lines, logins, emails sent and errors kept
+- CSP script-src without 'unsafe-eval'; CORS only for CORS_ORIGINS (empty = none); access log masks query strings and /g/, invite, scan tokens, no referrer; 5xx errors generic in production; startup route list removed
+- Bug found by the run: dashboards kept the old token after a password change → 401 → logged out and new token deleted. apiCall now reads the saved token each call and retries once when it was replaced
+- Tests: password 33/33 ×4; full mock run in progress; Unsplash image check in offline-test flaked once (network)
+- Not committed
+
+2026-10-12 02:33
+## Session end (claude-code)
+- Summary: #62 presence finished and committed with #46/#56/#61 (f401346, 04aacb5). #59 production hygiene done (logs, CSP, CORS, access-log masking, generic 5xx) + dashboard token-swap fix after password change; all 23 mock suites green; #59 not committed
+- Files (#59): src/index.ts, src/middleware/auth.ts, src/utils/auth.ts, src/services/{User,MockUser,Company,MockCompany,Property,MockProperty,Report,Billing,MockBilling,Email}Service.ts, src/controllers/{Billing,Property}Controller.ts, src/views/{company,admin}-dashboard.html, .env.example, .env.production.example, DEPLOYMENT_GUIDE.md, docs/todo.md

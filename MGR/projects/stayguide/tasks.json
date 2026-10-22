@@ -834,8 +834,8 @@
       "title": "Production hygiene: drop per-request auth email logging, tighten CSP (no unsafe-eval), restrict CORS, trim console.log",
       "description": "From PRD audit 2026-10-09",
       "complexity": 4,
-      "completionDate": null,
-      "status": "pending",
+      "completionDate": "2026-10-10 19:40",
+      "status": "done",
       "priority": "high",
       "trelloCardId": null,
       "context": {

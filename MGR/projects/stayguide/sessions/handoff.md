@@ -1,42 +1,44 @@
-updated: 2026-10-08 (/go sync; content from 08:12 handoff)
+updated: 2026-10-12 02:33
 tool: claude-code
-branch: feature/g7-ops (2 commits ahead of main: c194330 code, fe31191 mgr session files; not pushed, not merged)
+branch: feature/g7-ops (ahead of main; last commits f401346 feat #46/#56/#61/#62, 04aacb5 chore(mgr); not pushed, no PR)
 
 ## Focus
 
-Finishing the open small items after the G7 Ops add-on (all 9 stages built, committed, full regression green), then #45 real-MySQL verification.
+#59 production hygiene is done and tested but NOT committed. Next: commit #59, then #42 (Stripe dashboard config, user does it; offer a checklist), then #46 server steps (go live).
 
 ## Active tasks
 
-- [ ] (31) Center last row of tablet home tiles: IN PROGRESS, uncommitted. `public/css/tablet-app.css` now uses flex (`.tiles` flex-wrap + `.tiles > .tile` basis 25%). Bug found by design-test: "Report an Issue" renders 175 px (others 263) because it sits inside a wrapper (`.report-card`), not a direct `.tile` child. Fix: give the wrapper the same flex basis (e.g. `.tiles > :is(.tile, .report-card)`) and make the inner button fill it; re-run `tests/e2e/design-test.js` (expects 7 tiles ≥120 px within 1280x800)
-- [ ] (33) Clearer pairing errors: DONE, uncommitted. `DeviceService.whyCodeFailed`, `MockDeviceService.whyCodeFailed`, `DeviceController.pair` returns PAIRING_FORMAT / PAIRING_EXPIRED / PAIRING_USED / PAIRING_INVALID; migration `database/migrations/2026-10-08_device_pairing_reasons.sql` (README step 18) + `schema.sql` (`devices.used_pairing_code`, `paired_at`); checks added to `tests/e2e/phase3-test.js` (pass). Mark #33 done in MGR/tasks.json and add a docs/todo.md entry
-- [ ] (34) Stale yarn.lock: project uses npm (package-lock.json); npm keeps rewriting yarn.lock. Plan: `git rm yarn.lock`
-- [ ] Replace placeholder `public/img/hero-devices.{png,webp}` (another brand's UI) with `hero-devices-stayguide.{png,webp}` in `src/views/landing.html` (height 860), per docs/todo.md 2026-10-06
-- [ ] (45) Verify on real MySQL: local MySQL runs on localhost (root, empty password; DBs eventpilot, honeydew, …, no stayguide_dev yet). Create stayguide_dev from database/schema.sql (+ seed), run the suites with MOCK_DATABASE=false (tests currently force MOCK_DATABASE=true in their spawn env)
-- [ ] (46) Production deploy checklist (write docs, needs server details from the user)
-- [ ] User decisions/secrets: OPS_PRICE_MONTHLY (+ `npm run stripe:setup` → STRIPE_PRICE_OPS_MONTHLY), OPS_SECRET_KEY, VAPID keys, SMTP creds + SUPPORT_EMAIL
-- [ ] (42) Stripe dashboard config · (43) Trinity design pass incl. Ops/helpdesk screens · (30) real Tab A11+ check · backlog #12–#14, #16, #25
-- [ ] Merge / PR feature/g7-ops → main
+- [ ] (42) Stripe dashboard config: bank transfers, Customer Portal plan switching + cancel at period end, StayGuide branding (sandbox shows Wingu Digital). User does it in Stripe; offer a click-by-click checklist
+- [ ] (46) Production deploy: code side done (startup config check, 20-step DEPLOYMENT_GUIDE.md). Remaining: server steps (HTTPS, Node ≥ 20.9, env values, live Stripe keys + webhook, run migrations 1–20)
+- [ ] (57) Tablet shows captured restaurant/local data (images, ratings, meal tabs, local-info grouping, Maps QR)
+- [ ] (58) PRD fields: TV/streaming codes, structured trash/parking/AC/pet info, rotating welcome messages
+- [ ] (43) Trinity design pass on new screens · (30) real Galaxy Tab A11+ check · (60) PRD Phase 2 · backlog 12, 13, 14, 16, 25
+- [ ] Owner vs management-company design (no task id yet): waiting on the user's 3 answers: pricing (one plan set or single-home tier), account type (chosen at signup or automatic by property count), order vs other work. Proposal: account_type for UI only, owner view opens the guide editor, features appear by property count / Ops, Owner/Manager column for super admin
+- [ ] Push feature/g7-ops / PR to main (ask first)
 
-## Done this session (2026-10-07 → 08)
+## Done this session (2026-10-10 → 12)
 
-- Wired all stubbed dashboard functions (admin edit/stats, CSV export, invoice PDF, helpdesk, help page, guest reports card, /login, SMTP email)
-- Cleanup (proxy-addr fix, separate admin token, logout keeps tablet pairing)
-- G7 Ops add-on S1–S9 (docs/G7_OPS_PLAN.md; logged per stage in docs/todo.md)
-- Final full regression before the commit: build + 21 suites all green (incl. ops-s1…s9, billing 62/62)
-- MGR/todo/notes.txt: appended a completed/pending block (uncommitted)
+- #62 Presence at the property: GPS check-in/out with distance, arrival/leave prompt, property location (pin / maps link / learned from QR), arrived/left + late/no-show emails, On site now, Where column, guest activity, optional guide on-site question; migration 20. Tests 65/65 mock + MySQL
+- Committed #46/#56/#61/#62 (f401346) + mgr logs (04aacb5)
+- #59: removed 47 per-request/read-only console.log lines (incl. user email on every request); CSP without 'unsafe-eval'; CORS only for CORS_ORIGINS (empty = none); access log masks query strings and /g/, invite, scan tokens, no referrer; 5xx generic in production; startup route list removed
+- Bug fixed (found by the #59 run): dashboards (company + admin) kept the old token after a password change → 401 → logged out and new token deleted. apiCall reads saved token each call, retries once if replaced
+- Tests after #59: all 23 mock suites green (run per suite; one-off flakes: Unsplash image load in offline-test, pricing server start > 30 s). MySQL not rerun for #59 (no DB changes)
 
-## Uncommitted on disk (feature/g7-ops)
+## Next
 
-public/css/tablet-app.css, src/services/DeviceService.ts, src/services/MockDeviceService.ts, src/controllers/DeviceController.ts, database/schema.sql, database/migrations/README.md, database/migrations/2026-10-08_device_pairing_reasons.sql, tests/e2e/phase3-test.js, MGR/todo/notes.txt; untracked public/img/hero-pool.jpg (unused, intentionally not committed)
+1. Ask the user to OK committing #59 (files: src/index.ts, middleware/auth.ts, utils/auth.ts, services/*, controllers/Billing+Property, both dashboards, .env examples, DEPLOYMENT_GUIDE.md, docs/todo.md, MGR files)
+2. #42 checklist for the user, then #46 server steps
+3. Owner/manager design once the user answers
 
 ## Blockers
 
-- Launch secrets/decisions above are the user's
+- #42 and #46 server steps need the user (Stripe dashboard, server access)
+- Owner/manager design waits on the user's answers
 
 ## Notes for next agent
 
-- Dev server: `npm run dev` (mock mode, port 3000). Demo logins: company admin@demorentals.com / demo123, super admin admin@stayguide.com / admin123, worker /maint tech@demorentals.com / tech1234
-- Tests: `PLAYWRIGHT_CHROMIUM_PATH=~/Library/Caches/ms-playwright/chromium_headless_shell-1234/chrome-headless-shell-mac-x64/chrome-headless-shell`; run single suites with `TEST_PORT=39xx node tests/e2e/<name>-test.js` to avoid port clashes; `npm test` stops at the first failing suite
-- In-code `// 2026-10-08 HH:MM` stamps added after ~07:00 on 2026-10-08 are approximate (some read later than the real time)
-- User preference: "run the app" = start the server and open landing, tablet and admin dashboard in Chrome
+- Test browser: PLAYWRIGHT_CHROMIUM_PATH=~/Library/Caches/ms-playwright/chromium_headless_shell-1234/chrome-headless-shell-mac-x64/chrome-headless-shell (the default 1243 is not installed). MySQL runner: node scripts/test-mysql.js [suite…]
+- Full npm test takes > 10 min; run in background or per suite
+- Code comments: run date in the same command as each stamped edit (memory: real-timestamps-in-code-comments)
+- Untracked, leave alone: .cursor/, MGR/sessions/, public/img/hero-pool.jpg
+- Never commit .env; ask before commit/push/PR

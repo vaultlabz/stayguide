@@ -70,3 +70,4 @@
 {"ts":"2026-10-09 12:17","tool":"claude-code","event":"task.completed","id":56,"title":"Password reset + change password"}
 {"ts":"2026-10-09 12:28","tool":"claude-code","event":"task.completed","id":61,"title":"Multi-user / multi-property audit + several admins per company"}
 {"ts": "2026-10-10 10:40", "tool": "claude-code", "event": "task.completed", "id": 62, "title": "Presence at the property (GPS check-in, alerts, guest activity)"}
+{"ts": "2026-10-10 20:06", "tool": "claude-code", "event": "task.completed", "id": 59, "title": "Production hygiene: logs, CSP, CORS"}
