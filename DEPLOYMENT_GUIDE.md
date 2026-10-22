@@ -90,8 +90,87 @@ curl -sI http://yourdomain.com | head -1          # 301 to https
 - [ ] Ops: invite a worker, sign in on a phone, enable push, upload a job photo
 - [ ] Log shows no `[config] warning:` you did not expect
 
-## 8. Afterwards
+## 8. Backups and log retention (task #65)
 
-- Nightly MySQL backup (Plesk → Backup Manager) including `public/uploads/` and `storage/ops/`
+<!-- 2026-10-22 11:33, #65: replaces the one-line backup note. Retention numbers match the Privacy Policy (/privacy):
+     backups roll over within 30 days, server logs kept up to 90 days. Change both together. -->
+
+**What holds data** (everything else can be rebuilt from git):
+
+| What | Where | Why it matters |
+|---|---|---|
+| MySQL database | `DB_NAME` | accounts, properties, guides, jobs, time entries, billing state |
+| Uploaded images | `<app>/public/uploads/` | property photos, backgrounds |
+| Ops files | `<app>/storage/ops/` (or `OPS_STORAGE_DIR`) | job photos, vendor insurance certificates |
+| `.env` | `<app>/.env` | **`OPS_SECRET_KEY` is the only way to read stored door/access codes.** Lose it and every code must be re-entered |
+
+Also keep `.env` (at least `OPS_SECRET_KEY`, `JWT_SECRET`, `DB_PASSWORD`, Stripe keys) in the Wingu Digital password manager, apart from the server.
+
+### 8a. Plesk Backup Manager: nightly, off the server
+
+1. **Remote storage first** (a backup on the same disk dies with the disk): Plesk → *Tools & Settings → Backup Manager →
+   Remote Storage Settings*. SFTP/FTP is built in; Amazon S3, Backblaze B2 (S3-compatible), Google Drive etc. come as
+   extensions (*Extensions → search "backup"*). Use a bucket/folder only for StayGuide, with a key that can write it.
+2. *Websites & Domains → (the StayGuide subscription) → Backup & Restore → Schedule*:
+   - **Activate this backup task**, run **daily at 03:00** (server time)
+   - Store in: **remote storage** (tick server storage too if disk space allows: faster restores)
+   - Back up: **all configuration and content** (websites + databases; covers the app folder, so `public/uploads/`,
+     `storage/ops/` and `.env`). If `OPS_STORAGE_DIR` points outside the subscription, back that folder up too
+   - Type: full weekly + incremental daily is fine; **keep 30 days** at most (retention field: "Maximum number of
+     full backup files" / "Keep backups for", depending on the Plesk version). The Privacy Policy says backups roll over within 30 days
+   - **Use password protection**: the backup contains `.env` and customer data. Store that password in the password manager
+   - Exclude log files; **send a notification email** on errors to the support address
+3. Click **Back Up** once now to create the first backup; check it appears under remote storage with a plausible size.
+
+### 8b. Second nightly copy: `scripts/backup-mysql.sh`
+
+A consistent `mysqldump` (no table locks) plus a tar of uploads, Ops files and `.env`, kept 14 days in `~/stayguide-backups`
+(mode 700). It is independent of Plesk's format, so a restore needs only `gunzip | mysql`, and the script fails loudly if the dump is incomplete.
+
+```bash
+# once, over SSH as the subscription user
+cat > ~/.stayguide-backup.cnf <<'CNF'
+[client]
+user=<DB_USER>
+password=<DB_PASSWORD>
+host=localhost
+CNF
+chmod 600 ~/.stayguide-backup.cnf
+bash <app folder>/scripts/backup-mysql.sh      # test run: prints the dump path and size
+```
+
+Then Plesk → *Websites & Domains → Scheduled Tasks → Add Task*: **Run a command**, `bash <app folder>/scripts/backup-mysql.sh`,
+**daily 02:30** (before the Plesk backup, so the 03:00 backup also carries tonight's dump offsite), notify on errors.
+
+### 8c. Log retention (90 days)
+
+*Websites & Domains → Logs → Log Rotation* (or *Manage Log Files*): **on**, rotate **daily**, **keep 90** files,
+**compress**. The access log already masks guide-link, invite and scan tokens and drops query strings (#59).
+The Node.js app's own output goes to the log shown on the Node.js screen; check that file is rotated too (*Logs* lists it).
+
+### 8d. Restore test (do once before launch, then every 3 months)
+
+A backup is only proven by restoring it. Over SSH:
+
+```bash
+F=$(ls -t ~/stayguide-backups/db_*.sql.gz | head -1)
+mysql --defaults-extra-file=~/.stayguide-backup.cnf -e "CREATE DATABASE stayguide_restore_test"   # or Plesk → Databases → Add
+gunzip -c "$F" | mysql --defaults-extra-file=~/.stayguide-backup.cnf stayguide_restore_test
+Q="SELECT (SELECT COUNT(*) FROM companies),(SELECT COUNT(*) FROM users),(SELECT COUNT(*) FROM properties),(SELECT COUNT(*) FROM work_orders),(SELECT COUNT(*) FROM time_entries)"
+mysql --defaults-extra-file=~/.stayguide-backup.cnf -N "$DB_NAME" -e "$Q"                 # live
+mysql --defaults-extra-file=~/.stayguide-backup.cnf -N stayguide_restore_test -e "$Q"     # restored: same or slightly lower
+tar -tzf $(ls -t ~/stayguide-backups/files_*.tar.gz | head -1) | grep -c uploads          # files are there
+mysql --defaults-extra-file=~/.stayguide-backup.cnf -e "DROP DATABASE stayguide_restore_test"
+```
+
+(The database user needs rights on `stayguide_restore_test`; in Plesk, add the database first and grant the same user.)
+Then check the **offsite** copy: Backup Manager → the latest remote backup → **Download** works and opens with the
+backup password. Write the date and the counts into task #65 / the session log.
+
+**If production is lost:** new server per steps 1–5 → put `.env` back → import the newest dump (or restore the Plesk
+backup) → copy `public/uploads/` and `storage/ops/` back → start → smoke test (step 7).
+
+## 9. Afterwards
+
 - Keep `.env` out of git (it is ignored); rotate `JWT_SECRET` only knowing that it signs everyone out
 - Redeploy: pull, `npm ci && npm run build:clean`, apply any new migrations from the README, restart

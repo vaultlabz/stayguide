@@ -1864,3 +1864,28 @@
 - Tests: unit 48/48 (legal values, prod warning); billing 65/65 (no-terms 400, pages served with no unfilled values, UI checkbox blocks signup) mock + MySQL; analytics, guest-link, pricing, ops-s1, ops-s9, design, offline green
 - Migration 21 verified on MySQL: old schema + migration gives the same `users` columns as the new `schema.sql`
 - Not yet covered: invited admins and crew don't store an acceptance (invite page shows a notice only); retention periods in the policy (90 days after closing, logs 90 days, backups 30 days) must match how the server is run (#65)
+
+## 2026-10-22 11:33 - OPS: #65 Backup, log retention and restore-test procedure; operator set to Wingu Digital (NM)
+
+**What Changed:**
+- ✅ `DEPLOYMENT_GUIDE.md` §8 rewritten: what holds data, Plesk Backup Manager (offsite remote storage, nightly 03:00, all content, 30-day retention, password-protected, error emails), second copy script, 90-day log rotation, restore test, disaster recovery order. "Afterwards" is now §9
+- ✅ `scripts/backup-mysql.sh`: `mysqldump --single-transaction` + tar of `public/uploads/`, Ops storage and `.env`; 14-day rotation; fails if the dump is incomplete; DB credentials from `~/.stayguide-backup.cnf` (chmod 600)
+- ✅ `.env.production.example`: `LEGAL_NAME=Wingu Digital`, `LEGAL_JURISDICTION=New Mexico` (#63)
+
+**Why:**
+- Launch audit: backups were one unconfigured line and never restore-tested
+- The Privacy Policy (#63) promises backups roll over within 30 days and logs are kept up to 90 days; the server settings must match
+- `OPS_SECRET_KEY` is the only key to stored access codes, so `.env` has to be backed up (and kept in the password manager)
+
+**How:**
+- Plesk-native backups for the offsite copy; a plain SQL dump for fast, format-independent restores
+- Restore test = import newest dump into `stayguide_restore_test`, compare row counts with live, check the files archive, download the offsite copy
+
+**Impact:**
+- **Recoverable**: server loss no longer means data loss
+- **Policy matches practice**: retention numbers in /privacy are now server settings
+
+**Technical Details:**
+- Script tested on local MySQL 9.3: dump + files archive created, `DB_NAME` read from `.env`; a missing `.env` key no longer aborts under `set -euo pipefail` (grep exit 1)
+- Restore rehearsal: dump imported into a scratch database, row counts for companies/users/properties/work_orders/time_entries identical to the source
+- Still on the server (user): configure remote storage + schedule, add the cron task, log rotation, first restore test
