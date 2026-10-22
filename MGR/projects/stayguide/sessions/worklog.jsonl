@@ -75,3 +75,4 @@
 {"ts":"2026-10-22 10:49","tool":"claude-code","event":"task.created","id":64,"title":"Uptime + error alerting for production (/api/health check, 5xx/crash alert email)"}
 {"ts":"2026-10-22 10:49","tool":"claude-code","event":"task.created","id":65,"title":"Production backups: nightly MySQL + public/uploads + storage/ops, one test restore"}
 {"ts":"2026-10-22 11:36","tool":"claude-code","event":"task.created","id":66,"title":"Close + purge account (super admin): delete or anonymize a company and its data within 90 days of closing"}
+{"ts": "2026-10-22 16:13", "tool": "claude-code", "event": "task.done", "id": 66, "title": "Close + purge account (super admin)"}

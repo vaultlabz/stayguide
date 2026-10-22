@@ -24,6 +24,7 @@ Short-lived facts agents should remember for this repo. Update as the project ev
 - 2026-10-05 08:20 — Hardware: generic RK3568-class Android AIO kits allowed, gated by /tablet/diagnostics + the vetting checklist in docs/KIOSK_SETUP.md
 - 2026-10-05 08:20 — Stripe: the sandbox is the Wingu Digital test account (key from ~/Desktop/ctrl/master.txt "stripe (test)", never the live key there); prices via `npm run stripe:setup`; payments = cards + ACH + bank transfer; webhooks idempotent
 - 2026-10-22 11:33 — StayGuide is run by Wingu Digital, New Mexico: LEGAL_NAME / LEGAL_JURISDICTION on /terms and /privacy (#63)
+- 2026-10-22 16:22 — Production domain: stayguide.pro (APP_BASE_URL); stayguidepro.app 301-forwards to it in Plesk (never a second app binding)
 - 2026-10-05 08:20 — Design partner "Trinity" (Vault Labs) gets updates via docs/TRINITY_DESIGN_UPDATE.md + docs/screenshots/
 
 ## Conventions (mgr protocol)

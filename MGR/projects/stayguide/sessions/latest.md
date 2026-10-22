@@ -180,3 +180,12 @@
 - #64 code done: /api/health real DB check (503 when down), alert emails for 5xx / crashes / unhandled rejections / failed Ops jobs (15-min throttle + summary), alerts-test suite; DEPLOYMENT_GUIDE §8e
 - docs/LAUNCH_TODO.md: owner checklist (decisions, merge PR #3, legal review, Stripe live, server, backups, monitoring, smoke test, tablet check)
 - Tests: unit 54/54; alerts 8/8 mock + MySQL; billing, ops-s9, presence MySQL; ops-s8, presence, offline, password, tenancy mock green
+
+2026-10-22 16:13
+## Checkpoint (claude-code)
+- #66 done: close + purge account (super admin dialog: export, close, reopen, purge now; auto purge 60 days after close; billing kept; people anonymized); migration 22; closure-test 39/39 mock + MySQL; ops-s9 Stripe cancel check
+- Domains: stayguide.pro + stayguidepro.app; recommended stayguide.pro primary, .app 301 redirect (awaiting user confirmation)
+
+2026-10-22 16:22
+## Checkpoint (claude-code)
+- Committed #66 (3b96625); domain stayguide.pro set in launch docs, stayguidepro.app as 301 forward

@@ -29,3 +29,4 @@
 2026-10-22 11:18 | claude-code | #63 Privacy + Terms pages, signup acceptance (migration 21); src/views/privacy.html, terms.html, src/utils/legal.ts, SignupController, UserService
 2026-10-22 11:33 | claude-code | #65 backup script + DEPLOYMENT_GUIDE §8 backups/log retention/restore test; LEGAL_NAME Wingu Digital (NM)
 2026-10-22 11:43 | claude-code | #64 health check + error alert emails; src/utils/alerts.ts, routes/api.ts, index.ts, jobs/ops-scheduler.ts, tests/e2e/alerts-test.js; docs/LAUNCH_TODO.md
+2026-10-22 16:13 | claude-code | #66 close + purge account; src/services/AccountClosureService.ts, CompanyController, routes/admin.ts, jobs/ops-scheduler.ts, admin-dashboard.html, migration 22, tests/e2e/closure-test.js

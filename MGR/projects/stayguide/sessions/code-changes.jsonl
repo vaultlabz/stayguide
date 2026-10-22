@@ -29,3 +29,4 @@
 {"ts": "2026-10-22 11:18", "tool": "claude-code", "change": "#63 Privacy + Terms pages, signup acceptance stored (migration 21)"}
 {"ts": "2026-10-22 11:33", "tool": "claude-code", "change": "#65 scripts/backup-mysql.sh + DEPLOYMENT_GUIDE §8 backups, log retention, restore test; LEGAL_NAME Wingu Digital (NM)"}
 {"ts": "2026-10-22 11:43", "tool": "claude-code", "change": "#64 real health check + error alert emails (5xx, crashes, Ops jobs), alerts-test; docs/LAUNCH_TODO.md"}
+{"ts": "2026-10-22 16:13", "tool": "claude-code", "change": "#66 close + purge account: AccountClosureService, admin Close dialog, export, scheduler purge, migration 22, closure-test"}

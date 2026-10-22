@@ -944,10 +944,10 @@
       "id": 66,
       "creationDate": "2026-10-22 11:36",
       "title": "Close + purge account (super admin): delete or anonymize a company and its data within 90 days of closing",
-      "description": "Privacy Policy (#63) promises account data is deleted or anonymized within 90 days after closing, except invoices kept for tax. No tool exists: today it would be manual SQL. Needs: close account (cancel Stripe subscription, deactivate users, unpair devices), scheduled purge after the grace period (properties, content, uploads, Ops files, guest reports, analytics, time entries per customer choice), keep invoices/billing records, audit log entry, optional export before purge (Terms §8: export within 30 days).",
+      "description": "Privacy Policy (#63) promises account data is deleted or anonymized within 90 days after closing, except invoices kept for tax. No tool exists: today it would be manual SQL. Needs: close account (cancel Stripe subscription, deactivate users, unpair devices), scheduled purge after the grace period (properties, content, uploads, Ops files, guest reports, analytics, time entries per customer choice), keep invoices/billing records, audit log entry, optional export before purge (Terms §8: export within 30 days). | 2026-10-22 16:13 built: super admin Close… dialog (export, close, reopen, purge now), automatic purge ACCOUNT_PURGE_DAYS (60) after closing via the hourly scheduler, migration 22, closure-test 39/39 mock + MySQL.",
       "complexity": 6,
-      "completionDate": null,
-      "status": "pending",
+      "completionDate": "2026-10-22 16:13",
+      "status": "done",
       "priority": "medium",
       "trelloCardId": null,
       "context": {

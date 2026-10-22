@@ -360,3 +360,7 @@
 ## 2026-10-22 11:36 | claude-code | task.created
 - **id:** 66
 - **title:** Close + purge account (super admin): delete or anonymize a company and its data within 90 days of closing
+
+## 2026-10-22 16:13 | claude-code | task.done
+- **id:** 66
+- **title:** Close + purge account (super admin)
